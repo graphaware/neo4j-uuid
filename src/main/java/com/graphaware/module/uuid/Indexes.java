@@ -18,7 +18,10 @@ package com.graphaware.module.uuid;
 /**
  * Indices maintained by the {@link com.graphaware.module.uuid.UuidModule}.
  */
-public class Indexes {
+public final class Indexes {
 
     public static final String UUID_NODE_INDEX  = "nodeUuids";
+
+    private Indexes() {
+    }
 }

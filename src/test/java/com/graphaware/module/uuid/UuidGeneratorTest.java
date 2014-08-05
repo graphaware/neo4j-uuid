@@ -29,7 +29,7 @@ import static junit.framework.Assert.assertFalse;
 public class UuidGeneratorTest {
 
     @Test
-    public void shouldbeNoDuplicatesWithConcurrentAccess() throws InterruptedException {
+    public void shouldBeNoDuplicatesWithConcurrentAccess() throws InterruptedException {
         final Set<String> uuids = new ConcurrentHashSet<>();
         final UuidGenerator generator=new EaioUuidGenerator();
         final AtomicBoolean failure = new AtomicBoolean(false);

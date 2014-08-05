@@ -18,9 +18,9 @@ package com.graphaware.module.uuid;
 /**
  * Properties of nodes and relationships written by the {@link com.graphaware.module.uuid.UuidModule}.
  */
-public class Properties {
+public final class Properties {
 
-    public static final String UUID="uuid";
+    public static final String UUID = "uuid";
 
     private Properties() {
     }

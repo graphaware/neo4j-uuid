@@ -17,13 +17,14 @@
 package com.graphaware.module.uuid;
 
 /**
- * A UUID generator
+ * A UUID generator.
  */
 public interface UuidGenerator {
 
     /**
-     * Generate a UUID
-     * @return the UUID
+     * Generate a UUID.
+     *
+     * @return the UUID.
      */
     String generateUuid();
 }

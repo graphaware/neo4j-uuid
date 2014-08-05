@@ -31,13 +31,13 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
     private GraphDatabaseService database;
     private UuidApi uuidApi;
-    private Label testLabel=DynamicLabel.label("test");
+    private Label testLabel = DynamicLabel.label("test");
 
     @Before
     public void setUp() {
         database = new TestGraphDatabaseFactory().newImpermanentDatabase();
         GraphAwareRuntime runtime = GraphAwareRuntimeFactory.createRuntime(database);
-        UuidModule module = new UuidModule("UUIDM", database);
+        UuidModule module = new UuidModule("UUIDM");
         runtime.registerModule(module);
         runtime.start();
         uuidApi = new UuidApi(database);
@@ -75,7 +75,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
     @Test
     public void shouldNotBeAbleToChangeTheUuid() {
         Node node;
-        boolean exceptionThrown=false;
+        boolean exceptionThrown = false;
 
         try (Transaction tx = database.beginTx()) {
             node = database.createNode();
@@ -86,14 +86,13 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         try (Transaction tx = database.beginTx()) {
             for (Node n : GlobalGraphOperations.at(database).getAllNodesWithLabel(testLabel)) {
-               n.setProperty(Properties.UUID,"aNewUuid");
+                n.setProperty(Properties.UUID, "aNewUuid");
             }
             tx.success();
+        } catch (TransactionFailureException tfe) {
+            exceptionThrown = true;
         }
-        catch (TransactionFailureException tfe) {
-            exceptionThrown=true;
-        }
-        assertTrue("Expected an IllegalStateException",exceptionThrown);
+        assertTrue("Expected an IllegalStateException", exceptionThrown);
 
 
     }
@@ -101,7 +100,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
     @Test
     public void shouldNotBeAbleToDeleteTheUuid() {
         Node node;
-        boolean exceptionThrown=false;
+        boolean exceptionThrown = false;
 
         try (Transaction tx = database.beginTx()) {
             node = database.createNode();
@@ -115,11 +114,10 @@ public class UuidModuleEmbeddedProgrammaticTest {
                 n.removeProperty(Properties.UUID);
             }
             tx.success();
+        } catch (TransactionFailureException ise) {
+            exceptionThrown = true;
         }
-        catch (TransactionFailureException ise) {
-            exceptionThrown=true;
-        }
-        assertTrue("Expected an IllegalStateException",exceptionThrown);
+        assertTrue("Expected an IllegalStateException", exceptionThrown);
 
 
     }

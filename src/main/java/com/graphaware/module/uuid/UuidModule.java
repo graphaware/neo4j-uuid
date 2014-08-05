@@ -31,20 +31,25 @@ import org.neo4j.tooling.GlobalGraphOperations;
  */
 public class UuidModule extends BaseTxDrivenModule<Void> {
 
-    private UuidGenerator uuidGenerator;
-
     private final static int BATCH_SIZE = 1000;
 
-    public UuidModule(String moduleId, GraphDatabaseService database) {
+    private final UuidGenerator uuidGenerator;
+
+    /**
+     * Construct a new UUID module.
+     *
+     * @param moduleId ID of the module.
+     */
+    public UuidModule(String moduleId) {
         super(moduleId);
         this.uuidGenerator = new EaioUuidGenerator();
     }
 
-
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void initialize(GraphDatabaseService database) {
-
-
         new IterableInputBatchTransactionExecutor<>(
                 database,
                 BATCH_SIZE,
@@ -57,9 +62,7 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
                 new UnitOfWork<Node>() {
                     @Override
                     public void execute(GraphDatabaseService database, Node node, int batchNumber, int stepNumber) {
-                        if (!node.hasProperty(Properties.UUID)) {
-                            assignUuid(node);
-                        }
+                        assignUuid(node);
                     }
                 }
         ).execute();
@@ -79,11 +82,11 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
         //Check if the UUID has been modified or removed from the node and throw an error
         for (Change<Node> change : transactionData.getAllChangedNodes()) {
 
-            if(!change.getCurrent().hasProperty(Properties.UUID)) {
+            if (!change.getCurrent().hasProperty(Properties.UUID)) {
                 throw new DeliberateTransactionRollbackException("You are not allowed to remove the " + Properties.UUID + " property");
             }
 
-            if(!change.getPrevious().getProperty(Properties.UUID).equals(change.getCurrent().getProperty(Properties.UUID))) {
+            if (!change.getPrevious().getProperty(Properties.UUID).equals(change.getCurrent().getProperty(Properties.UUID))) {
                 throw new DeliberateTransactionRollbackException("You are not allowed to modify the " + Properties.UUID + " property");
             }
 
@@ -93,9 +96,9 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
     }
 
     private void assignUuid(Node node) {
-        String uuid = uuidGenerator.generateUuid();
-        node.setProperty(Properties.UUID, uuid);
+        if (!node.hasProperty(Properties.UUID)) {
+            String uuid = uuidGenerator.generateUuid();
+            node.setProperty(Properties.UUID, uuid);
+        }
     }
-
-
 }

@@ -32,6 +32,6 @@ public class UuidBootstrapper implements RuntimeModuleBootstrapper {
      */
     @Override
     public RuntimeModule bootstrapModule(String moduleId, Map<String, String> config, GraphDatabaseService database) {
-        return new UuidModule(moduleId,database);
+        return new UuidModule(moduleId);
     }
 }

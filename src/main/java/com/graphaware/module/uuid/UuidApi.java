@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 /**
- * REST API for {@link UuidApi}.
+ * REST API for {@link UuidModule}.
  */
 @Controller
 @RequestMapping("/uuid")
@@ -40,8 +40,8 @@ public class UuidApi {
 
     @RequestMapping(value = "/node/{uuid}", method = RequestMethod.GET)
     @ResponseBody
-    public Node getInternalIdByUuid(@PathVariable(value = "uuid") String uuid) {
-       return null; //TODO till indexing is fixed or we use labels or a global scan
+    public Node getNodeIdByUuid(@PathVariable(value = "uuid") String uuid) {
+        return null; //TODO till indexing is fixed or we use labels or a global scan
     }
 
 }
