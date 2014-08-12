@@ -31,7 +31,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @RequestMapping("/uuid")
 public class UuidApi {
 
-    private GraphDatabaseService database;
+    private final GraphDatabaseService database;
 
     @Autowired
     public UuidApi(GraphDatabaseService database) {

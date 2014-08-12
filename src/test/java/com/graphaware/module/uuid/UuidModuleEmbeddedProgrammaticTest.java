@@ -24,23 +24,22 @@ import org.neo4j.graphdb.*;
 import org.neo4j.test.TestGraphDatabaseFactory;
 import org.neo4j.tooling.GlobalGraphOperations;
 
-import static org.junit.Assert.assertTrue;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.junit.Assert.*;
 
 
 public class UuidModuleEmbeddedProgrammaticTest {
 
     private GraphDatabaseService database;
-    private UuidApi uuidApi;
-    private Label testLabel = DynamicLabel.label("test");
+    private final Label testLabel = DynamicLabel.label("test");
+    private final Label personLabel = DynamicLabel.label("Person");
+    private UuidConfiguration uuidConfiguration;
 
     @Before
     public void setUp() {
         database = new TestGraphDatabaseFactory().newImpermanentDatabase();
-        GraphAwareRuntime runtime = GraphAwareRuntimeFactory.createRuntime(database);
-        UuidModule module = new UuidModule("UUIDM");
-        runtime.registerModule(module);
-        runtime.start();
-        uuidApi = new UuidApi(database);
     }
 
     @After
@@ -54,7 +53,11 @@ public class UuidModuleEmbeddedProgrammaticTest {
     }
 
     @Test
-    public void newNodesShouldBeAssignedUuid() {
+    public void newNodesWithLabelShouldBeAssignedUuid() {
+        //Given
+        registerModuleWithNoLabels();
+
+        //When
         try (Transaction tx = database.beginTx()) {
             Node node = database.createNode();
             node.addLabel(testLabel);
@@ -62,20 +65,45 @@ public class UuidModuleEmbeddedProgrammaticTest {
             tx.success();
         }
 
+        //Then
         //Retrieve the node and check that it has a uuid property
         try (Transaction tx = database.beginTx()) {
             for (Node node : GlobalGraphOperations.at(database).getAllNodesWithLabel(testLabel)) {
-                assertTrue(node.hasProperty(Properties.UUID));
+                assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
             }
             tx.success();
         }
-
     }
 
     @Test
-    public void shouldNotBeAbleToChangeTheUuid() {
+    public void newNodesWithoutLabelShouldBeAssignedUuid() {
+        //Given
+        registerModuleWithNoLabels();
+
+        //When
+        try (Transaction tx = database.beginTx()) {
+            Node node = database.createNode();
+            node.setProperty("name", "aNode");
+            tx.success();
+        }
+
+        //Then
+        //Retrieve the node and check that it has a uuid property
+        try (Transaction tx = database.beginTx()) {
+            for (Node node : GlobalGraphOperations.at(database).getAllNodes()) {
+                assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
+            }
+            tx.success();
+        }
+    }
+
+
+    @Test(expected = TransactionFailureException.class)
+    public void shouldNotBeAbleToChangeTheUuidOfLabeledNode() {
         Node node;
-        boolean exceptionThrown = false;
+
+        //Given
+        registerModuleWithNoLabels();
 
         try (Transaction tx = database.beginTx()) {
             node = database.createNode();
@@ -84,23 +112,49 @@ public class UuidModuleEmbeddedProgrammaticTest {
             tx.success();
         }
 
+        //When
         try (Transaction tx = database.beginTx()) {
             for (Node n : GlobalGraphOperations.at(database).getAllNodesWithLabel(testLabel)) {
-                n.setProperty(Properties.UUID, "aNewUuid");
+                n.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
             }
             tx.success();
-        } catch (TransactionFailureException tfe) {
-            exceptionThrown = true;
         }
-        assertTrue("Expected an IllegalStateException", exceptionThrown);
 
-
+        //Then
+        //Exception should be thrown
     }
 
-    @Test
-    public void shouldNotBeAbleToDeleteTheUuid() {
+    @Test(expected = TransactionFailureException.class)
+    public void shouldNotBeAbleToChangeTheUuidOfUnlabeledNode() {
         Node node;
-        boolean exceptionThrown = false;
+
+        //Given
+        registerModuleWithNoLabels();
+
+        try (Transaction tx = database.beginTx()) {
+            node = database.createNode();
+            node.setProperty("name", "aNode");
+            tx.success();
+        }
+
+        //When
+        try (Transaction tx = database.beginTx()) {
+            for (Node n : GlobalGraphOperations.at(database).getAllNodes()) {
+                n.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
+            }
+            tx.success();
+        }
+
+        //Then
+        //Exception should be thrown
+    }
+
+    @Test(expected = TransactionFailureException.class)
+    public void shouldNotBeAbleToDeleteTheUuidOfLabeledNode() {
+        Node node;
+
+        //Given
+        registerModuleWithNoLabels();
 
         try (Transaction tx = database.beginTx()) {
             node = database.createNode();
@@ -109,17 +163,316 @@ public class UuidModuleEmbeddedProgrammaticTest {
             tx.success();
         }
 
+        //When
         try (Transaction tx = database.beginTx()) {
             for (Node n : GlobalGraphOperations.at(database).getAllNodesWithLabel(testLabel)) {
-                n.removeProperty(Properties.UUID);
+                n.removeProperty(uuidConfiguration.getUuidProperty());
             }
             tx.success();
-        } catch (TransactionFailureException ise) {
-            exceptionThrown = true;
         }
-        assertTrue("Expected an IllegalStateException", exceptionThrown);
+
+        //Then
+        //Exception should be thrown
+    }
+
+    @Test(expected = TransactionFailureException.class)
+    public void shouldNotBeAbleToDeleteTheUuidOfUnlabeledNode() {
+        Node node;
+
+        //Given
+        registerModuleWithNoLabels();
+
+        try (Transaction tx = database.beginTx()) {
+            node = database.createNode();
+            node.setProperty("name", "aNode");
+            tx.success();
+        }
+
+        //When
+        try (Transaction tx = database.beginTx()) {
+            for (Node n : GlobalGraphOperations.at(database).getAllNodes()) {
+                n.removeProperty(uuidConfiguration.getUuidProperty());
+            }
+            tx.success();
+        }
+        //Then
+        //Exception should be thrown
+    }
 
 
+    @Test
+    public void uuidShouldBeAssignedToNodeWithLabelSpecifiedInConfig() {
+        //Given
+        registerModuleWithLabels();
+
+        //When
+        try (Transaction tx = database.beginTx()) {
+            Node node = database.createNode();
+            node.addLabel(personLabel);
+            node.setProperty("name", "aNode");
+            tx.success();
+        }
+
+        //Then
+        //Retrieve the node and check that it has a uuid property
+        try (Transaction tx = database.beginTx()) {
+            for (Node node : GlobalGraphOperations.at(database).getAllNodesWithLabel(personLabel)) {
+                assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
+            }
+            tx.success();
+        }
+    }
+
+    @Test
+    public void uuidShouldNotBeAssignedToNodeWithLabelNotSpecifiedInConfig() {
+        //Given
+        registerModuleWithLabels();
+
+        //When
+        try (Transaction tx = database.beginTx()) {
+            Node node = database.createNode();
+            node.addLabel(testLabel);
+            node.setProperty("name", "aNode");
+            tx.success();
+        }
+
+        //Then
+        //Retrieve the node and check that it has no uuid property
+        try (Transaction tx = database.beginTx()) {
+            for (Node node : GlobalGraphOperations.at(database).getAllNodesWithLabel(testLabel)) {
+                assertFalse(node.hasProperty(uuidConfiguration.getUuidProperty()));
+            }
+            tx.success();
+        }
+    }
+
+    @Test
+    public void uuidShouldNotBeAssignedToNodeWithNoLabel() {
+        //Given
+        registerModuleWithLabels();
+
+        //When
+        try (Transaction tx = database.beginTx()) {
+            Node node = database.createNode();
+            node.setProperty("name", "aNode");
+            tx.success();
+        }
+
+        //Then
+        //Retrieve the node and check that it has no uuid property
+        try (Transaction tx = database.beginTx()) {
+            for (Node node : GlobalGraphOperations.at(database).getAllNodes()) {
+                if (!node.getLabels().iterator().hasNext()) {  //Exclude GA nodes
+                    assertFalse(node.hasProperty(uuidConfiguration.getUuidProperty()));
+                }
+            }
+            tx.success();
+        }
+    }
+
+
+    @Test
+    public void shouldBeAbleToChangeTheUuidOfLabeledNodeNotConfigured() {
+        Node node;
+
+        //Given
+        registerModuleWithLabels();
+
+        try (Transaction tx = database.beginTx()) {
+            node = database.createNode();
+            node.addLabel(testLabel);
+            node.setProperty("name", "aNode");
+            tx.success();
+        }
+
+        //When
+        try (Transaction tx = database.beginTx()) {
+            for (Node n : GlobalGraphOperations.at(database).getAllNodesWithLabel(testLabel)) {
+                n.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
+            }
+            tx.success();
+        }
+
+        //Then
+        try (Transaction tx = database.beginTx()) {
+            for (Node n : GlobalGraphOperations.at(database).getAllNodesWithLabel(testLabel)) {
+                assertEquals("aNewUuid", n.getProperty(uuidConfiguration.getUuidProperty()));
+            }
+            tx.success();
+        }
+    }
+
+    @Test(expected = TransactionFailureException.class)
+    public void shouldNotBeAbleToChangeTheUuidOfLabeledNodeConfigured() {
+        Node node;
+
+        //Given
+        registerModuleWithNoLabels();
+
+        try (Transaction tx = database.beginTx()) {
+            node = database.createNode();
+            node.addLabel(personLabel);
+            node.setProperty("name", "aNode");
+            tx.success();
+        }
+
+        //When
+        try (Transaction tx = database.beginTx()) {
+            for (Node n : GlobalGraphOperations.at(database).getAllNodesWithLabel(personLabel)) {
+                n.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
+            }
+            tx.success();
+        }
+
+        //Then
+        //Exception should be thrown
+    }
+
+    @Test
+    public void shouldBeAbleToChangeTheUuidOfUnlabeledNodeWithLabelConfiguration() {
+        Node node;
+
+        //Given
+        registerModuleWithLabels();
+
+        try (Transaction tx = database.beginTx()) {
+            node = database.createNode();
+            node.setProperty("name", "aNode");
+            tx.success();
+        }
+
+        //When
+        try (Transaction tx = database.beginTx()) {
+            for (Node n : GlobalGraphOperations.at(database).getAllNodes()) {
+                if (!node.getLabels().iterator().hasNext()) {  //Exclude GA nodes
+                    n.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
+                }
+            }
+            tx.success();
+        }
+
+        //Then
+        try (Transaction tx = database.beginTx()) {
+            for (Node n : GlobalGraphOperations.at(database).getAllNodes()) {
+                if (!node.getLabels().iterator().hasNext()) {  //Exclude GA nodes
+                    assertEquals("aNewUuid", n.getProperty(uuidConfiguration.getUuidProperty()));
+                }
+            }
+            tx.success();
+        }
+    }
+
+    @Test
+    public void shouldBeAbleToDeleteTheUuidOfLabeledNodeNotConfigured() {
+        Node node;
+
+        //Given
+        registerModuleWithLabels();
+
+        try (Transaction tx = database.beginTx()) {
+            node = database.createNode();
+            node.addLabel(testLabel);
+            node.setProperty("name", "aNode");
+            tx.success();
+        }
+
+        //When
+        try (Transaction tx = database.beginTx()) {
+            for (Node n : GlobalGraphOperations.at(database).getAllNodesWithLabel(testLabel)) {
+                n.removeProperty(uuidConfiguration.getUuidProperty());
+            }
+            tx.success();
+        }
+
+        //Then
+        try (Transaction tx = database.beginTx()) {
+            for (Node n : GlobalGraphOperations.at(database).getAllNodesWithLabel(testLabel)) {
+                assertFalse(n.hasProperty(uuidConfiguration.getUuidProperty()));
+            }
+            tx.success();
+        }
+    }
+
+    @Test(expected = TransactionFailureException.class)
+    public void shouldNotBeAbleToDeleteTheUuidOfLabeledNodeConfigured() {
+        Node node;
+
+        //Given
+        registerModuleWithNoLabels();
+
+        try (Transaction tx = database.beginTx()) {
+            node = database.createNode();
+            node.addLabel(personLabel);
+            node.setProperty("name", "aNode");
+            tx.success();
+        }
+
+        //When
+        try (Transaction tx = database.beginTx()) {
+            for (Node n : GlobalGraphOperations.at(database).getAllNodesWithLabel(personLabel)) {
+                n.removeProperty(uuidConfiguration.getUuidProperty());
+            }
+            tx.success();
+        }
+        //Then
+        //Exception should be thrown
+    }
+
+    @Test
+    public void shouldBeAbleToDeleteTheUuidOfUnlabeledNodeWithConfiguration() {
+        Node node;
+
+        //Given
+        registerModuleWithLabels();
+
+        try (Transaction tx = database.beginTx()) {
+            node = database.createNode();
+            node.setProperty("name", "aNode");
+            tx.success();
+        }
+
+        //When
+        try (Transaction tx = database.beginTx()) {
+            for (Node n : GlobalGraphOperations.at(database).getAllNodes()) {
+                if (!node.getLabels().iterator().hasNext()) {  //Exclude GA nodes
+                    n.removeProperty(uuidConfiguration.getUuidProperty());
+                }
+            }
+            tx.success();
+        }
+        //Then
+        try (Transaction tx = database.beginTx()) {
+            for (Node n : GlobalGraphOperations.at(database).getAllNodes()) {
+                if (!node.getLabels().iterator().hasNext()) {  //Exclude GA nodes
+                    assertFalse(n.hasProperty(uuidConfiguration.getUuidProperty()));
+                }
+            }
+            tx.success();
+        }
+    }
+
+    private void registerModuleWithNoLabels() {
+        uuidConfiguration = UuidConfiguration.defaultConfiguration()
+                .withUuidProperty("uuid");
+        GraphAwareRuntime runtime = GraphAwareRuntimeFactory.createRuntime(database);
+        UuidModule module = new UuidModule("UUIDM", uuidConfiguration);
+        runtime.registerModule(module);
+        runtime.start();
+    }
+
+    private void registerModuleWithLabels() {
+        List<String> labels = new ArrayList<>(2);
+        labels.add("Person");
+        labels.add("Company");
+
+        uuidConfiguration = UuidConfiguration.defaultConfiguration()
+                .withUuidProperty("uuid")
+                .withLabels(labels);
+
+        GraphAwareRuntime runtime = GraphAwareRuntimeFactory.createRuntime(database);
+        UuidModule module = new UuidModule("UUIDM", uuidConfiguration);
+        runtime.registerModule(module);
+        runtime.start();
     }
 
 

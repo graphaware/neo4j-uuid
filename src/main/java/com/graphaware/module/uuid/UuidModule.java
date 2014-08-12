@@ -23,8 +23,11 @@ import com.graphaware.tx.executor.batch.IterableInputBatchTransactionExecutor;
 import com.graphaware.tx.executor.batch.UnitOfWork;
 import com.graphaware.tx.executor.single.TransactionCallback;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.tooling.GlobalGraphOperations;
+
+import java.util.List;
 
 /**
  * {@link com.graphaware.runtime.module.TxDrivenModule} that assigns UUID's to nodes in the graph.
@@ -34,15 +37,19 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
     private final static int BATCH_SIZE = 1000;
 
     private final UuidGenerator uuidGenerator;
+    private final UuidConfiguration uuidConfiguration;
+    private final List<String> labelsToBeConsidered;
 
     /**
      * Construct a new UUID module.
      *
      * @param moduleId ID of the module.
      */
-    public UuidModule(String moduleId) {
+    public UuidModule(String moduleId, UuidConfiguration configuration) {
         super(moduleId);
         this.uuidGenerator = new EaioUuidGenerator();
+        this.uuidConfiguration = configuration;
+        this.labelsToBeConsidered = configuration.getLabels();
     }
 
     /**
@@ -74,20 +81,24 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
     @Override
     public Void beforeCommit(ImprovedTransactionData transactionData) throws DeliberateTransactionRollbackException {
 
+
         //Set the UUID on all created nodes
         for (Node node : transactionData.getAllCreatedNodes()) {
-            assignUuid(node);
+            if (nodeToBeConsideredByModule(node)) {
+                assignUuid(node);
+            }
         }
 
         //Check if the UUID has been modified or removed from the node and throw an error
         for (Change<Node> change : transactionData.getAllChangedNodes()) {
+            if (nodeToBeConsideredByModule(change.getCurrent())) {
+                if (!change.getCurrent().hasProperty(uuidConfiguration.getUuidProperty())) {
+                    throw new DeliberateTransactionRollbackException("You are not allowed to remove the " + uuidConfiguration.getUuidProperty() + " property");
+                }
 
-            if (!change.getCurrent().hasProperty(Properties.UUID)) {
-                throw new DeliberateTransactionRollbackException("You are not allowed to remove the " + Properties.UUID + " property");
-            }
-
-            if (!change.getPrevious().getProperty(Properties.UUID).equals(change.getCurrent().getProperty(Properties.UUID))) {
-                throw new DeliberateTransactionRollbackException("You are not allowed to modify the " + Properties.UUID + " property");
+                if (!change.getPrevious().getProperty(uuidConfiguration.getUuidProperty()).equals(change.getCurrent().getProperty(uuidConfiguration.getUuidProperty()))) {
+                    throw new DeliberateTransactionRollbackException("You are not allowed to modify the " + uuidConfiguration.getUuidProperty() + " property");
+                }
             }
 
         }
@@ -96,9 +107,28 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
     }
 
     private void assignUuid(Node node) {
-        if (!node.hasProperty(Properties.UUID)) {
+        if (!node.hasProperty(uuidConfiguration.getUuidProperty())) {
             String uuid = uuidGenerator.generateUuid();
-            node.setProperty(Properties.UUID, uuid);
+            node.setProperty(uuidConfiguration.getUuidProperty(), uuid);
         }
+    }
+
+    /**
+     * Check whether this node is to be considered by the UUID module based on label configuration
+     *
+     * @param node the node
+     * @return true if the node is to be considered by the UUID module
+     */
+    private boolean nodeToBeConsideredByModule(Node node) {
+        if (labelsToBeConsidered.size() == 0) {
+            return true;
+        }
+        for (Label label : node.getLabels()) {
+            if (labelsToBeConsidered.contains(label.name())) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
