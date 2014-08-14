@@ -17,6 +17,7 @@ package com.graphaware.module.uuid;
 
 import com.graphaware.runtime.GraphAwareRuntime;
 import com.graphaware.runtime.GraphAwareRuntimeFactory;
+import com.graphaware.runtime.strategy.IncludeAllBusinessNodes;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -91,7 +92,9 @@ public class UuidModuleEmbeddedProgrammaticTest {
         //Retrieve the node and check that it has a uuid property
         try (Transaction tx = database.beginTx()) {
             for (Node node : GlobalGraphOperations.at(database).getAllNodes()) {
-                assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
+                if (IncludeAllBusinessNodes.getInstance().include(node)) {
+                    assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
+                }
             }
             tx.success();
         }
@@ -452,8 +455,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
     }
 
     private void registerModuleWithNoLabels() {
-        uuidConfiguration = UuidConfiguration.defaultConfiguration()
-                .withUuidProperty("uuid");
+        uuidConfiguration = UuidConfiguration.defaultConfiguration().withUuidProperty("uuid");
         GraphAwareRuntime runtime = GraphAwareRuntimeFactory.createRuntime(database);
         UuidModule module = new UuidModule("UUIDM", uuidConfiguration);
         runtime.registerModule(module);

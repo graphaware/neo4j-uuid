@@ -49,6 +49,7 @@ public class UuidBootstrapper implements RuntimeModuleBootstrapper {
             configuration = configuration.withUuidProperty(config.get(UUID_PROPERTY));
             LOG.info("uuidProperty set to {}", configuration.getUuidProperty());
         }
+
         if (config.get(LABELS) != null && config.get(LABELS).length() > 0) {
             List<String> labels = new ArrayList<>();
             StringTokenizer st = new StringTokenizer(config.get(LABELS), ",");
@@ -57,6 +58,7 @@ public class UuidBootstrapper implements RuntimeModuleBootstrapper {
             }
             configuration = configuration.withLabels(labels);
         }
+
         return new UuidModule(moduleId, configuration);
     }
 }

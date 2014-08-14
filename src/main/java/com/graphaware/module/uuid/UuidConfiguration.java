@@ -55,6 +55,9 @@ public class UuidConfiguration extends BaseTxDrivenModuleConfiguration<UuidConfi
         return new UuidConfiguration(InclusionStrategiesFactory.allBusiness(), DEFAULT_UUID_PROPERTY, Collections.EMPTY_LIST);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected UuidConfiguration newInstance(InclusionStrategies inclusionStrategies) {
         return new UuidConfiguration(inclusionStrategies, getUuidProperty(), getLabels());
@@ -88,6 +91,9 @@ public class UuidConfiguration extends BaseTxDrivenModuleConfiguration<UuidConfi
         return new UuidConfiguration(getInclusionStrategies(), getUuidProperty(), labels);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -102,6 +108,9 @@ public class UuidConfiguration extends BaseTxDrivenModuleConfiguration<UuidConfi
         return true;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public int hashCode() {
         int result = super.hashCode();

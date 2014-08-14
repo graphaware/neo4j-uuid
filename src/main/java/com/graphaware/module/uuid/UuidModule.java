@@ -38,7 +38,7 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
 
     private final UuidGenerator uuidGenerator;
     private final UuidConfiguration uuidConfiguration;
-    private final List<String> labelsToBeConsidered;
+    private final List<String> labelsToBeConsidered; //todo replace by inclusions strategy when framework supports it
 
     /**
      * Construct a new UUID module.
@@ -81,7 +81,6 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
     @Override
     public Void beforeCommit(ImprovedTransactionData transactionData) throws DeliberateTransactionRollbackException {
 
-
         //Set the UUID on all created nodes
         for (Node node : transactionData.getAllCreatedNodes()) {
             if (nodeToBeConsideredByModule(node)) {
@@ -120,9 +119,10 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
      * @return true if the node is to be considered by the UUID module
      */
     private boolean nodeToBeConsideredByModule(Node node) {
-        if (labelsToBeConsidered.size() == 0) {
+        if (labelsToBeConsidered.isEmpty()) {
             return true;
         }
+
         for (Label label : node.getLabels()) {
             if (labelsToBeConsidered.contains(label.name())) {
                 return true;
