@@ -36,7 +36,8 @@ public class UuidModuleDeclarativeIntegrationTest extends DatabaseIntegrationTes
     }
 
     @Test
-    public void testUuidAssigned() {
+    public void testUuidAssigned() throws InterruptedException {
+        Thread.sleep(1000);
 
         //When
         try (Transaction tx = getDatabase().beginTx()) {
