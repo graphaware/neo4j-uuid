@@ -69,7 +69,9 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
                 new UnitOfWork<Node>() {
                     @Override
                     public void execute(GraphDatabaseService database, Node node, int batchNumber, int stepNumber) {
-                        assignUuid(node);
+                        if (getConfiguration().getInclusionStrategies().getNodeInclusionStrategy().include(node) && nodeToBeConsideredByModule(node)) {
+                            assignUuid(node);
+                        }
                     }
                 }
         ).execute();
