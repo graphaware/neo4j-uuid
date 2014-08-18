@@ -47,10 +47,69 @@ The version number has two parts. The first four numbers indicate compatibility 
  The last number is the version of the UUID library. For example, version 2.1.3.11.1 is version 1 of the UUID library
  compatible with GraphAware Neo4j Framework 2.1.3.11.
 
+
+Setup and Configuration
+--------------------
+
+### Server Mode
+
+Edit neo4j.properties to register the UUID module:
+
+```
+com.graphaware.runtime.enabled=true
+
+#UIDM becomes the module ID:
+com.graphaware.module.UIDM.1=com.graphaware.module.uuid.UuidBootstrapper
+
+#optional, default is uuid:
+com.graphaware.module.UIDM.uuidProperty=uuid
+
+#optional, default is all nodes:
+com.graphaware.module.UIDM.labels=Label1,Label2
+
+```
+
+Note that "UIDM" becomes the module ID. 
+
+`com.graphaware.module.UIDM.uuidProperty` is the property name that will be used to store the assigned UUID on the node. The default is "uuid".
+
+`com.graphaware.module.UIDM.labels` specifies a comma separated list of node labels. Only nodes with any of these labels will be assigned a UUID property.
+This also means that if this configuration is used, unlabelled nodes will not be assigned a UUID property. The default is to assign the UUID property to every node.
+
+
+### Embedded Mode / Java Development
+
+To use the UUID module programmatically, register the module like this
+
+```java
+ GraphAwareRuntime runtime = GraphAwareRuntimeFactory.createRuntime(database);  //where database is an instance of GraphDatabaseService
+ UuidModule module = new UuidModule("UUIDM", UuidConfiguration.defaultConfiguration());
+ runtime.registerModule(module);
+ runtime.start();
+```
+
+Alternatively:
+```java
+ GraphDatabaseService database = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(pathToDb)
+    .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j.properties").getPath())
+    .newGraphDatabase();
+ 
+ //make sure neo4j.properties contain the lines mentioned in previous section
+```
+
+
+
+
 Using GraphAware UUID
 ---------------------
 
-todo
+Apart from the configuration described above, the GraphAware UUID module requires nothing else to function. It will assign a UUID to nodes configured,
+and will prevent modifications to the UUID or deletion of the UUID property from these nodes by not allowing the transaction to commit.
+
+You may access the UUID via your own API's or Cypher- the GraphAware UUID module does not at this point provide an API to retrieve a node by UUID.
+This is because there is no efficient way to do this except via indexing, which is currently waiting on 
+<a href="https://github.com/neo4j/neo4j/issues/2714" target="_blank">issue 2714</a>
+
 
 License
 -------
