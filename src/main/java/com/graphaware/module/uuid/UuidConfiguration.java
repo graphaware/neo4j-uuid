@@ -15,12 +15,9 @@
  */
 package com.graphaware.module.uuid;
 
-import com.graphaware.common.strategy.InclusionStrategies;
+import com.graphaware.common.policy.InclusionPolicies;
 import com.graphaware.runtime.config.BaseTxDrivenModuleConfiguration;
-import com.graphaware.runtime.strategy.InclusionStrategiesFactory;
-
-import java.util.Collections;
-import java.util.List;
+import com.graphaware.runtime.policy.InclusionPoliciesFactory;
 
 
 /**
@@ -31,44 +28,38 @@ public class UuidConfiguration extends BaseTxDrivenModuleConfiguration<UuidConfi
     private static final String DEFAULT_UUID_PROPERTY = "uuid";
 
     private String uuidProperty;
-    private List<String> labels;
 
-    protected UuidConfiguration(InclusionStrategies inclusionStrategies) {
-        super(inclusionStrategies);
+    protected UuidConfiguration(InclusionPolicies inclusionPolicies) {
+        super(inclusionPolicies);
     }
 
-    public UuidConfiguration(InclusionStrategies inclusionStrategies, String uuidProperty, List<String> labels) {
-        super(inclusionStrategies);
+    public UuidConfiguration(InclusionPolicies inclusionPolicies, String uuidProperty) {
+        super(inclusionPolicies);
         this.uuidProperty = uuidProperty;
-        this.labels = labels;
     }
 
     /**
      * Create a default configuration with default uuid property = {@link #DEFAULT_UUID_PROPERTY}, labels=all (including nodes with no labels)
-     * inclusion strategies = {@link com.graphaware.runtime.strategy.InclusionStrategiesFactory#allBusiness()},
+     * inclusion strategies = {@link com.graphaware.runtime.policy.InclusionPoliciesFactory#allBusiness()},
      * (nothing is excluded except for framework-internal nodes and relationships)
      * <p/>
      * Change this by calling {@link #withUuidProperty(String)}, with* other inclusion strategies
      * on the object, always using the returned object (this is a fluent interface).
      */
     public static UuidConfiguration defaultConfiguration() {
-        return new UuidConfiguration(InclusionStrategiesFactory.allBusiness(), DEFAULT_UUID_PROPERTY, Collections.EMPTY_LIST);
+        return new UuidConfiguration(InclusionPoliciesFactory.allBusiness(), DEFAULT_UUID_PROPERTY);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    protected UuidConfiguration newInstance(InclusionStrategies inclusionStrategies) {
-        return new UuidConfiguration(inclusionStrategies, getUuidProperty(), getLabels());
+    protected UuidConfiguration newInstance(InclusionPolicies inclusionPolicies) {
+        return new UuidConfiguration(inclusionPolicies, getUuidProperty());
     }
 
     public String getUuidProperty() {
         return uuidProperty;
-    }
-
-    public List<String> getLabels() {
-        return labels;
     }
 
     /**
@@ -78,17 +69,7 @@ public class UuidConfiguration extends BaseTxDrivenModuleConfiguration<UuidConfi
      * @return new instance.
      */
     public UuidConfiguration withUuidProperty(String uuidProperty) {
-        return new UuidConfiguration(getInclusionStrategies(), uuidProperty, getLabels());
-    }
-
-    /**
-     * Create a new instance of this {@link UuidConfiguration} with different labels property.
-     *
-     * @param labels nodes with these labels will be assigned a UUID property
-     * @return new instance.
-     */
-    public UuidConfiguration withLabels(List<String> labels) {
-        return new UuidConfiguration(getInclusionStrategies(), getUuidProperty(), labels);
+        return new UuidConfiguration(getInclusionPolicies(), uuidProperty);
     }
 
     /**
@@ -102,7 +83,6 @@ public class UuidConfiguration extends BaseTxDrivenModuleConfiguration<UuidConfi
 
         UuidConfiguration that = (UuidConfiguration) o;
 
-        if (labels != null ? !labels.equals(that.labels) : that.labels != null) return false;
         if (!uuidProperty.equals(that.uuidProperty)) return false;
 
         return true;
@@ -115,7 +95,6 @@ public class UuidConfiguration extends BaseTxDrivenModuleConfiguration<UuidConfi
     public int hashCode() {
         int result = super.hashCode();
         result = 31 * result + uuidProperty.hashCode();
-        result = 31 * result + (labels != null ? labels.hashCode() : 0);
         return result;
     }
 }

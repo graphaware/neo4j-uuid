@@ -15,11 +15,12 @@
  */
 package com.graphaware.module.uuid;
 
+import com.graphaware.common.policy.NodeInclusionPolicy;
 import com.graphaware.common.util.IterableUtils;
 import com.graphaware.runtime.GraphAwareRuntime;
 import com.graphaware.runtime.GraphAwareRuntimeFactory;
 import com.graphaware.runtime.config.RuntimeConfiguration;
-import com.graphaware.runtime.strategy.IncludeAllBusinessNodes;
+import com.graphaware.runtime.policy.all.IncludeAllBusinessNodes;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,9 +28,6 @@ import org.neo4j.cypher.javacompat.ExecutionEngine;
 import org.neo4j.graphdb.*;
 import org.neo4j.test.TestGraphDatabaseFactory;
 import org.neo4j.tooling.GlobalGraphOperations;
-
-import java.util.ArrayList;
-import java.util.List;
 
 import static org.junit.Assert.*;
 
@@ -51,9 +49,27 @@ public class UuidModuleEmbeddedProgrammaticTest {
         database.shutdown();
     }
 
-
+    @Test
     public void moduleShouldInitializeCorrectly() {
-        //TODO ask MB how to test this
+        try (Transaction tx = database.beginTx()) {
+            Node node = database.createNode();
+            node.addLabel(personLabel);
+            tx.success();
+        }
+
+        try (Transaction tx = database.beginTx()) {
+            Node personNode = IterableUtils.getSingle(GlobalGraphOperations.at(database).getAllNodesWithLabel(personLabel));
+            assertFalse(personNode.hasProperty("uuid"));
+            tx.success();
+        }
+
+        registerModuleWithLabels();
+
+        try (Transaction tx = database.beginTx()) {
+            Node personNode = IterableUtils.getSingle(GlobalGraphOperations.at(database).getAllNodesWithLabel(personLabel));
+            assertTrue(personNode.hasProperty("uuid"));
+            tx.success();
+        }
     }
 
     @Test
@@ -1006,13 +1022,14 @@ public class UuidModuleEmbeddedProgrammaticTest {
     }
 
     private void registerModuleWithLabels() {
-        List<String> labels = new ArrayList<>(2);
-        labels.add("Person");
-        labels.add("Company");
-
         uuidConfiguration = UuidConfiguration.defaultConfiguration()
                 .withUuidProperty("uuid")
-                .withLabels(labels);
+                .with(new NodeInclusionPolicy() {
+                    @Override
+                    public boolean include(Node node) {
+                        return node.hasLabel(DynamicLabel.label("Person")) || node.hasLabel(DynamicLabel.label("Company"));
+                    }
+                });
 
         GraphAwareRuntime runtime = GraphAwareRuntimeFactory.createRuntime(database);
         UuidModule module = new UuidModule("UUIDM", uuidConfiguration);

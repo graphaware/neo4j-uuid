@@ -15,18 +15,21 @@
  */
 package com.graphaware.module.uuid;
 
-import com.graphaware.runtime.strategy.IncludeAllBusinessNodes;
+import com.graphaware.runtime.ProductionRuntime;
+import com.graphaware.runtime.policy.all.IncludeAllBusinessNodes;
 import org.junit.Test;
 import org.neo4j.cypher.javacompat.ExecutionEngine;
 import org.neo4j.graphdb.*;
 import org.neo4j.test.TestGraphDatabaseFactory;
 import org.neo4j.tooling.GlobalGraphOperations;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class UuidModuleDeclarativeIntegrationTest {
 
     private final Label personLabel = DynamicLabel.label("Person");
+    private final Label ignoredLabel = DynamicLabel.label("Ignored");
     private final String UUID = "uuid";
 
     @Test
@@ -34,6 +37,8 @@ public class UuidModuleDeclarativeIntegrationTest {
         GraphDatabaseService database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
                 .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid.properties").getPath())
                 .newGraphDatabase();
+
+        ProductionRuntime.getRuntime(database).waitUntilStarted();
 
         //When
         try (Transaction tx = database.beginTx()) {
@@ -56,10 +61,39 @@ public class UuidModuleDeclarativeIntegrationTest {
     }
 
     @Test
+    public void testUuidNotAssigned() throws InterruptedException {
+        GraphDatabaseService database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
+                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid.properties").getPath())
+                .newGraphDatabase();
+
+        ProductionRuntime.getRuntime(database).waitUntilStarted();
+
+        //When
+        try (Transaction tx = database.beginTx()) {
+            Node node = database.createNode();
+            node.addLabel(ignoredLabel);
+            node.setProperty("name", "aNode");
+            tx.success();
+        }
+
+        //Then
+        try (Transaction tx = database.beginTx()) {
+            for (Node node : GlobalGraphOperations.at(database).getAllNodesWithLabel(ignoredLabel)) {
+                assertFalse(node.hasProperty(UUID));
+            }
+            tx.success();
+        }
+
+        database.shutdown();
+    }
+
+    @Test
     public void longCypherCreateShouldResultInAllNodesWithUuid() {
         GraphDatabaseService database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
                 .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid-all.properties").getPath())
                 .newGraphDatabase();
+
+        ProductionRuntime.getRuntime(database).waitUntilStarted();
 
         new ExecutionEngine(database).execute(
                 "CREATE (TheMatrix:Movie {title:'The Matrix', released:1999, tagline:'Welcome to the Real World'})\n" +

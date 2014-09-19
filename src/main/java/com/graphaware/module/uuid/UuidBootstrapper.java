@@ -16,6 +16,8 @@
 
 package com.graphaware.module.uuid;
 
+import com.graphaware.common.policy.NodeInclusionPolicy;
+import com.graphaware.runtime.config.function.StringToNodeInclusionPolicy;
 import com.graphaware.runtime.module.RuntimeModule;
 import com.graphaware.runtime.module.RuntimeModuleBootstrapper;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -36,7 +38,7 @@ public class UuidBootstrapper implements RuntimeModuleBootstrapper {
 
     //keys to use when configuring using neo4j.properties
     private static final String UUID_PROPERTY = "uuidProperty";
-    private static final String LABELS = "labels";
+    private static final String NODE = "node";
 
     /**
      * @{inheritDoc}
@@ -50,13 +52,10 @@ public class UuidBootstrapper implements RuntimeModuleBootstrapper {
             LOG.info("uuidProperty set to {}", configuration.getUuidProperty());
         }
 
-        if (config.get(LABELS) != null && config.get(LABELS).length() > 0) {
-            List<String> labels = new ArrayList<>();
-            StringTokenizer st = new StringTokenizer(config.get(LABELS), ",");
-            while (st.hasMoreTokens()) {
-                labels.add(st.nextToken());
-            }
-            configuration = configuration.withLabels(labels);
+        if (config.get(NODE) != null) {
+            NodeInclusionPolicy policy = StringToNodeInclusionPolicy.getInstance().apply(config.get(NODE));
+            LOG.info("Node Inclusion Strategy set to {}", policy);
+            configuration = configuration.with(policy);
         }
 
         return new UuidModule(moduleId, configuration);
