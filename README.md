@@ -73,8 +73,9 @@ Note that "UIDM" becomes the module ID.
 
 `com.graphaware.module.UIDM.uuidProperty` is the property name that will be used to store the assigned UUID on the node. The default is "uuid".
 
-`com.graphaware.module.UIDM.labels` specifies a comma separated list of node labels. Only nodes with any of these labels will be assigned a UUID property.
-This also means that if this configuration is used, unlabelled nodes will not be assigned a UUID property. The default is to assign the UUID property to every node.
+`com.graphaware.module.UIDM.nodes` specifies either a fully qualified class name of [`NodeInclusionPolicy`](http://graphaware.com/site/framework/latest/apidocs/com/graphaware/common/policy/NodeInclusionPolicy.html) implementation,
+or a Spring Expression Language expression determining, which nodes to assign a UUID to. The default is to assign the
+UUID property to every node which isn't internal to the framework.
 
 
 ### Embedded Mode / Java Development
