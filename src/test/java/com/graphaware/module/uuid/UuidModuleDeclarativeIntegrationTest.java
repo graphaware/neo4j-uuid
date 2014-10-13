@@ -16,6 +16,7 @@
 package com.graphaware.module.uuid;
 
 import com.graphaware.runtime.ProductionRuntime;
+import com.graphaware.runtime.RuntimeRegistry;
 import com.graphaware.runtime.policy.all.IncludeAllBusinessNodes;
 import org.junit.Test;
 import org.neo4j.cypher.javacompat.ExecutionEngine;
@@ -23,6 +24,7 @@ import org.neo4j.graphdb.*;
 import org.neo4j.test.TestGraphDatabaseFactory;
 import org.neo4j.tooling.GlobalGraphOperations;
 
+import static com.graphaware.runtime.RuntimeRegistry.*;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -38,7 +40,7 @@ public class UuidModuleDeclarativeIntegrationTest {
                 .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid.properties").getPath())
                 .newGraphDatabase();
 
-        ProductionRuntime.getRuntime(database).waitUntilStarted();
+        getRuntime(database).waitUntilStarted();
 
         //When
         try (Transaction tx = database.beginTx()) {
@@ -66,7 +68,7 @@ public class UuidModuleDeclarativeIntegrationTest {
                 .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid.properties").getPath())
                 .newGraphDatabase();
 
-        ProductionRuntime.getRuntime(database).waitUntilStarted();
+        getRuntime(database).waitUntilStarted();
 
         //When
         try (Transaction tx = database.beginTx()) {
@@ -93,7 +95,7 @@ public class UuidModuleDeclarativeIntegrationTest {
                 .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid-all.properties").getPath())
                 .newGraphDatabase();
 
-        ProductionRuntime.getRuntime(database).waitUntilStarted();
+        getRuntime(database).waitUntilStarted();
 
         new ExecutionEngine(database).execute(
                 "CREATE (TheMatrix:Movie {title:'The Matrix', released:1999, tagline:'Welcome to the Real World'})\n" +

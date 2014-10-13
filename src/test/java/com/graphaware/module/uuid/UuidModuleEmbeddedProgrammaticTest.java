@@ -73,25 +73,6 @@ public class UuidModuleEmbeddedProgrammaticTest {
     }
 
     @Test
-    public void referenceNodeShouldNotGetUuid() {
-        registerModuleWithNoLabels();
-
-        //When
-        try (Transaction tx = database.beginTx()) {
-            Node node = database.createNode();
-            node.setProperty("name", "aNode");
-            tx.success();
-        }
-
-        //Then
-        try (Transaction tx = database.beginTx()) {
-            Node metadataNode = IterableUtils.getSingle(GlobalGraphOperations.at(database).getAllNodesWithLabel(RuntimeConfiguration.GA_METADATA));
-            assertFalse(metadataNode.hasProperty(uuidConfiguration.getUuidProperty()));
-            tx.success();
-        }
-    }
-
-    @Test
     public void newNodesWithLabelShouldBeAssignedUuid() {
         //Given
         registerModuleWithNoLabels();
