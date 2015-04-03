@@ -15,6 +15,7 @@
  */
 package com.graphaware.module.uuid;
 
+import com.graphaware.common.uuid.EaioUuidGenerator;
 import com.graphaware.runtime.config.TxDrivenModuleConfiguration;
 import com.graphaware.runtime.module.BaseTxDrivenModule;
 import com.graphaware.runtime.module.DeliberateTransactionRollbackException;
@@ -24,11 +25,8 @@ import com.graphaware.tx.executor.batch.IterableInputBatchTransactionExecutor;
 import com.graphaware.tx.executor.batch.UnitOfWork;
 import com.graphaware.tx.executor.single.TransactionCallback;
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.tooling.GlobalGraphOperations;
-
-import java.util.List;
 
 /**
  * {@link com.graphaware.runtime.module.TxDrivenModule} that assigns UUID's to nodes in the graph.
@@ -37,7 +35,7 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
 
     private final static int BATCH_SIZE = 1000;
 
-    private final UuidGenerator uuidGenerator;
+    private final EaioUuidGenerator uuidGenerator; //todo interface in next release
     private final UuidConfiguration uuidConfiguration;
 
     /**
