@@ -25,36 +25,36 @@ import org.neo4j.graphdb.Node;
  */
 public class LegacyIndexer implements UuidIndexer {
 
-	private final GraphDatabaseService database;
-	private final UuidConfiguration configuration;
+    private final GraphDatabaseService database;
+    private final UuidConfiguration configuration;
 
-	public LegacyIndexer(GraphDatabaseService database, UuidConfiguration configuration) {
-		this.database = database;
-		this.configuration = configuration;
-	}
+    public LegacyIndexer(GraphDatabaseService database, UuidConfiguration configuration) {
+        this.database = database;
+        this.configuration = configuration;
+    }
 
-	/**
-	 * @inheritDoc
-	 */
-	@Override
-	public void indexNode(Node node) {
-		database.index().forNodes(configuration.getUuidIndex()).add(node,configuration.getUuidProperty(),node.getProperty(configuration.getUuidProperty()));
-	}
+    /**
+     * @inheritDoc
+     */
+    @Override
+    public void indexNode(Node node) {
+        database.index().forNodes(configuration.getUuidIndex()).add(node, configuration.getUuidProperty(), node.getProperty(configuration.getUuidProperty()));
+    }
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public Node getNodeByUuid(String uuid) {
-		return database.index().forNodes(configuration.getUuidIndex()).get(configuration.getUuidProperty(),uuid).getSingle();
-	}
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Node getNodeByUuid(String uuid) {
+        return database.index().forNodes(configuration.getUuidIndex()).get(configuration.getUuidProperty(), uuid).getSingle();
+    }
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void deleteNodeFromIndex(Node node) {
-		database.index().forNodes(configuration.getUuidIndex()).remove(node,configuration.getUuidProperty());
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void deleteNodeFromIndex(Node node) {
+        database.index().forNodes(configuration.getUuidIndex()).remove(node, configuration.getUuidProperty());
 
-	}
+    }
 }

@@ -43,12 +43,11 @@ public class UuidApi {
         this.database = database;
     }
 
-
     /**
-     * Get the node id of the node which has the given uuid
+     * Get the node id of the node which has the given uuid.
      *
-     * @param uuid the uuid
-     * @return node id of the node which has the given uuid or null if none exist
+     * @param uuid the uuid.
+     * @return node id of the node which has the given uuid or <code>null</code> if none exist.
      */
     @RequestMapping(value = "/node/{uuid}", method = RequestMethod.GET)
     @ResponseBody
@@ -57,11 +56,11 @@ public class UuidApi {
     }
 
     /**
-     * Get the node id of the node which has the given uuid
+     * Get the node id of the node which has the given uuid.
      *
-     * @param moduleId module id
-     * @param uuid     the uuid
-     * @return node id of the node which has the given uuid or nothing if it does not exist
+     * @param moduleId module id (used in the unlikely event that there are multiple modules, or if the module has a non-default ID).
+     * @param uuid     the uuid.
+     * @return node id of the node which has the given uuid or <code>null</code> if it does not exist.
      */
     @RequestMapping(value = "/{moduleId}/node/{uuid}", method = RequestMethod.GET)
     @ResponseBody
