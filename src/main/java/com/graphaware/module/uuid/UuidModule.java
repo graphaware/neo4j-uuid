@@ -18,7 +18,6 @@ package com.graphaware.module.uuid;
 import com.graphaware.common.uuid.EaioUuidGenerator;
 import com.graphaware.module.uuid.index.LegacyIndexer;
 import com.graphaware.module.uuid.index.UuidIndexer;
-import com.graphaware.runtime.config.TxDrivenModuleConfiguration;
 import com.graphaware.runtime.module.BaseTxDrivenModule;
 import com.graphaware.runtime.module.DeliberateTransactionRollbackException;
 import com.graphaware.tx.event.improved.api.Change;
@@ -35,7 +34,8 @@ import org.neo4j.tooling.GlobalGraphOperations;
  */
 public class UuidModule extends BaseTxDrivenModule<Void> {
 
-    private final static int BATCH_SIZE = 1000;
+    public static final String DEFAULT_MODULE_ID = "UIDM";
+    private static final int BATCH_SIZE = 1000;
 
     private final EaioUuidGenerator uuidGenerator; //todo interface in next release
     private final UuidConfiguration uuidConfiguration;
@@ -57,7 +57,7 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
      * {@inheritDoc}
      */
     @Override
-    public TxDrivenModuleConfiguration getConfiguration() {
+    public UuidConfiguration getConfiguration() {
         return uuidConfiguration;
     }
 

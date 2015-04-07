@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import static com.graphaware.module.uuid.UuidModule.*;
 import static com.graphaware.runtime.RuntimeRegistry.getStartedRuntime;
 
 /**
@@ -36,7 +37,6 @@ import static com.graphaware.runtime.RuntimeRegistry.getStartedRuntime;
 public class UuidApi {
 
     private final GraphDatabaseService database;
-    private static final String DEFAULT_MODULE_ID = "UIDM";
 
     @Autowired
     public UuidApi(GraphDatabaseService database) {
@@ -46,6 +46,7 @@ public class UuidApi {
 
     /**
      * Get the node id of the node which has the given uuid
+     *
      * @param uuid the uuid
      * @return node id of the node which has the given uuid or null if none exist
      */
@@ -57,15 +58,16 @@ public class UuidApi {
 
     /**
      * Get the node id of the node which has the given uuid
+     *
      * @param moduleId module id
-     * @param uuid the uuid
+     * @param uuid     the uuid
      * @return node id of the node which has the given uuid or nothing if it does not exist
      */
     @RequestMapping(value = "/{moduleId}/node/{uuid}", method = RequestMethod.GET)
     @ResponseBody
     public Long getNodeIdByModuleAndUuid(@PathVariable(value = "moduleId") String moduleId, @PathVariable(value = "uuid") String uuid) {
-        UuidConfiguration configuration = (UuidConfiguration)getStartedRuntime(database).getModule(moduleId, UuidModule.class).getConfiguration();
-        return new UuidReader(configuration,database).getNodeIdByUuid(uuid);
+        UuidConfiguration configuration = getStartedRuntime(database).getModule(moduleId, UuidModule.class).getConfiguration();
+        return new UuidReader(configuration, database).getNodeIdByUuid(uuid);
     }
 
 }
