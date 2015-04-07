@@ -19,12 +19,11 @@ import com.graphaware.module.uuid.UuidConfiguration;
 import com.graphaware.module.uuid.UuidModule;
 import com.graphaware.module.uuid.UuidReader;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 
 import static com.graphaware.module.uuid.UuidModule.*;
 import static com.graphaware.runtime.RuntimeRegistry.getStartedRuntime;
@@ -47,7 +46,8 @@ public class UuidApi {
      * Get the node id of the node which has the given uuid.
      *
      * @param uuid the uuid.
-     * @return node id of the node which has the given uuid or <code>null</code> if none exist.
+     * @return node id of the node which has the given uuid.
+     * @throws org.neo4j.graphdb.NotFoundException if none exist.
      */
     @RequestMapping(value = "/node/{uuid}", method = RequestMethod.GET)
     @ResponseBody
@@ -60,7 +60,8 @@ public class UuidApi {
      *
      * @param moduleId module id (used in the unlikely event that there are multiple modules, or if the module has a non-default ID).
      * @param uuid     the uuid.
-     * @return node id of the node which has the given uuid or <code>null</code> if it does not exist.
+     * @return node id of the node which has the given uuid.
+     * @throws org.neo4j.graphdb.NotFoundException if none exist.
      */
     @RequestMapping(value = "/{moduleId}/node/{uuid}", method = RequestMethod.GET)
     @ResponseBody
@@ -69,4 +70,9 @@ public class UuidApi {
         return new UuidReader(configuration, database).getNodeIdByUuid(uuid);
     }
 
+    @ExceptionHandler(NotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public void handleNotFound() {
+
+    }
 }

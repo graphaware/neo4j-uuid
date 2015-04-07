@@ -55,6 +55,5 @@ public class LegacyIndexer implements UuidIndexer {
     @Override
     public void deleteNodeFromIndex(Node node) {
         database.index().forNodes(configuration.getUuidIndex()).remove(node, configuration.getUuidProperty());
-
     }
 }

@@ -18,7 +18,6 @@ package com.graphaware.module.uuid;
 import com.graphaware.module.uuid.api.UuidApi;
 import com.graphaware.runtime.policy.all.IncludeAllBusinessNodes;
 import org.junit.Test;
-import org.neo4j.cypher.javacompat.ExecutionEngine;
 import org.neo4j.graphdb.*;
 import org.neo4j.test.TestGraphDatabaseFactory;
 import org.neo4j.tooling.GlobalGraphOperations;
@@ -88,8 +87,8 @@ public class UuidModuleDeclarativeIntegrationTest {
         database.shutdown();
     }
 
-    @Test
-    public void testGetNodeReturnsNullForInvalidUuid() throws InterruptedException {
+    @Test(expected = NotFoundException.class)
+    public void testGetNodeThrowsExceptionForInvalidUuid() throws InterruptedException {
         GraphDatabaseService database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
                 .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid.properties").getPath())
                 .newGraphDatabase();
@@ -111,7 +110,7 @@ public class UuidModuleDeclarativeIntegrationTest {
 
         getRuntime(database).waitUntilStarted();
 
-        new ExecutionEngine(database).execute(
+        database.execute(
                 "CREATE (TheMatrix:Movie {title:'The Matrix', released:1999, tagline:'Welcome to the Real World'})\n" +
                         "CREATE (Keanu:Person {name:'Keanu Reeves', born:1964})\n" +
                         "CREATE (Carrie:Person {name:'Carrie-Anne Moss', born:1967})\n" +

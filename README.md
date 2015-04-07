@@ -115,14 +115,15 @@ In Server Mode, a node can be retrieved by its UUID via the REST API.
 
 You can issue GET requests to `http://your-server-address:7474/graphaware/uuid/{moduleId}/node/{uuid}` to get the node ID for a given uuid.
 {moduleId} is the module ID the UUID Module was registered with. You can omit this part of the URL, in which case "UIDM" is assumed as the default value.
+If no node exists with the given UUID, a 404 status code will be returned.
 
 ### Java API
 
 To use the Java API to find a node by its UUID, please instantiate `UuidReader` and use the method `getNodeIdByUuid`
 
 ```
- UuidConfiguration configuration = (UuidConfiguration)getStartedRuntime(database).getModule(moduleId, UuidModule.class).getConfiguration();
- UuidReader reader = UuidReader(configuration,database);
+ UuidConfiguration configuration = getStartedRuntime(database).getModule(moduleId, UuidModule.class).getConfiguration();
+ UuidReader reader = UuidReader(configuration, database);
  Node node = getNodeIdByUuid(uuid);
 ```
 

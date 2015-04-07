@@ -23,7 +23,6 @@ import com.graphaware.runtime.policy.all.IncludeAllBusinessNodes;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.neo4j.cypher.javacompat.ExecutionEngine;
 import org.neo4j.graphdb.*;
 import org.neo4j.test.TestGraphDatabaseFactory;
 import org.neo4j.tooling.GlobalGraphOperations;
@@ -58,7 +57,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
         }
 
         try (Transaction tx = database.beginTx()) {
-            Node personNode = IterableUtils.getSingle(GlobalGraphOperations.at(database).getAllNodesWithLabel(personLabel));
+            Node personNode = IterableUtils.getSingle(database.findNodes(personLabel));
             assertFalse(personNode.hasProperty("uuid"));
             tx.success();
         }
@@ -165,7 +164,12 @@ public class UuidModuleEmbeddedProgrammaticTest {
         //Then
         try (Transaction tx = database.beginTx()) {
             assertFalse(GlobalGraphOperations.at(database).getAllNodes().iterator().hasNext());
-            assertNull(uuidReader.getNodeByUuid(uuid));
+            try {
+                uuidReader.getNodeByUuid(uuid);
+                fail();
+            } catch (NotFoundException e) {
+                //ok
+            }
             tx.success();
         }
     }
@@ -373,7 +377,12 @@ public class UuidModuleEmbeddedProgrammaticTest {
         try (Transaction tx = database.beginTx()) {
             for (Node n : GlobalGraphOperations.at(database).getAllNodesWithLabel(testLabel)) {
                 assertEquals("aNewUuid", n.getProperty(uuidConfiguration.getUuidProperty()));
-                assertNull(uuidReader.getNodeByUuid("aNewUuid"));
+                try {
+                    uuidReader.getNodeByUuid("aNewUuid");
+                    fail();
+                } catch (NotFoundException e) {
+                    //ok
+                }
             }
             tx.success();
         }
@@ -532,7 +541,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
     public void longCypherCreateShouldResultInAllNodesWithUuid() {
          registerModuleWithNoLabels();
 
-        new ExecutionEngine(database).execute(
+        database.execute(
                 "CREATE (TheMatrix:Movie {title:'The Matrix', released:1999, tagline:'Welcome to the Real World'})\n" +
                         "CREATE (Keanu:Person {name:'Keanu Reeves', born:1964})\n" +
                         "CREATE (Carrie:Person {name:'Carrie-Anne Moss', born:1967})\n" +

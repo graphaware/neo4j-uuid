@@ -21,6 +21,7 @@ import com.graphaware.module.uuid.index.LegacyIndexer;
 import com.graphaware.module.uuid.index.UuidIndexer;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.NotFoundException;
 import org.neo4j.graphdb.Transaction;
 
 public class UuidReader {
@@ -30,27 +31,47 @@ public class UuidReader {
 
     public UuidReader(UuidConfiguration configuration, GraphDatabaseService database) {
         this.database = database;
-        this.indexer = new LegacyIndexer(database,configuration);
+        this.indexer = new LegacyIndexer(database, configuration);
     }
 
+    /**
+     * Get a node by its UUID.
+     *
+     * @param uuid uuid.
+     * @return Node object.
+     * @throws org.neo4j.graphdb.NotFoundException in case no node exists with such UUID.
+     */
     public Node getNodeByUuid(String uuid) {
         Node node;
-        try(Transaction tx = database.beginTx()) {
+
+        try (Transaction tx = database.beginTx()) {
             node = indexer.getNodeByUuid(uuid);
             tx.success();
         }
+
+        if (node == null) {
+            throw new NotFoundException("Node with UUID " + uuid + " does not exist");
+        }
+
         return node;
     }
 
-    public Long getNodeIdByUuid(String uuid) {
+    /**
+     * Get a node ID by its UUID.
+     *
+     * @param uuid uuid.
+     * @return Node ID.
+     * @throws org.neo4j.graphdb.NotFoundException in case no node exists with such UUID.
+     */
+    public long getNodeIdByUuid(String uuid) {
         Node node = getNodeByUuid(uuid);
-        Long nodeId=null;
-        try(Transaction tx = database.beginTx()) {
-            if (node != null) {
-                nodeId =  node.getId();
-            }
+        long nodeId;
+
+        try (Transaction tx = database.beginTx()) {
+            nodeId = node.getId();
             tx.success();
         }
+
         return nodeId;
     }
 }
