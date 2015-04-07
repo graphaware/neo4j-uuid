@@ -24,10 +24,7 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
-import java.util.StringTokenizer;
 
 /**
  * Bootstraps the {@link UuidModule} in server mode.
@@ -38,6 +35,7 @@ public class UuidBootstrapper implements RuntimeModuleBootstrapper {
 
     //keys to use when configuring using neo4j.properties
     private static final String UUID_PROPERTY = "uuidProperty";
+    private static final String UUID_INDEX = "uuidIndex";
     private static final String NODE = "node";
 
     /**
@@ -52,12 +50,17 @@ public class UuidBootstrapper implements RuntimeModuleBootstrapper {
             LOG.info("uuidProperty set to {}", configuration.getUuidProperty());
         }
 
+        if (config.get(UUID_INDEX) != null && config.get(UUID_INDEX).length() > 0) {
+            configuration = configuration.withUuidIndex(config.get(UUID_INDEX));
+            LOG.info("uuidIndex set to {}", configuration.getUuidIndex());
+        }
+
         if (config.get(NODE) != null) {
             NodeInclusionPolicy policy = StringToNodeInclusionPolicy.getInstance().apply(config.get(NODE));
             LOG.info("Node Inclusion Strategy set to {}", policy);
             configuration = configuration.with(policy);
         }
 
-        return new UuidModule(moduleId, configuration);
+        return new UuidModule(moduleId, configuration, database);
     }
 }

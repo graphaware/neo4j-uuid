@@ -15,8 +15,7 @@
  */
 package com.graphaware.module.uuid;
 
-import com.graphaware.runtime.ProductionRuntime;
-import com.graphaware.runtime.RuntimeRegistry;
+import com.graphaware.module.uuid.api.UuidApi;
 import com.graphaware.runtime.policy.all.IncludeAllBusinessNodes;
 import org.junit.Test;
 import org.neo4j.cypher.javacompat.ExecutionEngine;
@@ -24,9 +23,8 @@ import org.neo4j.graphdb.*;
 import org.neo4j.test.TestGraphDatabaseFactory;
 import org.neo4j.tooling.GlobalGraphOperations;
 
-import static com.graphaware.runtime.RuntimeRegistry.*;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static com.graphaware.runtime.RuntimeRegistry.getRuntime;
+import static org.junit.Assert.*;
 
 public class UuidModuleDeclarativeIntegrationTest {
 
@@ -41,7 +39,7 @@ public class UuidModuleDeclarativeIntegrationTest {
                 .newGraphDatabase();
 
         getRuntime(database).waitUntilStarted();
-
+        UuidApi api = new UuidApi(database);
         //When
         try (Transaction tx = database.beginTx()) {
             Node node = database.createNode();
@@ -55,6 +53,7 @@ public class UuidModuleDeclarativeIntegrationTest {
         try (Transaction tx = database.beginTx()) {
             for (Node node : GlobalGraphOperations.at(database).getAllNodesWithLabel(personLabel)) {
                 assertTrue(node.hasProperty(UUID));
+                assertEquals(Long.valueOf(node.getId()), api.getNodeIdByUuid((String) node.getProperty(UUID)));
             }
             tx.success();
         }
@@ -87,6 +86,21 @@ public class UuidModuleDeclarativeIntegrationTest {
         }
 
         database.shutdown();
+    }
+
+    @Test
+    public void testGetNodeReturnsNullForInvalidUuid() throws InterruptedException {
+        GraphDatabaseService database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
+                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid.properties").getPath())
+                .newGraphDatabase();
+
+        getRuntime(database).waitUntilStarted();
+        UuidApi api = new UuidApi(database);
+        try (Transaction tx = database.beginTx()) {
+            assertNull(api.getNodeIdByUuid("xyz"));
+            tx.success();
+        }
+
     }
 
     @Test

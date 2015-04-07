@@ -67,6 +67,9 @@ com.graphaware.module.UIDM.uuidProperty=uuid
 #optional, default is all nodes:
 com.graphaware.module.UIDM.node=hasLabel('Label1') || hasLabel('Label2')
 
+#optional, default is uuidIndex
+com.graphaware.module.UIDM.uuidIndex=uuidIndex
+
 ```
 
 Note that "UIDM" becomes the module ID. 
@@ -77,6 +80,7 @@ Note that "UIDM" becomes the module ID.
 or a Spring Expression Language expression determining, which nodes to assign a UUID to. The default is to assign the
 UUID property to every node which isn't internal to the framework.
 
+`com.graphaware.module.UIDM.uuidIndex` is the index name that will be used to index nodes based on their UUID. The default is "uuidIndex".
 
 ### Embedded Mode / Java Development
 
@@ -104,9 +108,25 @@ Using GraphAware UUID
 Apart from the configuration described above, the GraphAware UUID module requires nothing else to function. It will assign a UUID to nodes configured,
 and will prevent modifications to the UUID or deletion of the UUID property from these nodes by not allowing the transaction to commit.
 
-You may access the UUID via your own API's or Cypher- the GraphAware UUID module does not at this point provide an API to retrieve a node by UUID.
-This is because there is no efficient way to do this except via indexing, which is currently waiting on 
-<a href="https://github.com/neo4j/neo4j/issues/2714" target="_blank">issue 2714</a>
+### Server Mode
+
+In Server Mode, a nodes ID can be retrieved by it's UUID via the REST API.
+
+You can issue GET requests to `http://your-server-address:7474/graphaware/uuid/{moduleId}/node/{uuid}` to get the node ID for a given uuid.
+{moduleId} is the module ID the UUID Module was registered with. You
+can omit this part of the URL, in which case "UIDM" is assumed as the default value.
+
+### Java API
+
+To use the Java API to find a node by it's UUID, please instantiate `UuidReader` and use the method `getNodeIdByUuid`
+
+```
+ UuidConfiguration configuration = (UuidConfiguration)getStartedRuntime(database).getModule(moduleId, UuidModule.class).getConfiguration();
+ UuidReader reader = UuidReader(configuration,database);
+ Node node = getNodeIdByUuid(uuid);
+```
+
+Please refer to Javadoc for more detail.
 
 
 License
