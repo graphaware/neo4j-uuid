@@ -25,21 +25,25 @@ import com.graphaware.runtime.policy.InclusionPoliciesFactory;
  */
 public class UuidConfiguration extends BaseTxDrivenModuleConfiguration<UuidConfiguration> {
 
-    private static final String DEFAULT_UUID_PROPERTY = "uuid";
+    private static final String DEFAULT_UUID_PROPERTY = Properties.UUID;
+    private static final String DEFAULT_UUID_NODEX_INDEX = Indexes.UUID_NODE_INDEX;
 
     private String uuidProperty;
+    private String uuidIndex;
 
     protected UuidConfiguration(InclusionPolicies inclusionPolicies) {
         super(inclusionPolicies);
     }
 
-    public UuidConfiguration(InclusionPolicies inclusionPolicies, String uuidProperty) {
+    public UuidConfiguration(InclusionPolicies inclusionPolicies, String uuidProperty, String uuidIndex) {
         super(inclusionPolicies);
         this.uuidProperty = uuidProperty;
+        this.uuidIndex = uuidIndex;
     }
 
     /**
-     * Create a default configuration with default uuid property = {@link #DEFAULT_UUID_PROPERTY}, labels=all (including nodes with no labels)
+     * Create a default configuration with default uuid property = {@link #DEFAULT_UUID_PROPERTY}, uuid index = {@link #DEFAULT_UUID_NODEX_INDEX}
+     * labels=all (including nodes with no labels)
      * inclusion strategies = {@link com.graphaware.runtime.policy.InclusionPoliciesFactory#allBusiness()},
      * (nothing is excluded except for framework-internal nodes and relationships)
      * <p/>
@@ -47,7 +51,7 @@ public class UuidConfiguration extends BaseTxDrivenModuleConfiguration<UuidConfi
      * on the object, always using the returned object (this is a fluent interface).
      */
     public static UuidConfiguration defaultConfiguration() {
-        return new UuidConfiguration(InclusionPoliciesFactory.allBusiness(), DEFAULT_UUID_PROPERTY);
+        return new UuidConfiguration(InclusionPoliciesFactory.allBusiness(), DEFAULT_UUID_PROPERTY,DEFAULT_UUID_NODEX_INDEX);
     }
 
     /**
@@ -55,11 +59,15 @@ public class UuidConfiguration extends BaseTxDrivenModuleConfiguration<UuidConfi
      */
     @Override
     protected UuidConfiguration newInstance(InclusionPolicies inclusionPolicies) {
-        return new UuidConfiguration(inclusionPolicies, getUuidProperty());
+        return new UuidConfiguration(inclusionPolicies, getUuidProperty(), getUuidIndex());
     }
 
     public String getUuidProperty() {
         return uuidProperty;
+    }
+
+    public String getUuidIndex() {
+        return uuidIndex;
     }
 
     /**
@@ -69,7 +77,17 @@ public class UuidConfiguration extends BaseTxDrivenModuleConfiguration<UuidConfi
      * @return new instance.
      */
     public UuidConfiguration withUuidProperty(String uuidProperty) {
-        return new UuidConfiguration(getInclusionPolicies(), uuidProperty);
+        return new UuidConfiguration(getInclusionPolicies(), uuidProperty, getUuidIndex());
+    }
+
+    /**
+     * Create a new instance of this {@link UuidConfiguration} with different uuid index.
+     *
+     * @param uuidIndex of the new instance.
+     * @return new instance.
+     */
+    public UuidConfiguration withUuidIndex(String uuidIndex) {
+        return new UuidConfiguration(getInclusionPolicies(), getUuidProperty(), uuidIndex);
     }
 
     /**
@@ -84,6 +102,7 @@ public class UuidConfiguration extends BaseTxDrivenModuleConfiguration<UuidConfi
         UuidConfiguration that = (UuidConfiguration) o;
 
         if (!uuidProperty.equals(that.uuidProperty)) return false;
+        if (!uuidIndex.equals(that.uuidIndex)) return false;
 
         return true;
     }
@@ -95,6 +114,7 @@ public class UuidConfiguration extends BaseTxDrivenModuleConfiguration<UuidConfi
     public int hashCode() {
         int result = super.hashCode();
         result = 31 * result + uuidProperty.hashCode();
+        result = 31 * result + uuidIndex.hashCode();
         return result;
     }
 }

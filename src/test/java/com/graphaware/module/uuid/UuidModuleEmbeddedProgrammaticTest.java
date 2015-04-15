@@ -19,12 +19,10 @@ import com.graphaware.common.policy.NodeInclusionPolicy;
 import com.graphaware.common.util.IterableUtils;
 import com.graphaware.runtime.GraphAwareRuntime;
 import com.graphaware.runtime.GraphAwareRuntimeFactory;
-import com.graphaware.runtime.config.RuntimeConfiguration;
 import com.graphaware.runtime.policy.all.IncludeAllBusinessNodes;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.neo4j.cypher.javacompat.ExecutionEngine;
 import org.neo4j.graphdb.*;
 import org.neo4j.test.TestGraphDatabaseFactory;
 import org.neo4j.tooling.GlobalGraphOperations;
@@ -38,6 +36,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
     private final Label testLabel = DynamicLabel.label("test");
     private final Label personLabel = DynamicLabel.label("Person");
     private UuidConfiguration uuidConfiguration;
+    private UuidReader uuidReader;
 
     @Before
     public void setUp() {
@@ -58,7 +57,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
         }
 
         try (Transaction tx = database.beginTx()) {
-            Node personNode = IterableUtils.getSingle(GlobalGraphOperations.at(database).getAllNodesWithLabel(personLabel));
+            Node personNode = IterableUtils.getSingle(database.findNodes(personLabel));
             assertFalse(personNode.hasProperty("uuid"));
             tx.success();
         }
@@ -66,8 +65,12 @@ public class UuidModuleEmbeddedProgrammaticTest {
         registerModuleWithLabels();
 
         try (Transaction tx = database.beginTx()) {
+            assertTrue(database.index().existsForNodes("uuidIndex"));
             Node personNode = IterableUtils.getSingle(GlobalGraphOperations.at(database).getAllNodesWithLabel(personLabel));
             assertTrue(personNode.hasProperty("uuid"));
+            String uuid = (String) personNode.getProperty("uuid");
+            assertNotNull(uuidReader.getNodeByUuid(uuid));
+            assertEquals(personNode, uuidReader.getNodeByUuid(uuid));
             tx.success();
         }
     }
@@ -90,6 +93,9 @@ public class UuidModuleEmbeddedProgrammaticTest {
         try (Transaction tx = database.beginTx()) {
             for (Node node : GlobalGraphOperations.at(database).getAllNodesWithLabel(testLabel)) {
                 assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
+                String uuid = (String) node.getProperty("uuid");
+                assertNotNull(uuidReader.getNodeByUuid(uuid));
+                assertEquals(node, uuidReader.getNodeByUuid(uuid));
             }
             tx.success();
         }
@@ -113,12 +119,60 @@ public class UuidModuleEmbeddedProgrammaticTest {
             for (Node node : GlobalGraphOperations.at(database).getAllNodes()) {
                 if (IncludeAllBusinessNodes.getInstance().include(node)) {
                     assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
+                    String uuid = (String) node.getProperty("uuid");
+                    assertNotNull(uuidReader.getNodeByUuid(uuid));
+                    assertEquals(node, uuidReader.getNodeByUuid(uuid));
                 }
             }
             tx.success();
         }
     }
 
+    @Test
+    public void shouldBeAbleToDeleteANodeWithAUuid() {
+        //Given
+        registerModuleWithNoLabels();
+
+        //When
+        try (Transaction tx = database.beginTx()) {
+            Node node = database.createNode();
+            node.setProperty("name", "aNode");
+            tx.success();
+        }
+
+        //Retrieve the node and check that it has a uuid property
+        String uuid="";
+        Node retrievedNode=null;
+        try (Transaction tx = database.beginTx()) {
+            for (Node node : GlobalGraphOperations.at(database).getAllNodes()) {
+                if (IncludeAllBusinessNodes.getInstance().include(node)) {
+                    retrievedNode = node;
+                    assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
+                    uuid = (String) node.getProperty("uuid");
+                    assertNotNull(uuidReader.getNodeByUuid(uuid));
+                    assertEquals(node, uuidReader.getNodeByUuid(uuid));
+                }
+            }
+            tx.success();
+        }
+
+        try (Transaction tx = database.beginTx()) {
+            retrievedNode.delete();
+            tx.success();
+        }
+
+        //Then
+        try (Transaction tx = database.beginTx()) {
+            assertFalse(GlobalGraphOperations.at(database).getAllNodes().iterator().hasNext());
+            try {
+                uuidReader.getNodeByUuid(uuid);
+                fail();
+            } catch (NotFoundException e) {
+                //ok
+            }
+            tx.success();
+        }
+    }
 
     @Test(expected = TransactionFailureException.class)
     public void shouldNotBeAbleToChangeTheUuidOfLabeledNode() {
@@ -240,6 +294,9 @@ public class UuidModuleEmbeddedProgrammaticTest {
         try (Transaction tx = database.beginTx()) {
             for (Node node : GlobalGraphOperations.at(database).getAllNodesWithLabel(personLabel)) {
                 assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
+                String uuid = (String) node.getProperty("uuid");
+                assertNotNull(uuidReader.getNodeByUuid(uuid));
+                assertEquals(node, uuidReader.getNodeByUuid(uuid));
             }
             tx.success();
         }
@@ -311,6 +368,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
         try (Transaction tx = database.beginTx()) {
             for (Node n : GlobalGraphOperations.at(database).getAllNodesWithLabel(testLabel)) {
                 n.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
+
             }
             tx.success();
         }
@@ -319,6 +377,12 @@ public class UuidModuleEmbeddedProgrammaticTest {
         try (Transaction tx = database.beginTx()) {
             for (Node n : GlobalGraphOperations.at(database).getAllNodesWithLabel(testLabel)) {
                 assertEquals("aNewUuid", n.getProperty(uuidConfiguration.getUuidProperty()));
+                try {
+                    uuidReader.getNodeByUuid("aNewUuid");
+                    fail();
+                } catch (NotFoundException e) {
+                    //ok
+                }
             }
             tx.success();
         }
@@ -477,7 +541,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
     public void longCypherCreateShouldResultInAllNodesWithUuid() {
          registerModuleWithNoLabels();
 
-        new ExecutionEngine(database).execute(
+        database.execute(
                 "CREATE (TheMatrix:Movie {title:'The Matrix', released:1999, tagline:'Welcome to the Real World'})\n" +
                         "CREATE (Keanu:Person {name:'Keanu Reeves', born:1964})\n" +
                         "CREATE (Carrie:Person {name:'Carrie-Anne Moss', born:1967})\n" +
@@ -997,14 +1061,16 @@ public class UuidModuleEmbeddedProgrammaticTest {
     private void registerModuleWithNoLabels() {
         uuidConfiguration = UuidConfiguration.defaultConfiguration().withUuidProperty("uuid");
         GraphAwareRuntime runtime = GraphAwareRuntimeFactory.createRuntime(database);
-        UuidModule module = new UuidModule("UUIDM", uuidConfiguration);
+        UuidModule module = new UuidModule("UUIDM", uuidConfiguration, database);
         runtime.registerModule(module);
         runtime.start();
+        uuidReader = new UuidReader(uuidConfiguration,database);
     }
 
     private void registerModuleWithLabels() {
         uuidConfiguration = UuidConfiguration.defaultConfiguration()
                 .withUuidProperty("uuid")
+                .withUuidIndex("uuidIndex")
                 .with(new NodeInclusionPolicy() {
                     @Override
                     public boolean include(Node node) {
@@ -1013,9 +1079,11 @@ public class UuidModuleEmbeddedProgrammaticTest {
                 });
 
         GraphAwareRuntime runtime = GraphAwareRuntimeFactory.createRuntime(database);
-        UuidModule module = new UuidModule("UUIDM", uuidConfiguration);
+        UuidModule module = new UuidModule("UUIDM", uuidConfiguration, database);
         runtime.registerModule(module);
         runtime.start();
+        uuidReader = new UuidReader(uuidConfiguration,database);
+
     }
 
 

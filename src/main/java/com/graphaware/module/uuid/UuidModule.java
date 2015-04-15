@@ -16,7 +16,8 @@
 package com.graphaware.module.uuid;
 
 import com.graphaware.common.uuid.EaioUuidGenerator;
-import com.graphaware.runtime.config.TxDrivenModuleConfiguration;
+import com.graphaware.module.uuid.index.LegacyIndexer;
+import com.graphaware.module.uuid.index.UuidIndexer;
 import com.graphaware.runtime.module.BaseTxDrivenModule;
 import com.graphaware.runtime.module.DeliberateTransactionRollbackException;
 import com.graphaware.tx.event.improved.api.Change;
@@ -33,27 +34,30 @@ import org.neo4j.tooling.GlobalGraphOperations;
  */
 public class UuidModule extends BaseTxDrivenModule<Void> {
 
-    private final static int BATCH_SIZE = 1000;
+    public static final String DEFAULT_MODULE_ID = "UIDM";
+    private static final int BATCH_SIZE = 1000;
 
     private final EaioUuidGenerator uuidGenerator; //todo interface in next release
     private final UuidConfiguration uuidConfiguration;
+    private final UuidIndexer uuidIndexer;
 
     /**
      * Construct a new UUID module.
      *
      * @param moduleId ID of the module.
      */
-    public UuidModule(String moduleId, UuidConfiguration configuration) {
+    public UuidModule(String moduleId, UuidConfiguration configuration, GraphDatabaseService database) {
         super(moduleId);
         this.uuidGenerator = new EaioUuidGenerator();
         this.uuidConfiguration = configuration;
+        this.uuidIndexer = new LegacyIndexer(database, configuration);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public TxDrivenModuleConfiguration getConfiguration() {
+    public UuidConfiguration getConfiguration() {
         return uuidConfiguration;
     }
 
@@ -93,6 +97,10 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
             assignUuid(node);
         }
 
+        for (Node node : transactionData.getAllDeletedNodes()) {
+            uuidIndexer.deleteNodeFromIndex(node);
+        }
+
         //Check if the UUID has been modified or removed from the node and throw an error
         for (Change<Node> change : transactionData.getAllChangedNodes()) {
             if (!change.getCurrent().hasProperty(uuidConfiguration.getUuidProperty())) {
@@ -111,6 +119,7 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
         if (!node.hasProperty(uuidConfiguration.getUuidProperty())) {
             String uuid = uuidGenerator.generateUuid();
             node.setProperty(uuidConfiguration.getUuidProperty(), uuid);
+            uuidIndexer.indexNode(node);
         }
     }
 }

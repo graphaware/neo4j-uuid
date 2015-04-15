@@ -13,15 +13,33 @@
  * the GNU General Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  */
-package com.graphaware.module.uuid;
+
+package com.graphaware.module.uuid.index;
+
+import org.neo4j.graphdb.Node;
 
 /**
- * Indices maintained by the {@link com.graphaware.module.uuid.UuidModule}.
+ * Indexer for nodes assigned a UUID
  */
-final class Indexes {
+public interface UuidIndexer {
 
-    public static final String UUID_NODE_INDEX = "uuidIndex";
+	/**
+	 * Index a node based on the UUID property
+	 * @param node the node to index
+	 */
+	void indexNode(Node node);
 
-    private Indexes() {
-    }
+	/**
+	 * Remove a node from the index based on the UUID property
+	 * @param node the node
+	 */
+	void deleteNodeFromIndex(Node node);
+
+	/**
+	 * Find a node given its UUID
+	 * @param uuid the uuid
+	 * @return the Node with the given UUID or null
+	 */
+	Node getNodeByUuid(String uuid);
+
 }

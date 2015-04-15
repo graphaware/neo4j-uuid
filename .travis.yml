@@ -3,3 +3,4 @@ language: java
 branches:
   except:
     - 2.2
+    - indexing
