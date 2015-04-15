@@ -16,6 +16,7 @@
 package com.graphaware.module.uuid;
 
 import com.graphaware.common.uuid.EaioUuidGenerator;
+import com.graphaware.common.uuid.UuidGenerator;
 import com.graphaware.module.uuid.index.LegacyIndexer;
 import com.graphaware.module.uuid.index.UuidIndexer;
 import com.graphaware.runtime.module.BaseTxDrivenModule;
@@ -37,7 +38,7 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
     public static final String DEFAULT_MODULE_ID = "UIDM";
     private static final int BATCH_SIZE = 1000;
 
-    private final EaioUuidGenerator uuidGenerator; //todo interface in next release
+    private final UuidGenerator uuidGenerator;
     private final UuidConfiguration uuidConfiguration;
     private final UuidIndexer uuidIndexer;
 
