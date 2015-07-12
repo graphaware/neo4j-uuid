@@ -25,6 +25,7 @@ import com.graphaware.tx.event.improved.api.Change;
 import com.graphaware.tx.event.improved.api.ImprovedTransactionData;
 import com.graphaware.tx.executor.batch.IterableInputBatchTransactionExecutor;
 import com.graphaware.tx.executor.batch.UnitOfWork;
+import com.graphaware.tx.executor.input.AllNodes;
 import com.graphaware.tx.executor.single.TransactionCallback;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -70,12 +71,7 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
         new IterableInputBatchTransactionExecutor<>(
                 database,
                 BATCH_SIZE,
-                new TransactionCallback<Iterable<Node>>() {
-                    @Override
-                    public Iterable<Node> doInTransaction(GraphDatabaseService database) throws Exception {
-                        return GlobalGraphOperations.at(database).getAllNodes();
-                    }
-                },
+                new AllNodes(database, BATCH_SIZE),
                 new UnitOfWork<Node>() {
                     @Override
                     public void execute(GraphDatabaseService database, Node node, int batchNumber, int stepNumber) {
