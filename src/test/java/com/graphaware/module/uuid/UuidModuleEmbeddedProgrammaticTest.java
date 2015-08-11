@@ -15,6 +15,7 @@
  */
 package com.graphaware.module.uuid;
 
+import com.graphaware.common.policy.BaseNodeInclusionPolicy;
 import com.graphaware.common.policy.NodeInclusionPolicy;
 import com.graphaware.common.util.IterableUtils;
 import com.graphaware.runtime.GraphAwareRuntime;
@@ -1071,7 +1072,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
         uuidConfiguration = UuidConfiguration.defaultConfiguration()
                 .withUuidProperty("uuid")
                 .withUuidIndex("uuidIndex")
-                .with(new NodeInclusionPolicy() {
+                .with(new BaseNodeInclusionPolicy() {
                     @Override
                     public boolean include(Node node) {
                         return node.hasLabel(DynamicLabel.label("Person")) || node.hasLabel(DynamicLabel.label("Company"));
