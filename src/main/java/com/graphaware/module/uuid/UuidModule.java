@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 GraphAware
+ * Copyright (c) 2015 GraphAware
  *
  * This file is part of GraphAware.
  *
@@ -26,10 +26,8 @@ import com.graphaware.tx.event.improved.api.ImprovedTransactionData;
 import com.graphaware.tx.executor.batch.IterableInputBatchTransactionExecutor;
 import com.graphaware.tx.executor.batch.UnitOfWork;
 import com.graphaware.tx.executor.input.AllNodes;
-import com.graphaware.tx.executor.single.TransactionCallback;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
-import org.neo4j.tooling.GlobalGraphOperations;
 
 /**
  * {@link com.graphaware.runtime.module.TxDrivenModule} that assigns UUID's to nodes in the graph.
@@ -116,7 +114,12 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
         if (!node.hasProperty(uuidConfiguration.getUuidProperty())) {
             String uuid = uuidGenerator.generateUuid();
             node.setProperty(uuidConfiguration.getUuidProperty(), uuid);
-            uuidIndexer.indexNode(node);
         }
+        else {
+            if(uuidIndexer.getNodeByUuid(node.getProperty(uuidConfiguration.getUuidProperty()).toString()) != null) {
+                throw new DeliberateTransactionRollbackException("A node with UUID " + node.getProperty(uuidConfiguration.getUuidProperty()) + " already exists");
+            }
+        }
+        uuidIndexer.indexNode(node);
     }
 }

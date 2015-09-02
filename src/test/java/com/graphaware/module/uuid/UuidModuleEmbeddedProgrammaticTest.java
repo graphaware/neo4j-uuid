@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 GraphAware
+ * Copyright (c) 2015 GraphAware
  *
  * This file is part of GraphAware.
  *
@@ -15,8 +15,9 @@
  */
 package com.graphaware.module.uuid;
 
+import static org.junit.Assert.*;
+
 import com.graphaware.common.policy.BaseNodeInclusionPolicy;
-import com.graphaware.common.policy.NodeInclusionPolicy;
 import com.graphaware.common.util.IterableUtils;
 import com.graphaware.runtime.GraphAwareRuntime;
 import com.graphaware.runtime.GraphAwareRuntimeFactory;
@@ -27,8 +28,6 @@ import org.junit.Test;
 import org.neo4j.graphdb.*;
 import org.neo4j.test.TestGraphDatabaseFactory;
 import org.neo4j.tooling.GlobalGraphOperations;
-
-import static org.junit.Assert.*;
 
 
 public class UuidModuleEmbeddedProgrammaticTest {
@@ -1057,6 +1056,56 @@ public class UuidModuleEmbeddedProgrammaticTest {
             }
             tx.success();
         }
+    }
+
+    @Test
+    public void shouldBeAbleToManuallyAssignUuidToNodeWithLabelConfiguration() {
+        //Given
+        registerModuleWithLabels();
+
+        //When
+        try (Transaction tx = database.beginTx()) {
+            Node node = database.createNode();
+            node.addLabel(testLabel);
+            node.setProperty("name", "aNode");
+            node.setProperty("uuid", "1");
+            tx.success();
+        }
+
+        //Then
+        //Retrieve the node and check that it has the assigned uuid property
+        try (Transaction tx = database.beginTx()) {
+            for (Node node : GlobalGraphOperations.at(database).getAllNodesWithLabel(testLabel)) {
+                assertEquals("1",node.getProperty(uuidConfiguration.getUuidProperty()));
+            }
+            tx.success();
+        }
+    }
+
+    @Test(expected = TransactionFailureException.class)
+    public void shouldNotBeAbleToManuallyAssignSameUuidToNodesWithLabelConfiguration() {
+        //Given
+        registerModuleWithLabels();
+
+        //When
+        try (Transaction tx = database.beginTx()) {
+            Node node = database.createNode();
+            node.addLabel(personLabel);
+            node.setProperty("name", "aNode");
+            node.setProperty("uuid", "1");
+            tx.success();
+        }
+        //Create a node with an existing UUID
+        try (Transaction tx = database.beginTx()) {
+            Node node = database.createNode();
+            node.addLabel(personLabel);
+            node.setProperty("name", "aNode");
+            node.setProperty("uuid", "1");
+            tx.success();
+        }
+
+        //Then
+        //Exception
     }
 
     private void registerModuleWithNoLabels() {

@@ -16,16 +16,14 @@
 
 package com.graphaware.module.uuid;
 
-import com.graphaware.test.integration.NeoServerIntegrationTest;
-import org.junit.Test;
+import static org.apache.http.HttpStatus.*;
+import static org.junit.Assert.*;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.apache.http.HttpStatus.SC_NOT_FOUND;
-import static org.apache.http.HttpStatus.SC_OK;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import com.graphaware.test.integration.NeoServerIntegrationTest;
+import org.junit.Test;
 
 public class UuidModuleEndToEndTest extends NeoServerIntegrationTest {
 
@@ -40,6 +38,36 @@ public class UuidModuleEndToEndTest extends NeoServerIntegrationTest {
     public void testWorkflow() {
         //Create & Assign
         httpClient.executeCypher(baseUrl(), "CREATE (p:Person {name:'Luanne'})");
+
+        String response = httpClient.executeCypher(baseUrl(), "MATCH (p:Person) RETURN p");
+
+        Matcher matcher = UUID_PATTERN.matcher(response);
+        assertTrue(matcher.find());
+        String uuid = matcher.group(1);
+
+        //Retrieve
+        assertEquals("0", httpClient.get(baseUrl() + "/graphaware/uuid/UIDM/node/" + uuid, SC_OK));
+
+        //(can't) Update
+        response = httpClient.executeCypher(baseUrl(), "MATCH (p:Person {name:'Luanne'}) SET p.uuid=new");
+
+        System.out.println(response);
+
+        response = httpClient.executeCypher(baseUrl(), "MATCH (p:Person) RETURN p");
+
+        matcher = UUID_PATTERN.matcher(response);
+        assertTrue(matcher.find());
+        assertEquals(uuid, matcher.group(1));
+
+        //Delete
+        httpClient.executeCypher(baseUrl(), "MATCH (p:Person {name:'Luanne'}) DELETE p");
+        httpClient.get(baseUrl() + "/graphaware/uuid/node/" + uuid, SC_NOT_FOUND);
+    }
+
+    @Test
+    public void testWorkflowWithManuallyAssignedId() {
+        //Create & Assign
+        httpClient.executeCypher(baseUrl(), "CREATE (p:Person {name:'Luanne', uuid:'123'})");
 
         String response = httpClient.executeCypher(baseUrl(), "MATCH (p:Person) RETURN p");
 
