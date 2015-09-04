@@ -52,8 +52,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
     @Test
     public void moduleShouldInitializeCorrectly() {
         try (Transaction tx = database.beginTx()) {
-            Node node = database.createNode();
-            node.addLabel(personLabel);
+            database.createNode(personLabel);
             tx.success();
         }
 
@@ -77,16 +76,15 @@ public class UuidModuleEmbeddedProgrammaticTest {
     }
 
     @Test
-    public void initializationShouldAssignUUIDs() {
+    public void initializationShouldNotTouchedAssignedUUIDs() {
         try (Transaction tx = database.beginTx()) {
-            Node node = database.createNode();
-            node.addLabel(personLabel);
-            tx.success();
-        }
+            database.createNode(personLabel); //no UUID
 
-        try (Transaction tx = database.beginTx()) {
-            Node personNode = IterableUtils.getSingle(database.findNodes(personLabel));
-            assertFalse(personNode.hasProperty("uuid"));
+            Node node = database.createNode(personLabel);
+            node.setProperty("uuid", "test-uuid");
+            database.index().forNodes("uuidIndex").add(node, "uuid", "test-uuid");
+
+            database.createNode(personLabel); //no UUID
             tx.success();
         }
 
@@ -94,11 +92,13 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         try (Transaction tx = database.beginTx()) {
             assertTrue(database.index().existsForNodes("uuidIndex"));
-            Node personNode = IterableUtils.getSingle(database.findNodes(personLabel));
-            assertTrue(personNode.hasProperty("uuid"));
-            String uuid = (String) personNode.getProperty("uuid");
-            assertNotNull(uuidReader.getNodeByUuid(uuid));
-            assertEquals(personNode, uuidReader.getNodeByUuid(uuid));
+            for (Node personNode : Iterables.asResourceIterable(database.findNodes(personLabel))) {
+                assertTrue(personNode.hasProperty("uuid"));
+                String uuid = (String) personNode.getProperty("uuid");
+                assertNotNull(uuidReader.getNodeByUuid(uuid));
+                assertEquals(personNode, uuidReader.getNodeByUuid(uuid));
+            }
+
             tx.success();
         }
     }
@@ -110,8 +110,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //When
         try (Transaction tx = database.beginTx()) {
-            Node node = database.createNode();
-            node.addLabel(testLabel);
+            Node node = database.createNode(testLabel);
             node.setProperty("name", "aNode");
             tx.success();
         }
@@ -210,8 +209,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
         registerModuleWithNoLabels();
 
         try (Transaction tx = database.beginTx()) {
-            node = database.createNode();
-            node.addLabel(testLabel);
+            node = database.createNode(testLabel);
             node.setProperty("name", "aNode");
             tx.success();
         }
@@ -261,8 +259,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
         registerModuleWithNoLabels();
 
         try (Transaction tx = database.beginTx()) {
-            node = database.createNode();
-            node.addLabel(testLabel);
+            node = database.createNode(testLabel);
             node.setProperty("name", "aNode");
             tx.success();
         }
@@ -311,8 +308,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //When
         try (Transaction tx = database.beginTx()) {
-            Node node = database.createNode();
-            node.addLabel(personLabel);
+            Node node = database.createNode(personLabel);
             node.setProperty("name", "aNode");
             tx.success();
         }
@@ -337,8 +333,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //When
         try (Transaction tx = database.beginTx()) {
-            Node node = database.createNode();
-            node.addLabel(testLabel);
+            Node node = database.createNode(testLabel);
             node.setProperty("name", "aNode");
             tx.success();
         }
@@ -386,8 +381,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
         registerModuleWithLabels();
 
         try (Transaction tx = database.beginTx()) {
-            node = database.createNode();
-            node.addLabel(testLabel);
+            node = database.createNode(testLabel);
             node.setProperty("name", "aNode");
             tx.success();
         }
@@ -424,8 +418,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
         registerModuleWithNoLabels();
 
         try (Transaction tx = database.beginTx()) {
-            node = database.createNode();
-            node.addLabel(personLabel);
+            node = database.createNode(personLabel);
             node.setProperty("name", "aNode");
             tx.success();
         }
@@ -484,8 +477,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
         registerModuleWithLabels();
 
         try (Transaction tx = database.beginTx()) {
-            node = database.createNode();
-            node.addLabel(testLabel);
+            node = database.createNode(testLabel);
             node.setProperty("name", "aNode");
             tx.success();
         }
@@ -515,8 +507,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
         registerModuleWithNoLabels();
 
         try (Transaction tx = database.beginTx()) {
-            node = database.createNode();
-            node.addLabel(personLabel);
+            node = database.createNode(personLabel);
             node.setProperty("name", "aNode");
             tx.success();
         }
@@ -1093,8 +1084,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //When
         try (Transaction tx = database.beginTx()) {
-            Node node = database.createNode();
-            node.addLabel(testLabel);
+            Node node = database.createNode(testLabel);
             node.setProperty("name", "aNode");
             node.setProperty("uuid", "1");
             tx.success();
@@ -1117,16 +1107,14 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //When
         try (Transaction tx = database.beginTx()) {
-            Node node = database.createNode();
-            node.addLabel(personLabel);
+            Node node = database.createNode(personLabel);
             node.setProperty("name", "aNode");
             node.setProperty("uuid", "1");
             tx.success();
         }
         //Create a node with an existing UUID
         try (Transaction tx = database.beginTx()) {
-            Node node = database.createNode();
-            node.addLabel(personLabel);
+            Node node = database.createNode(personLabel);
             node.setProperty("name", "aNode");
             node.setProperty("uuid", "1");
             tx.success();
