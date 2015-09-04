@@ -95,6 +95,14 @@ public class UuidModuleEndToEndTest extends NeoServerIntegrationTest {
     }
 
     @Test
+    public void testIssue6() {
+        String response = httpClient.executeCypher(baseUrl(), "CREATE (:Person {name:'Luanne', uuid:'123'}), (:Person {name:'Michal', uuid:'123'})");
+        assertTrue(response.contains("Neo.DatabaseError.Transaction.CouldNotCommit"));
+
+        assertEquals("{\"results\":[{\"columns\":[\"p\"],\"data\":[]}],\"errors\":[]}", httpClient.executeCypher(baseUrl(), "MATCH (p:Person) RETURN p"));
+    }
+
+    @Test
     public void shouldReturn404WhenUuidNotExists() {
         httpClient.get(baseUrl() + "/graphaware/uuid/node/not-exists", SC_NOT_FOUND);
     }
