@@ -26,6 +26,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.neo4j.graphdb.*;
+import org.neo4j.helpers.collection.Iterables;
 import org.neo4j.test.TestGraphDatabaseFactory;
 import org.neo4j.tooling.GlobalGraphOperations;
 
@@ -66,7 +67,34 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         try (Transaction tx = database.beginTx()) {
             assertTrue(database.index().existsForNodes("uuidIndex"));
-            Node personNode = IterableUtils.getSingle(GlobalGraphOperations.at(database).getAllNodesWithLabel(personLabel));
+            Node personNode = IterableUtils.getSingle(database.findNodes(personLabel));
+            assertTrue(personNode.hasProperty("uuid"));
+            String uuid = (String) personNode.getProperty("uuid");
+            assertNotNull(uuidReader.getNodeByUuid(uuid));
+            assertEquals(personNode, uuidReader.getNodeByUuid(uuid));
+            tx.success();
+        }
+    }
+
+    @Test
+    public void initializationShouldAssignUUIDs() {
+        try (Transaction tx = database.beginTx()) {
+            Node node = database.createNode();
+            node.addLabel(personLabel);
+            tx.success();
+        }
+
+        try (Transaction tx = database.beginTx()) {
+            Node personNode = IterableUtils.getSingle(database.findNodes(personLabel));
+            assertFalse(personNode.hasProperty("uuid"));
+            tx.success();
+        }
+
+        registerModuleWithLabels();
+
+        try (Transaction tx = database.beginTx()) {
+            assertTrue(database.index().existsForNodes("uuidIndex"));
+            Node personNode = IterableUtils.getSingle(database.findNodes(personLabel));
             assertTrue(personNode.hasProperty("uuid"));
             String uuid = (String) personNode.getProperty("uuid");
             assertNotNull(uuidReader.getNodeByUuid(uuid));
@@ -91,7 +119,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
         //Then
         //Retrieve the node and check that it has a uuid property
         try (Transaction tx = database.beginTx()) {
-            for (Node node : GlobalGraphOperations.at(database).getAllNodesWithLabel(testLabel)) {
+            for (Node node : Iterables.asResourceIterable(database.findNodes(testLabel))) {
                 assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
                 String uuid = (String) node.getProperty("uuid");
                 assertNotNull(uuidReader.getNodeByUuid(uuid));
@@ -190,7 +218,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //When
         try (Transaction tx = database.beginTx()) {
-            for (Node n : GlobalGraphOperations.at(database).getAllNodesWithLabel(testLabel)) {
+            for (Node n : Iterables.asResourceIterable(database.findNodes(testLabel))) {
                 n.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
             }
             tx.success();
@@ -241,7 +269,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //When
         try (Transaction tx = database.beginTx()) {
-            for (Node n : GlobalGraphOperations.at(database).getAllNodesWithLabel(testLabel)) {
+            for (Node n : Iterables.asResourceIterable(database.findNodes(testLabel))) {
                 n.removeProperty(uuidConfiguration.getUuidProperty());
             }
             tx.success();
@@ -292,7 +320,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
         //Then
         //Retrieve the node and check that it has a uuid property
         try (Transaction tx = database.beginTx()) {
-            for (Node node : GlobalGraphOperations.at(database).getAllNodesWithLabel(personLabel)) {
+            for (Node node : Iterables.asResourceIterable(database.findNodes(personLabel))) {
                 assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
                 String uuid = (String) node.getProperty("uuid");
                 assertNotNull(uuidReader.getNodeByUuid(uuid));
@@ -318,7 +346,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
         //Then
         //Retrieve the node and check that it has no uuid property
         try (Transaction tx = database.beginTx()) {
-            for (Node node : GlobalGraphOperations.at(database).getAllNodesWithLabel(testLabel)) {
+            for (Node node : Iterables.asResourceIterable(database.findNodes(testLabel))) {
                 assertFalse(node.hasProperty(uuidConfiguration.getUuidProperty()));
             }
             tx.success();
@@ -366,7 +394,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //When
         try (Transaction tx = database.beginTx()) {
-            for (Node n : GlobalGraphOperations.at(database).getAllNodesWithLabel(testLabel)) {
+            for (Node n : Iterables.asResourceIterable(database.findNodes(testLabel))) {
                 n.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
 
             }
@@ -375,7 +403,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //Then
         try (Transaction tx = database.beginTx()) {
-            for (Node n : GlobalGraphOperations.at(database).getAllNodesWithLabel(testLabel)) {
+            for (Node n : Iterables.asResourceIterable(database.findNodes(testLabel))) {
                 assertEquals("aNewUuid", n.getProperty(uuidConfiguration.getUuidProperty()));
                 try {
                     uuidReader.getNodeByUuid("aNewUuid");
@@ -464,7 +492,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //When
         try (Transaction tx = database.beginTx()) {
-            for (Node n : GlobalGraphOperations.at(database).getAllNodesWithLabel(testLabel)) {
+            for (Node n : Iterables.asResourceIterable(database.findNodes(testLabel))) {
                 n.removeProperty(uuidConfiguration.getUuidProperty());
             }
             tx.success();
@@ -472,7 +500,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //Then
         try (Transaction tx = database.beginTx()) {
-            for (Node n : GlobalGraphOperations.at(database).getAllNodesWithLabel(testLabel)) {
+            for (Node n : Iterables.asResourceIterable(database.findNodes(testLabel))) {
                 assertFalse(n.hasProperty(uuidConfiguration.getUuidProperty()));
             }
             tx.success();
@@ -495,7 +523,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //When
         try (Transaction tx = database.beginTx()) {
-            for (Node n : GlobalGraphOperations.at(database).getAllNodesWithLabel(personLabel)) {
+            for (Node n : Iterables.asResourceIterable(database.findNodes(personLabel))) {
                 n.removeProperty(uuidConfiguration.getUuidProperty());
             }
             tx.success();
@@ -1075,7 +1103,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
         //Then
         //Retrieve the node and check that it has the assigned uuid property
         try (Transaction tx = database.beginTx()) {
-            for (Node node : GlobalGraphOperations.at(database).getAllNodesWithLabel(testLabel)) {
+            for (Node node : Iterables.asResourceIterable(database.findNodes(testLabel))) {
                 assertEquals("1",node.getProperty(uuidConfiguration.getUuidProperty()));
             }
             tx.success();
