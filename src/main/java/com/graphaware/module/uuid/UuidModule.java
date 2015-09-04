@@ -114,10 +114,10 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
         if (!node.hasProperty(uuidConfiguration.getUuidProperty())) {
             String uuid = uuidGenerator.generateUuid();
             node.setProperty(uuidConfiguration.getUuidProperty(), uuid);
-        }
-        else {
-            if(uuidIndexer.getNodeByUuid(node.getProperty(uuidConfiguration.getUuidProperty()).toString()) != null) {
-                throw new DeliberateTransactionRollbackException("A node with UUID " + node.getProperty(uuidConfiguration.getUuidProperty()) + " already exists");
+        } else {
+            Node existingNode = uuidIndexer.getNodeByUuid(node.getProperty(uuidConfiguration.getUuidProperty()).toString());
+            if (existingNode != null && existingNode.getId() != node.getId()) {
+                throw new DeliberateTransactionRollbackException("Another node with UUID " + node.getProperty(uuidConfiguration.getUuidProperty()) + " already exists (" + existingNode + ")!");
             }
         }
         uuidIndexer.indexNode(node);
