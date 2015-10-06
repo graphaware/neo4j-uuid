@@ -57,7 +57,7 @@ public class UuidBootstrapper implements RuntimeModuleBootstrapper {
 
         if (config.get(NODE) != null) {
             NodeInclusionPolicy policy = StringToNodeInclusionPolicy.getInstance().apply(config.get(NODE));
-            LOG.info("Node Inclusion Strategy set to {}", policy);
+            LOG.info("Node Inclusion Policy set to {}", policy);
             configuration = configuration.with(policy);
         }
 

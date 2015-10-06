@@ -28,14 +28,10 @@ public class UuidConfiguration extends BaseTxDrivenModuleConfiguration<UuidConfi
     private static final String DEFAULT_UUID_PROPERTY = Properties.UUID;
     private static final String DEFAULT_UUID_NODEX_INDEX = Indexes.UUID_NODE_INDEX;
 
-    private String uuidProperty;
-    private String uuidIndex;
+    private final String uuidProperty;
+    private final String uuidIndex;
 
-    protected UuidConfiguration(InclusionPolicies inclusionPolicies) {
-        super(inclusionPolicies);
-    }
-
-    public UuidConfiguration(InclusionPolicies inclusionPolicies, String uuidProperty, String uuidIndex) {
+    private UuidConfiguration(InclusionPolicies inclusionPolicies, String uuidProperty, String uuidIndex) {
         super(inclusionPolicies);
         this.uuidProperty = uuidProperty;
         this.uuidIndex = uuidIndex;
