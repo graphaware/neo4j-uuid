@@ -22,11 +22,10 @@ import static org.junit.Assert.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.graphaware.test.integration.CommunityNeoServerIntegrationTest;
 import com.graphaware.test.integration.NeoServerIntegrationTest;
 import org.junit.Test;
 
-public class UuidModuleEndToEndTest extends CommunityNeoServerIntegrationTest {
+public class UuidModuleEndToEndTest extends NeoServerIntegrationTest {
 
     public static final Pattern UUID_PATTERN = Pattern.compile("\\\"uuid\\\":\\\"([a-zA-Z0-9-]*)\\\"");
 
