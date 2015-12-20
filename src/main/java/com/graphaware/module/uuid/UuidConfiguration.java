@@ -31,31 +31,31 @@ public class UuidConfiguration extends BaseTxDrivenModuleConfiguration<UuidConfi
     private final String uuidProperty;
     private final String uuidIndex;
 
-    private UuidConfiguration(InclusionPolicies inclusionPolicies, String uuidProperty, String uuidIndex) {
-        super(inclusionPolicies);
+    private UuidConfiguration(InclusionPolicies inclusionPolicies, long initializeUntil, String uuidProperty, String uuidIndex) {
+        super(inclusionPolicies, initializeUntil);
         this.uuidProperty = uuidProperty;
         this.uuidIndex = uuidIndex;
     }
 
     /**
-     * Create a default configuration with default uuid property = {@link #DEFAULT_UUID_PROPERTY}, uuid index = {@link #DEFAULT_UUID_NODEX_INDEX}
-     * labels=all (including nodes with no labels)
-     * inclusion strategies = {@link com.graphaware.runtime.policy.InclusionPoliciesFactory#allBusiness()},
-     * (nothing is excluded except for framework-internal nodes and relationships)
+     * Create a default configuration with default uuid property = {@link #DEFAULT_UUID_PROPERTY},
+     * uuid index = {@link #DEFAULT_UUID_NODEX_INDEX}
+     * inclusion policies = {@link InclusionPoliciesFactory#allBusiness()},
+     * and initialize until = {@link #ALWAYS}.
      * <p/>
      * Change this by calling {@link #withUuidProperty(String)}, with* other inclusion strategies
      * on the object, always using the returned object (this is a fluent interface).
      */
     public static UuidConfiguration defaultConfiguration() {
-        return new UuidConfiguration(InclusionPoliciesFactory.allBusiness(), DEFAULT_UUID_PROPERTY,DEFAULT_UUID_NODEX_INDEX);
+        return new UuidConfiguration(InclusionPoliciesFactory.allBusiness(), ALWAYS, DEFAULT_UUID_PROPERTY, DEFAULT_UUID_NODEX_INDEX);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    protected UuidConfiguration newInstance(InclusionPolicies inclusionPolicies) {
-        return new UuidConfiguration(inclusionPolicies, getUuidProperty(), getUuidIndex());
+    protected UuidConfiguration newInstance(InclusionPolicies inclusionPolicies, long initializeUntil) {
+        return new UuidConfiguration(inclusionPolicies, initializeUntil, getUuidProperty(), getUuidIndex());
     }
 
     public String getUuidProperty() {
@@ -73,7 +73,7 @@ public class UuidConfiguration extends BaseTxDrivenModuleConfiguration<UuidConfi
      * @return new instance.
      */
     public UuidConfiguration withUuidProperty(String uuidProperty) {
-        return new UuidConfiguration(getInclusionPolicies(), uuidProperty, getUuidIndex());
+        return new UuidConfiguration(getInclusionPolicies(), initializeUntil(), uuidProperty, getUuidIndex());
     }
 
     /**
@@ -83,7 +83,7 @@ public class UuidConfiguration extends BaseTxDrivenModuleConfiguration<UuidConfi
      * @return new instance.
      */
     public UuidConfiguration withUuidIndex(String uuidIndex) {
-        return new UuidConfiguration(getInclusionPolicies(), getUuidProperty(), uuidIndex);
+        return new UuidConfiguration(getInclusionPolicies(), initializeUntil(), getUuidProperty(), uuidIndex);
     }
 
     /**
@@ -91,14 +91,24 @@ public class UuidConfiguration extends BaseTxDrivenModuleConfiguration<UuidConfi
      */
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
 
         UuidConfiguration that = (UuidConfiguration) o;
 
-        if (!uuidProperty.equals(that.uuidProperty)) return false;
-        if (!uuidIndex.equals(that.uuidIndex)) return false;
+        if (!uuidProperty.equals(that.uuidProperty)) {
+            return false;
+        }
+        if (!uuidIndex.equals(that.uuidIndex)) {
+            return false;
+        }
 
         return true;
     }

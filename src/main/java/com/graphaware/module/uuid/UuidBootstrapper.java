@@ -16,8 +16,7 @@
 
 package com.graphaware.module.uuid;
 
-import com.graphaware.common.policy.NodeInclusionPolicy;
-import com.graphaware.runtime.config.function.StringToNodeInclusionPolicy;
+import com.graphaware.runtime.module.BaseRuntimeModuleBootstrapper;
 import com.graphaware.runtime.module.RuntimeModule;
 import com.graphaware.runtime.module.RuntimeModuleBootstrapper;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -29,22 +28,26 @@ import java.util.Map;
 /**
  * Bootstraps the {@link UuidModule} in server mode.
  */
-public class UuidBootstrapper implements RuntimeModuleBootstrapper {
+public class UuidBootstrapper extends BaseRuntimeModuleBootstrapper<UuidConfiguration> implements RuntimeModuleBootstrapper {
 
     private static final Logger LOG = LoggerFactory.getLogger(UuidBootstrapper.class);
 
-    //keys to use when configuring using neo4j.properties
     private static final String UUID_PROPERTY = "uuidProperty";
     private static final String UUID_INDEX = "uuidIndex";
-    private static final String NODE = "node";
 
     /**
-     * @{inheritDoc}
+     * {@inheritDoc}
      */
     @Override
-    public RuntimeModule bootstrapModule(String moduleId, Map<String, String> config, GraphDatabaseService database) {
-        UuidConfiguration configuration = UuidConfiguration.defaultConfiguration();
+    protected UuidConfiguration defaultConfiguration() {
+        return UuidConfiguration.defaultConfiguration();
+    }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected RuntimeModule doBootstrapModule(String moduleId, Map<String, String> config, GraphDatabaseService database, UuidConfiguration configuration) {
         if (config.get(UUID_PROPERTY) != null && config.get(UUID_PROPERTY).length() > 0) {
             configuration = configuration.withUuidProperty(config.get(UUID_PROPERTY));
             LOG.info("uuidProperty set to {}", configuration.getUuidProperty());
@@ -53,12 +56,6 @@ public class UuidBootstrapper implements RuntimeModuleBootstrapper {
         if (config.get(UUID_INDEX) != null && config.get(UUID_INDEX).length() > 0) {
             configuration = configuration.withUuidIndex(config.get(UUID_INDEX));
             LOG.info("uuidIndex set to {}", configuration.getUuidIndex());
-        }
-
-        if (config.get(NODE) != null) {
-            NodeInclusionPolicy policy = StringToNodeInclusionPolicy.getInstance().apply(config.get(NODE));
-            LOG.info("Node Inclusion Policy set to {}", policy);
-            configuration = configuration.with(policy);
         }
 
         return new UuidModule(moduleId, configuration, database);
