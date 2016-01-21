@@ -22,7 +22,7 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 
 /**
- * Legacy Index implementation for indexing and finding nodes assigned a UUID
+ * Legacy Index implementation for indexing and finding nodes and relationships assigned a UUID.
  */
 public class LegacyIndexer implements UuidIndexer {
 

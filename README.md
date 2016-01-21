@@ -67,7 +67,7 @@ com.graphaware.module.UIDM.uuidProperty=uuid
 #optional, default is all nodes:
 com.graphaware.module.UIDM.node=hasLabel('Label1') || hasLabel('Label2')
 
-#optional, default is all relationships:
+#optional, default is no relationships:
 com.graphaware.module.UIDM.relationship=isType('Type1')
 
 #optional, default is uuidIndex
@@ -86,8 +86,8 @@ or a Spring Expression Language expression determining, which nodes to assign a 
 UUID property to every node which isn't internal to the framework.
 
 `com.graphaware.module.UIDM.relationship` specifies either a fully qualified class name of [`RelationshipInclusionPolicy`](http://graphaware.com/site/framework/latest/apidocs/com/graphaware/common/policy/RelationshipInclusionPolicy.html) implementation,
-or a Spring Expression Language expression determining, which relationships to assign a UUID to. The default is to assign the
-UUID property to every relationship which isn't internal to the framework.
+or a Spring Expression Language expression determining, which relationships to assign a UUID to. The default is **not** to assign the
+UUID property to any relationship.
 
 `com.graphaware.module.UIDM.uuidIndex` is the index name that will be used to index nodes based on their UUID. The default is "uuidIndex".
 
