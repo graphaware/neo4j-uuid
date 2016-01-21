@@ -125,7 +125,9 @@ You can also retrieve a node by UUID.
 In Server Mode, a node can be retrieved by its UUID via the REST API.
 
 You can issue GET requests to `http://your-server-address:7474/graphaware/uuid/{moduleId}/node/{uuid}` to get the node ID for a given uuid.
+
 GET requests to `http://your-server-address:7474/graphaware/uuid/{moduleId}/relationship/{uuid}` will get the relationship ID for a given uuid.
+
 {moduleId} is the module ID the UUID Module was registered with. You can omit this part of the URL, in which case "UIDM" is assumed as the default value.
 If no node exists with the given UUID, a 404 status code will be returned.
 
