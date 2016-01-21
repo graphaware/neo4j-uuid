@@ -22,6 +22,7 @@ import com.graphaware.module.uuid.index.UuidIndexer;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.NotFoundException;
+import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 
 public class UuidReader {
@@ -73,5 +74,46 @@ public class UuidReader {
         }
 
         return nodeId;
+    }
+
+    /**
+     * Get a relationship by its UUID.
+     *
+     * @param uuid uuid.
+     * @return Relationship object.
+     * @throws org.neo4j.graphdb.NotFoundException in case no relationship exists with such UUID.
+     */
+    public Relationship getRelationshipByUuid(String uuid) {
+        Relationship relationship;
+
+        try (Transaction tx = database.beginTx()) {
+            relationship = indexer.getRelationshipByUuid(uuid);
+            tx.success();
+        }
+
+        if (relationship == null) {
+            throw new NotFoundException("Relationship with UUID " + uuid + " does not exist");
+        }
+
+        return relationship;
+    }
+
+    /**
+     * Get a relationship ID by its UUID.
+     *
+     * @param uuid uuid.
+     * @return Relationship ID.
+     * @throws org.neo4j.graphdb.NotFoundException in case no node exists with such UUID.
+     */
+    public long getRelationshipIdByUuid(String uuid) {
+        Relationship relationship = getRelationshipByUuid(uuid);
+        long relId;
+
+        try (Transaction tx = database.beginTx()) {
+            relId = relationship.getId();
+            tx.success();
+        }
+
+        return relId;
     }
 }

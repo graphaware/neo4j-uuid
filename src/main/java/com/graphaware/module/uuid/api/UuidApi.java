@@ -15,6 +15,9 @@
  */
 package com.graphaware.module.uuid.api;
 
+import static com.graphaware.module.uuid.UuidModule.DEFAULT_MODULE_ID;
+import static com.graphaware.runtime.RuntimeRegistry.getStartedRuntime;
+
 import com.graphaware.module.uuid.UuidConfiguration;
 import com.graphaware.module.uuid.UuidModule;
 import com.graphaware.module.uuid.UuidReader;
@@ -23,10 +26,12 @@ import org.neo4j.graphdb.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.*;
-
-import static com.graphaware.module.uuid.UuidModule.DEFAULT_MODULE_ID;
-import static com.graphaware.runtime.RuntimeRegistry.getStartedRuntime;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
  * REST API for {@link UuidModule}.
@@ -68,6 +73,34 @@ public class UuidApi {
     public Long getNodeIdByModuleAndUuid(@PathVariable(value = "moduleId") String moduleId, @PathVariable(value = "uuid") String uuid) {
         UuidConfiguration configuration = getStartedRuntime(database).getModule(moduleId, UuidModule.class).getConfiguration();
         return new UuidReader(configuration, database).getNodeIdByUuid(uuid);
+    }
+
+    /**
+     * Get the relationship id of the relationship which has the given uuid.
+     *
+     * @param uuid the uuid.
+     * @return relationship id of the relationship which has the given uuid.
+     * @throws org.neo4j.graphdb.NotFoundException if none exist.
+     */
+    @RequestMapping(value = "/relationship/{uuid}", method = RequestMethod.GET)
+    @ResponseBody
+    public Long getRelationshipIdByUuid(@PathVariable(value = "uuid") String uuid) {
+        return getRelationshipIdByModuleAndUuid(DEFAULT_MODULE_ID, uuid);
+    }
+
+    /**
+     * Get the relationship id of the relationship which has the given uuid.
+     *
+     * @param moduleId module id (used in the unlikely event that there are multiple modules, or if the module has a non-default ID).
+     * @param uuid     the uuid.
+     * @return relationship id of the relationship which has the given uuid.
+     * @throws org.neo4j.graphdb.NotFoundException if none exist.
+     */
+    @RequestMapping(value = "/{moduleId}/relationship/{uuid}", method = RequestMethod.GET)
+    @ResponseBody
+    public Long getRelationshipIdByModuleAndUuid(@PathVariable(value = "moduleId") String moduleId, @PathVariable(value = "uuid") String uuid) {
+        UuidConfiguration configuration = getStartedRuntime(database).getModule(moduleId, UuidModule.class).getConfiguration();
+        return new UuidReader(configuration, database).getRelationshipIdByUuid(uuid);
     }
 
     @ExceptionHandler(NotFoundException.class)

@@ -16,14 +16,14 @@
 
 package com.graphaware.module.uuid;
 
+import java.util.Map;
+
 import com.graphaware.runtime.module.BaseRuntimeModuleBootstrapper;
 import com.graphaware.runtime.module.RuntimeModule;
 import com.graphaware.runtime.module.RuntimeModuleBootstrapper;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Map;
 
 /**
  * Bootstraps the {@link UuidModule} in server mode.
@@ -34,6 +34,7 @@ public class UuidBootstrapper extends BaseRuntimeModuleBootstrapper<UuidConfigur
 
     private static final String UUID_PROPERTY = "uuidProperty";
     private static final String UUID_INDEX = "uuidIndex";
+    private static final String UUID_RELATIONSHIP_INDEX = "uuidRelationshipIndex";
 
     /**
      * {@inheritDoc}
@@ -56,6 +57,11 @@ public class UuidBootstrapper extends BaseRuntimeModuleBootstrapper<UuidConfigur
         if (config.get(UUID_INDEX) != null && config.get(UUID_INDEX).length() > 0) {
             configuration = configuration.withUuidIndex(config.get(UUID_INDEX));
             LOG.info("uuidIndex set to {}", configuration.getUuidIndex());
+        }
+
+        if (config.get(UUID_RELATIONSHIP_INDEX) != null && config.get(UUID_RELATIONSHIP_INDEX).length() > 0) {
+            configuration = configuration.withUuidRelationshipIndex(config.get(UUID_RELATIONSHIP_INDEX));
+            LOG.info("uuidRelationshipIndex set to {}", configuration.getUuidRelationshipIndex());
         }
 
         return new UuidModule(moduleId, configuration, database);

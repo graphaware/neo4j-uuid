@@ -19,6 +19,7 @@ package com.graphaware.module.uuid.index;
 import com.graphaware.module.uuid.UuidConfiguration;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
 
 /**
  * Legacy Index implementation for indexing and finding nodes assigned a UUID
@@ -55,5 +56,29 @@ public class LegacyIndexer implements UuidIndexer {
     @Override
     public void deleteNodeFromIndex(Node node) {
         database.index().forNodes(configuration.getUuidIndex()).remove(node, configuration.getUuidProperty());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void indexRelationship(Relationship relationship) {
+        database.index().forRelationships(configuration.getUuidRelationshipIndex()).add(relationship, configuration.getUuidProperty(), relationship.getProperty(configuration.getUuidProperty()));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void deleteRelationshipFromIndex(Relationship relationship) {
+        database.index().forRelationships(configuration.getUuidRelationshipIndex()).remove(relationship, configuration.getUuidProperty());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Relationship getRelationshipByUuid(String uuid) {
+        return database.index().forRelationships(configuration.getUuidRelationshipIndex()).get(configuration.getUuidProperty(), uuid).getSingle();
     }
 }

@@ -3,7 +3,7 @@ GraphAware Neo4j UUID
 
 [![Build Status](https://travis-ci.org/graphaware/neo4j-uuid.png)](https://travis-ci.org/graphaware/neo4j-uuid) | <a href="http://graphaware.com/downloads/" target="_blank">Downloads</a> | <a href="http://graphaware.com/site/uuid/latest/apidocs/" target="_blank">Javadoc</a> | Latest Release: 2.3.2.37.7
 
-GraphAware UUID is a simple library that transparently assigns a UUID to newly created nodes in the graph and makes sure nobody
+GraphAware UUID is a simple library that transparently assigns a UUID to newly created nodes and relationships in the graph and makes sure nobody
 can (accidentally or intentionally) change or delete them.
 
 Getting the Software
@@ -67,20 +67,31 @@ com.graphaware.module.UIDM.uuidProperty=uuid
 #optional, default is all nodes:
 com.graphaware.module.UIDM.node=hasLabel('Label1') || hasLabel('Label2')
 
+#optional, default is all relationships:
+com.graphaware.module.UIDM.relationship=isType('Type1')
+
 #optional, default is uuidIndex
 com.graphaware.module.UIDM.uuidIndex=uuidIndex
 
+#optional, default is uuidRelIndex
+com.graphaware.module.UIDM.uuidRelationshipIndex=uuidRelIndex
 ```
 
 Note that "UIDM" becomes the module ID. 
 
-`com.graphaware.module.UIDM.uuidProperty` is the property name that will be used to store the assigned UUID on the node. The default is "uuid".
+`com.graphaware.module.UIDM.uuidProperty` is the property name that will be used to store the assigned UUID on nodes and relationships. The default is "uuid".
 
 `com.graphaware.module.UIDM.node` specifies either a fully qualified class name of [`NodeInclusionPolicy`](http://graphaware.com/site/framework/latest/apidocs/com/graphaware/common/policy/NodeInclusionPolicy.html) implementation,
 or a Spring Expression Language expression determining, which nodes to assign a UUID to. The default is to assign the
 UUID property to every node which isn't internal to the framework.
 
+`com.graphaware.module.UIDM.relationship` specifies either a fully qualified class name of [`RelationshipInclusionPolicy`](http://graphaware.com/site/framework/latest/apidocs/com/graphaware/common/policy/RelationshipInclusionPolicy.html) implementation,
+or a Spring Expression Language expression determining, which relationships to assign a UUID to. The default is to assign the
+UUID property to every relationship which isn't internal to the framework.
+
 `com.graphaware.module.UIDM.uuidIndex` is the index name that will be used to index nodes based on their UUID. The default is "uuidIndex".
+
+`com.graphaware.module.UIDM.uuidRelationshipIndex` is the index name that will be used to index relationships based on their UUID. The default is "uuidRelIndex".
 
 ### Embedded Mode / Java Development
 
@@ -114,17 +125,19 @@ You can also retrieve a node by UUID.
 In Server Mode, a node can be retrieved by its UUID via the REST API.
 
 You can issue GET requests to `http://your-server-address:7474/graphaware/uuid/{moduleId}/node/{uuid}` to get the node ID for a given uuid.
+GET requests to `http://your-server-address:7474/graphaware/uuid/{moduleId}/relationship/{uuid}` will get the relationship ID for a given uuid.
 {moduleId} is the module ID the UUID Module was registered with. You can omit this part of the URL, in which case "UIDM" is assumed as the default value.
 If no node exists with the given UUID, a 404 status code will be returned.
 
 ### Java API
 
-To use the Java API to find a node by its UUID, please instantiate `UuidReader` and use the method `getNodeIdByUuid`
+To use the Java API to find a node by its UUID, please instantiate `UuidReader` and use the method `getNodeIdByUuid` or `getRelationshipByUuid`
 
 ```
  UuidConfiguration configuration = getStartedRuntime(database).getModule(moduleId, UuidModule.class).getConfiguration();
  UuidReader reader = UuidReader(configuration, database);
  Node node = getNodeIdByUuid(uuid);
+ Relationship rel = getRelationshipByUuid(uuid);
 ```
 
 Please refer to Javadoc for more detail.
@@ -133,7 +146,7 @@ Please refer to Javadoc for more detail.
 License
 -------
 
-Copyright (c) 2014 GraphAware
+Copyright (c) 2016 GraphAware
 
 GraphAware is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
 as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.

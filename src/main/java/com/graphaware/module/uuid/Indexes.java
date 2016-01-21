@@ -21,6 +21,7 @@ package com.graphaware.module.uuid;
 final class Indexes {
 
     public static final String UUID_NODE_INDEX = "uuidIndex";
+    public static final String UUID_REL_INDEX = "uuidRelIndex";
 
     private Indexes() {
     }

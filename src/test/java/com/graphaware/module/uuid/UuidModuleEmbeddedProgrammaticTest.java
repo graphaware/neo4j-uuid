@@ -15,7 +15,14 @@
  */
 package com.graphaware.module.uuid;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import com.graphaware.common.policy.BaseNodeInclusionPolicy;
+import com.graphaware.common.policy.BaseRelationshipInclusionPolicy;
 import com.graphaware.common.util.IterableUtils;
 import com.graphaware.runtime.GraphAwareRuntime;
 import com.graphaware.runtime.GraphAwareRuntimeFactory;
@@ -23,12 +30,20 @@ import com.graphaware.runtime.policy.all.IncludeAllBusinessNodes;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.neo4j.graphdb.*;
+import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.DynamicLabel;
+import org.neo4j.graphdb.DynamicRelationshipType;
+import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Label;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.NotFoundException;
+import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.RelationshipType;
+import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.TransactionFailureException;
 import org.neo4j.helpers.collection.Iterables;
 import org.neo4j.test.TestGraphDatabaseFactory;
 import org.neo4j.tooling.GlobalGraphOperations;
-
-import static org.junit.Assert.*;
 
 
 public class UuidModuleEmbeddedProgrammaticTest {
@@ -36,6 +51,8 @@ public class UuidModuleEmbeddedProgrammaticTest {
     private GraphDatabaseService database;
     private final Label testLabel = DynamicLabel.label("test");
     private final Label personLabel = DynamicLabel.label("Person");
+    private final RelationshipType knowsType = DynamicRelationshipType.withName("KNOWS");
+    private final RelationshipType ignoredType = DynamicRelationshipType.withName("IGNORED");
     private UuidConfiguration uuidConfiguration;
     private UuidReader uuidReader;
 
@@ -52,25 +69,37 @@ public class UuidModuleEmbeddedProgrammaticTest {
     @Test
     public void moduleShouldInitializeCorrectly() {
         try (Transaction tx = database.beginTx()) {
-            database.createNode(personLabel);
+            Node node = database.createNode(personLabel);
+            Node another = database.createNode();
+            node.createRelationshipTo(another,knowsType);
             tx.success();
         }
 
         try (Transaction tx = database.beginTx()) {
             Node personNode = IterableUtils.getSingle(database.findNodes(personLabel));
             assertFalse(personNode.hasProperty("uuid"));
+
+            Relationship relationship = IterableUtils.getSingle(personNode.getRelationships());
+            assertFalse(relationship.hasProperty("uuid"));
             tx.success();
         }
 
-        registerModuleWithLabels();
+        registerModuleWithLabelsAndTypes();
 
         try (Transaction tx = database.beginTx()) {
             assertTrue(database.index().existsForNodes("uuidIndex"));
+            assertTrue(database.index().existsForRelationships("uuidRelIndex"));
             Node personNode = IterableUtils.getSingle(database.findNodes(personLabel));
             assertTrue(personNode.hasProperty("uuid"));
             String uuid = (String) personNode.getProperty("uuid");
             assertNotNull(uuidReader.getNodeByUuid(uuid));
             assertEquals(personNode, uuidReader.getNodeByUuid(uuid));
+
+            Relationship relationship = personNode.getSingleRelationship(knowsType, Direction.OUTGOING);
+            assertTrue(relationship.hasProperty("uuid"));
+            String relUuid = (String) relationship.getProperty("uuid");
+            assertNotNull(uuidReader.getRelationshipByUuid(relUuid));
+            assertEquals(relationship, uuidReader.getRelationshipByUuid(relUuid));
             tx.success();
         }
     }
@@ -88,7 +117,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
             tx.success();
         }
 
-        registerModuleWithLabels();
+        registerModuleWithLabelsAndTypes();
 
         try (Transaction tx = database.beginTx()) {
             assertTrue(database.index().existsForNodes("uuidIndex"));
@@ -304,7 +333,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
     @Test
     public void uuidShouldBeAssignedToNodeWithLabelSpecifiedInConfig() {
         //Given
-        registerModuleWithLabels();
+        registerModuleWithLabelsAndTypes();
 
         //When
         try (Transaction tx = database.beginTx()) {
@@ -329,7 +358,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
     @Test
     public void uuidShouldNotBeAssignedToNodeWithLabelNotSpecifiedInConfig() {
         //Given
-        registerModuleWithLabels();
+        registerModuleWithLabelsAndTypes();
 
         //When
         try (Transaction tx = database.beginTx()) {
@@ -351,7 +380,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
     @Test
     public void uuidShouldNotBeAssignedToNodeWithNoLabel() {
         //Given
-        registerModuleWithLabels();
+        registerModuleWithLabelsAndTypes();
 
         //When
         try (Transaction tx = database.beginTx()) {
@@ -378,7 +407,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
         Node node;
 
         //Given
-        registerModuleWithLabels();
+        registerModuleWithLabelsAndTypes();
 
         try (Transaction tx = database.beginTx()) {
             node = database.createNode(testLabel);
@@ -440,7 +469,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
         Node node;
 
         //Given
-        registerModuleWithLabels();
+        registerModuleWithLabelsAndTypes();
 
         try (Transaction tx = database.beginTx()) {
             node = database.createNode();
@@ -474,7 +503,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
         Node node;
 
         //Given
-        registerModuleWithLabels();
+        registerModuleWithLabelsAndTypes();
 
         try (Transaction tx = database.beginTx()) {
             node = database.createNode(testLabel);
@@ -528,7 +557,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
         Node node;
 
         //Given
-        registerModuleWithLabels();
+        registerModuleWithLabelsAndTypes();
 
         try (Transaction tx = database.beginTx()) {
             node = database.createNode();
@@ -1080,7 +1109,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
     @Test
     public void shouldBeAbleToManuallyAssignUuidToNodeWithLabelConfiguration() {
         //Given
-        registerModuleWithLabels();
+        registerModuleWithLabelsAndTypes();
 
         //When
         try (Transaction tx = database.beginTx()) {
@@ -1103,7 +1132,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
     @Test(expected = TransactionFailureException.class)
     public void shouldNotBeAbleToManuallyAssignSameUuidToNodesWithLabelConfiguration() {
         //Given
-        registerModuleWithLabels();
+        registerModuleWithLabelsAndTypes();
 
         //When
         try (Transaction tx = database.beginTx()) {
@@ -1124,6 +1153,246 @@ public class UuidModuleEmbeddedProgrammaticTest {
         //Exception
     }
 
+    @Test
+    public void newRelationshipsShouldBeAssignedUuid() {
+        //Given
+        registerModuleWithNoLabels();
+
+        //When
+        try (Transaction tx = database.beginTx()) {
+            Node node = database.createNode(testLabel);
+            Node another = database.createNode(testLabel);
+            node.createRelationshipTo(another, knowsType);
+            tx.success();
+        }
+
+        //Then
+        //Retrieve the relationship and check that it has a uuid property
+        try (Transaction tx = database.beginTx()) {
+            for (Node node : Iterables.asResourceIterable(database.findNodes(testLabel))) {
+                assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
+                Relationship rel = node.getSingleRelationship(knowsType, Direction.OUTGOING);
+                if (rel != null) {
+                    String uuid = (String) rel.getProperty("uuid");
+                    assertNotNull(uuidReader.getRelationshipByUuid(uuid));
+                    assertEquals(rel, uuidReader.getRelationshipByUuid(uuid));
+                }
+            }
+            tx.success();
+        }
+    }
+
+
+    @Test
+    public void shouldBeAbleToDeleteARelationshipWithAUuid() {
+        //Given
+        registerModuleWithNoLabels();
+
+        //When
+        try (Transaction tx = database.beginTx()) {
+            Node node = database.createNode(testLabel);
+            Node another = database.createNode(testLabel);
+            node.createRelationshipTo(another, knowsType);
+            tx.success();
+        }
+
+        //Retrieve the rel and check that it has a uuid property
+        String uuid="";
+        Node retrievedNode=null;
+        try (Transaction tx = database.beginTx()) {
+            for (Node node : Iterables.asResourceIterable(database.findNodes(testLabel))) {
+                assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
+                retrievedNode = node;
+                break;
+            }
+            tx.success();
+        }
+
+        try (Transaction tx = database.beginTx()) {
+            Relationship retrievedRel = retrievedNode.getSingleRelationship(knowsType, Direction.OUTGOING);
+            uuid = (String) retrievedRel.getProperty("uuid");
+            retrievedRel.delete();
+            tx.success();
+        }
+
+        //Then
+        try (Transaction tx = database.beginTx()) {
+            assertFalse(GlobalGraphOperations.at(database).getAllRelationships().iterator().hasNext());
+            try {
+                uuidReader.getNodeByUuid(uuid);
+                fail();
+            } catch (NotFoundException e) {
+                //ok
+            }
+            tx.success();
+        }
+    }
+
+    @Test(expected = TransactionFailureException.class)
+    public void shouldNotBeAbleToChangeTheUuidOfRelationship() {
+        Node node, another;
+
+        //Given
+        registerModuleWithNoLabels();
+
+        try (Transaction tx = database.beginTx()) {
+            node = database.createNode(testLabel);
+            another = database.createNode(testLabel);
+            node.createRelationshipTo(another, knowsType);
+            tx.success();
+        }
+
+        //When
+        try (Transaction tx = database.beginTx()) {
+            for (Relationship r : Iterables.asResourceIterable(GlobalGraphOperations.at(database).getAllRelationships())) {
+                r.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
+            }
+            tx.success();
+        }
+
+        //Then
+        //Exception should be thrown
+    }
+
+
+    @Test
+    public void uuidShouldNotBeAssignedToRelWithLabelNotSpecifiedInConfig() {
+        //Given
+        registerModuleWithLabelsAndTypes();
+
+        //When
+        try (Transaction tx = database.beginTx()) {
+            Node node = database.createNode(testLabel);
+            Node another = database.createNode(testLabel);
+            node.createRelationshipTo(another, ignoredType);
+            tx.success();
+        }
+
+        //Then
+        //Retrieve the node and check that it has no uuid property
+        try (Transaction tx = database.beginTx()) {
+            for (Relationship rel : GlobalGraphOperations.at(database).getAllRelationships()) {
+                if (rel.isType(ignoredType)) {
+                    assertFalse(rel.hasProperty(uuidConfiguration.getUuidProperty()));
+                }
+            }
+            tx.success();
+        }
+    }
+
+
+    @Test
+    public void shouldBeAbleToChangeTheUuidOfRelationshipNotConfigured() {
+        Node node, another;
+
+        //Given
+        registerModuleWithLabelsAndTypes();
+
+        try (Transaction tx = database.beginTx()) {
+            node = database.createNode(testLabel);
+            another = database.createNode(testLabel);
+            node.createRelationshipTo(another, knowsType);
+            node.createRelationshipTo(another, ignoredType);
+            tx.success();
+        }
+
+        //When
+        try (Transaction tx = database.beginTx()) {
+            for (Relationship r : GlobalGraphOperations.at(database).getAllRelationships()) {
+                if (r.isType(ignoredType)) {
+                    r.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
+                }
+
+            }
+            tx.success();
+        }
+
+        //Then
+        try (Transaction tx = database.beginTx()) {
+            for (Relationship r : GlobalGraphOperations.at(database).getAllRelationships()) {
+                if (r.isType(ignoredType)) {
+                    assertEquals("aNewUuid", r.getProperty(uuidConfiguration.getUuidProperty()));
+                }
+                try {
+                    uuidReader.getRelationshipByUuid("aNewUuid");
+                    fail();
+                } catch (NotFoundException e) {
+                    //ok
+                }
+            }
+            tx.success();
+        }
+    }
+
+    @Test(expected = TransactionFailureException.class)
+    public void shouldNotBeAbleToChangeTheUuidOfRelationshipConfigured() {
+        Node node, another;
+
+        //Given
+        registerModuleWithNoLabels();
+
+        try (Transaction tx = database.beginTx()) {
+            node = database.createNode(testLabel);
+            another = database.createNode(testLabel);
+            node.createRelationshipTo(another, knowsType);
+            node.createRelationshipTo(another, ignoredType);
+            tx.success();
+        }
+
+        //When
+        try (Transaction tx = database.beginTx()) {
+            for (Relationship r : GlobalGraphOperations.at(database).getAllRelationships()) {
+                if (r.isType(knowsType)) {
+                    r.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
+                }
+
+            }
+            tx.success();
+        }
+
+        //Then
+        //Exception should be thrown
+    }
+
+    @Test
+    public void shouldBeAbleToDeleteTheUuidOfRelationshipNotConfigured() {
+        Node node, another;
+
+        //Given
+        registerModuleWithLabelsAndTypes();
+
+        try (Transaction tx = database.beginTx()) {
+            node = database.createNode(testLabel);
+            another = database.createNode(testLabel);
+            node.createRelationshipTo(another, knowsType);
+            node.createRelationshipTo(another, ignoredType);
+            tx.success();
+        }
+
+        //When
+        try (Transaction tx = database.beginTx()) {
+            for (Relationship r : GlobalGraphOperations.at(database).getAllRelationships()) {
+                if (r.isType(ignoredType)) {
+                    r.removeProperty(uuidConfiguration.getUuidProperty());
+                }
+
+            }
+            tx.success();
+        }
+
+        //Then
+        try (Transaction tx = database.beginTx()) {
+            for (Relationship r : GlobalGraphOperations.at(database).getAllRelationships()) {
+                if (r.isType(ignoredType)) {
+                    assertFalse(r.hasProperty(uuidConfiguration.getUuidProperty()));
+                }
+
+            }
+            tx.success();
+        }
+    }
+
+
     private void registerModuleWithNoLabels() {
         uuidConfiguration = UuidConfiguration.defaultConfiguration().withUuidProperty("uuid");
         GraphAwareRuntime runtime = GraphAwareRuntimeFactory.createRuntime(database);
@@ -1133,7 +1402,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
         uuidReader = new UuidReader(uuidConfiguration,database);
     }
 
-    private void registerModuleWithLabels() {
+    private void registerModuleWithLabelsAndTypes() {
         uuidConfiguration = UuidConfiguration.defaultConfiguration()
                 .withUuidProperty("uuid")
                 .withUuidIndex("uuidIndex")
@@ -1141,6 +1410,18 @@ public class UuidModuleEmbeddedProgrammaticTest {
                     @Override
                     public boolean include(Node node) {
                         return node.hasLabel(DynamicLabel.label("Person")) || node.hasLabel(DynamicLabel.label("Company"));
+                    }
+                })
+                .with(new BaseRelationshipInclusionPolicy() {
+
+                    @Override
+                    public boolean include(Relationship relationship) {
+                        return relationship.isType(knowsType);
+                    }
+
+                    @Override
+                    public boolean include(Relationship relationship, Node node) {
+                        return relationship.isType(knowsType);
                     }
                 });
 

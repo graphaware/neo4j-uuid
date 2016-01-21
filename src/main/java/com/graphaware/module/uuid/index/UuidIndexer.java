@@ -17,6 +17,7 @@
 package com.graphaware.module.uuid.index;
 
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
 
 /**
  * Indexer for nodes assigned a UUID
@@ -41,5 +42,25 @@ public interface UuidIndexer {
 	 * @return the Node with the given UUID or null
 	 */
 	Node getNodeByUuid(String uuid);
+
+
+	/**
+	 * Index a relationship based on the UUID property
+	 * @param relationship the relationship to index
+	 */
+	void indexRelationship(Relationship relationship);
+
+	/**
+	 * Remove a relationship from the index based on the UUID property
+	 * @param relationship the relationship
+	 */
+	void deleteRelationshipFromIndex(Relationship relationship);
+
+	/**
+	 * Find a node given its UUID
+	 * @param uuid the uuid
+	 * @return the Relationship with the given UUID or null
+	 */
+	Relationship getRelationshipByUuid(String uuid);
 
 }

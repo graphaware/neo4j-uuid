@@ -26,8 +26,10 @@ import com.graphaware.tx.event.improved.api.ImprovedTransactionData;
 import com.graphaware.tx.executor.batch.IterableInputBatchTransactionExecutor;
 import com.graphaware.tx.executor.batch.UnitOfWork;
 import com.graphaware.tx.executor.input.AllNodes;
+import com.graphaware.tx.executor.input.AllRelationships;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
 
 /**
  * {@link com.graphaware.runtime.module.TxDrivenModule} that assigns UUID's to nodes in the graph.
@@ -79,6 +81,20 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
                     }
                 }
         ).execute();
+
+        new IterableInputBatchTransactionExecutor<>(
+                database,
+                BATCH_SIZE,
+                new AllRelationships(database, BATCH_SIZE),
+                new UnitOfWork<Relationship>() {
+                    @Override
+                    public void execute(GraphDatabaseService database, Relationship rel, int batchNumber, int stepNumber) {
+                        if (getConfiguration().getInclusionPolicies().getRelationshipInclusionPolicy().include(rel)) {
+                            assignUuid(rel);
+                        }
+                    }
+                }
+        ).execute();
     }
 
     /**
@@ -107,6 +123,26 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
             }
         }
 
+        //Set the UUID on all created relationships
+        for (Relationship relationship : transactionData.getAllCreatedRelationships()) {
+            assignUuid(relationship);
+        }
+
+        for (Relationship rel : transactionData.getAllDeletedRelationships()) {
+            uuidIndexer.deleteRelationshipFromIndex(rel);
+        }
+
+        //Check if the UUID has been modified or removed from the relationship and throw an error
+        for (Change<Relationship> change : transactionData.getAllChangedRelationships()) {
+            if (!change.getCurrent().hasProperty(uuidConfiguration.getUuidProperty())) {
+                throw new DeliberateTransactionRollbackException("You are not allowed to remove the " + uuidConfiguration.getUuidProperty() + " property");
+            }
+
+            if (!change.getPrevious().getProperty(uuidConfiguration.getUuidProperty()).equals(change.getCurrent().getProperty(uuidConfiguration.getUuidProperty()))) {
+                throw new DeliberateTransactionRollbackException("You are not allowed to modify the " + uuidConfiguration.getUuidProperty() + " property");
+            }
+        }
+
         return null;
     }
 
@@ -121,5 +157,18 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
             }
         }
         uuidIndexer.indexNode(node);
+    }
+
+    private void assignUuid(Relationship relationship) {
+        if (!relationship.hasProperty(uuidConfiguration.getUuidProperty())) {
+            String uuid = uuidGenerator.generateUuid();
+            relationship.setProperty(uuidConfiguration.getUuidProperty(), uuid);
+        } else {
+            Relationship existingRelationship = uuidIndexer.getRelationshipByUuid(relationship.getProperty(uuidConfiguration.getUuidProperty()).toString());
+            if (existingRelationship != null && existingRelationship.getId() != relationship.getId()) {
+                throw new DeliberateTransactionRollbackException("Another relationship with UUID " + relationship.getProperty(uuidConfiguration.getUuidProperty()) + " already exists (" + existingRelationship + ")!");
+            }
+        }
+        uuidIndexer.indexRelationship(relationship);
     }
 }
