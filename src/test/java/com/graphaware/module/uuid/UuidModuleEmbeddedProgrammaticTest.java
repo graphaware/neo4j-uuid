@@ -26,7 +26,9 @@ import com.graphaware.common.policy.BaseRelationshipInclusionPolicy;
 import com.graphaware.common.util.IterableUtils;
 import com.graphaware.runtime.GraphAwareRuntime;
 import com.graphaware.runtime.GraphAwareRuntimeFactory;
+import com.graphaware.runtime.policy.InclusionPoliciesFactory;
 import com.graphaware.runtime.policy.all.IncludeAllBusinessNodes;
+import com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -1394,7 +1396,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
 
     private void registerModuleWithNoLabels() {
-        uuidConfiguration = UuidConfiguration.defaultConfiguration().withUuidProperty("uuid");
+        uuidConfiguration = UuidConfiguration.defaultConfiguration().withUuidProperty("uuid").with(IncludeAllBusinessRelationships.getInstance());
         GraphAwareRuntime runtime = GraphAwareRuntimeFactory.createRuntime(database);
         UuidModule module = new UuidModule("UUIDM", uuidConfiguration, database);
         runtime.registerModule(module);
