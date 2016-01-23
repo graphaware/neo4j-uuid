@@ -23,6 +23,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.graphaware.module.uuid.api.UuidApi;
 import com.graphaware.runtime.policy.all.IncludeAllBusinessNodes;
+import com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships;
 import org.junit.Test;
 import org.neo4j.graphdb.DynamicLabel;
 import org.neo4j.graphdb.DynamicRelationshipType;
@@ -210,7 +211,7 @@ public class UuidModuleDeclarativeIntegrationTest {
 
 
     @Test
-    public void longCypherCreateShouldResultInAllNodesWithUuid() {
+    public void longCypherCreateShouldResultInAllNodesAndRelsWithUuid() {
         GraphDatabaseService database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
                 .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid-all.properties").getPath())
                 .newGraphDatabase();
@@ -728,6 +729,11 @@ public class UuidModuleDeclarativeIntegrationTest {
             for (Node node : GlobalGraphOperations.at(database).getAllNodes()) {
                 if (IncludeAllBusinessNodes.getInstance().include(node)) {
                     assertTrue(node.hasProperty("uuid"));
+                }
+            }
+            for (Relationship r : GlobalGraphOperations.at(database).getAllRelationships()) {
+                if (IncludeAllBusinessRelationships.getInstance().include(r)) {
+                    assertTrue(r.hasProperty("uuid"));
                 }
             }
             tx.success();

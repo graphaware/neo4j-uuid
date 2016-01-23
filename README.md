@@ -87,7 +87,7 @@ UUID property to every node which isn't internal to the framework.
 
 `com.graphaware.module.UIDM.relationship` specifies either a fully qualified class name of [`RelationshipInclusionPolicy`](http://graphaware.com/site/framework/latest/apidocs/com/graphaware/common/policy/RelationshipInclusionPolicy.html) implementation,
 or a Spring Expression Language expression determining, which relationships to assign a UUID to. The default is **not** to assign the
-UUID property to any relationship.
+UUID property to any relationship. If you want to assign UUID to all relationship, please use `com.graphaware.module.UIDM.relationship=com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships`
 
 `com.graphaware.module.UIDM.uuidIndex` is the index name that will be used to index nodes based on their UUID. The default is "uuidIndex".
 
