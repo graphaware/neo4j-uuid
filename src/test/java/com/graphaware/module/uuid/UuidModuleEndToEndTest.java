@@ -16,7 +16,7 @@
 
 package com.graphaware.module.uuid;
 
-import com.graphaware.test.integration.NeoServerIntegrationTest;
+import com.graphaware.test.integration.GraphAwareIntegrationTest;
 import org.junit.Test;
 
 import java.util.regex.Matcher;
@@ -27,90 +27,91 @@ import static org.apache.http.HttpStatus.SC_OK;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-public class UuidModuleEndToEndTest extends NeoServerIntegrationTest {
+public class UuidModuleEndToEndTest extends GraphAwareIntegrationTest {
 
     public static final Pattern UUID_PATTERN = Pattern.compile("\\\"uuid\\\":\\\"([a-zA-Z0-9-]*)\\\"");
 
     @Override
-    protected String neo4jConfigFile() {
+    protected String configFile() {
         return "neo4j-uuid-all.properties";
     }
 
     @Test
     public void testWorkflow() {
         //Create & Assign
-        httpClient.executeCypher(baseUrl(), "CREATE (p:Person {name:'Luanne'})");
+        httpClient.executeCypher(baseNeoUrl(), "CREATE (p:Person {name:'Luanne'})");
 
-        String response = httpClient.executeCypher(baseUrl(), "MATCH (p:Person) RETURN p");
+        String response = httpClient.executeCypher(baseNeoUrl(), "MATCH (p:Person) RETURN p");
 
         Matcher matcher = UUID_PATTERN.matcher(response);
         assertTrue(matcher.find());
         String uuid = matcher.group(1);
 
         //Retrieve
-        assertEquals("0", httpClient.get(baseUrl() + "/graphaware/uuid/UIDM/node/" + uuid, SC_OK));
+        assertEquals("0", httpClient.get(baseNeoUrl() + "/graphaware/uuid/UIDM/node/" + uuid, SC_OK));
 
         //(can't) Update
-        response = httpClient.executeCypher(baseUrl(), "MATCH (p:Person {name:'Luanne'}) SET p.uuid=new");
+        response = httpClient.executeCypher(baseNeoUrl(), "MATCH (p:Person {name:'Luanne'}) SET p.uuid=new");
 
         System.out.println(response);
 
-        response = httpClient.executeCypher(baseUrl(), "MATCH (p:Person) RETURN p");
+        response = httpClient.executeCypher(baseNeoUrl(), "MATCH (p:Person) RETURN p");
 
         matcher = UUID_PATTERN.matcher(response);
         assertTrue(matcher.find());
         assertEquals(uuid, matcher.group(1));
 
         //Delete
-        httpClient.executeCypher(baseUrl(), "MATCH (p:Person {name:'Luanne'}) DELETE p");
-        httpClient.get(baseUrl() + "/graphaware/uuid/node/" + uuid, SC_NOT_FOUND);
+        httpClient.executeCypher(baseNeoUrl(), "MATCH (p:Person {name:'Luanne'}) DELETE p");
+        httpClient.get(baseNeoUrl() + "/graphaware/uuid/node/" + uuid, SC_NOT_FOUND);
     }
 
     @Test
     public void testWorkflowWithManuallyAssignedId() {
         //Create & Assign
-        httpClient.executeCypher(baseUrl(), "CREATE (p:Person {name:'Luanne', uuid:'123'})");
+        httpClient.executeCypher(baseNeoUrl(), "CREATE (p:Person {name:'Luanne', uuid:'123'})");
 
-        String response = httpClient.executeCypher(baseUrl(), "MATCH (p:Person) RETURN p");
+        String response = httpClient.executeCypher(baseNeoUrl(), "MATCH (p:Person) RETURN p");
 
         Matcher matcher = UUID_PATTERN.matcher(response);
         assertTrue(matcher.find());
         String uuid = matcher.group(1);
 
         //Retrieve
-        assertEquals("0", httpClient.get(baseUrl() + "/graphaware/uuid/UIDM/node/" + uuid, SC_OK));
+        assertEquals("0", httpClient.get(baseNeoUrl() + "/graphaware/uuid/UIDM/node/" + uuid, SC_OK));
 
         //(can't) Update
-        response = httpClient.executeCypher(baseUrl(), "MATCH (p:Person {name:'Luanne'}) SET p.uuid=new");
+        response = httpClient.executeCypher(baseNeoUrl(), "MATCH (p:Person {name:'Luanne'}) SET p.uuid=new");
 
         System.out.println(response);
 
-        response = httpClient.executeCypher(baseUrl(), "MATCH (p:Person) RETURN p");
+        response = httpClient.executeCypher(baseNeoUrl(), "MATCH (p:Person) RETURN p");
 
         matcher = UUID_PATTERN.matcher(response);
         assertTrue(matcher.find());
         assertEquals(uuid, matcher.group(1));
 
         //Delete
-        httpClient.executeCypher(baseUrl(), "MATCH (p:Person {name:'Luanne'}) DELETE p");
-        httpClient.get(baseUrl() + "/graphaware/uuid/node/" + uuid, SC_NOT_FOUND);
+        httpClient.executeCypher(baseNeoUrl(), "MATCH (p:Person {name:'Luanne'}) DELETE p");
+        httpClient.get(baseNeoUrl() + "/graphaware/uuid/node/" + uuid, SC_NOT_FOUND);
     }
 
     @Test
     public void testIssue6() {
-        String response = httpClient.executeCypher(baseUrl(), "CREATE (:Person {name:'Luanne', uuid:'123'}), (:Person {name:'Michal', uuid:'123'})");
-        assertTrue(response.contains("Neo.DatabaseError.Transaction.CouldNotCommit"));
+        String response = httpClient.executeCypher(baseNeoUrl(), "CREATE (:Person {name:'Luanne', uuid:'123'}), (:Person {name:'Michal', uuid:'123'})");
+        System.out.println(response);
+        assertTrue(response.contains("Neo.ClientError.Transaction.HookFailed"));
 
-        assertEquals("{\"results\":[{\"columns\":[\"p\"],\"data\":[]}],\"errors\":[]}", httpClient.executeCypher(baseUrl(), "MATCH (p:Person) RETURN p"));
+        assertEquals("{\"results\":[{\"columns\":[\"p\"],\"data\":[]}],\"errors\":[]}", httpClient.executeCypher(baseNeoUrl(), "MATCH (p:Person) RETURN p"));
     }
 
     @Test
     public void shouldReturn404WhenUuidNotExists() {
-        httpClient.get(baseUrl() + "/graphaware/uuid/node/not-exists", SC_NOT_FOUND);
+        httpClient.get(baseNeoUrl() + "/graphaware/uuid/node/not-exists", SC_NOT_FOUND);
     }
 
     @Test
     public void shouldReturn404WhenModuleNotExists() {
-        httpClient.get(baseUrl() + "/graphaware/uuid/non-existing-module/node/not-exists", SC_NOT_FOUND);
+        httpClient.get(baseNeoUrl() + "/graphaware/uuid/non-existing-module/node/not-exists", SC_NOT_FOUND);
     }
 }
