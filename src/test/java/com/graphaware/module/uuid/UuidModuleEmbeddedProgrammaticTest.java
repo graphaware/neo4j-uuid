@@ -15,46 +15,30 @@
  */
 package com.graphaware.module.uuid;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import com.graphaware.common.policy.BaseNodeInclusionPolicy;
 import com.graphaware.common.policy.BaseRelationshipInclusionPolicy;
 import com.graphaware.common.util.IterableUtils;
 import com.graphaware.runtime.GraphAwareRuntime;
 import com.graphaware.runtime.GraphAwareRuntimeFactory;
-import com.graphaware.runtime.policy.InclusionPoliciesFactory;
 import com.graphaware.runtime.policy.all.IncludeAllBusinessNodes;
 import com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.neo4j.graphdb.Direction;
-import org.neo4j.graphdb.DynamicLabel;
-import org.neo4j.graphdb.DynamicRelationshipType;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Label;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.NotFoundException;
-import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.RelationshipType;
-import org.neo4j.graphdb.Transaction;
-import org.neo4j.graphdb.TransactionFailureException;
-import org.neo4j.helpers.collection.Iterables;
+import org.neo4j.graphdb.*;
 import org.neo4j.test.TestGraphDatabaseFactory;
-import org.neo4j.tooling.GlobalGraphOperations;
+
+import static org.junit.Assert.*;
+import static org.neo4j.helpers.collection.Iterators.asIterable;
 
 
 public class UuidModuleEmbeddedProgrammaticTest {
 
     private GraphDatabaseService database;
-    private final Label testLabel = DynamicLabel.label("test");
-    private final Label personLabel = DynamicLabel.label("Person");
-    private final RelationshipType knowsType = DynamicRelationshipType.withName("KNOWS");
-    private final RelationshipType ignoredType = DynamicRelationshipType.withName("IGNORED");
+    private final Label testLabel = Label.label("test");
+    private final Label personLabel = Label.label("Person");
+    private final RelationshipType knowsType = RelationshipType.withName("KNOWS");
+    private final RelationshipType ignoredType = RelationshipType.withName("IGNORED");
     private UuidConfiguration uuidConfiguration;
     private UuidReader uuidReader;
 
@@ -123,7 +107,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         try (Transaction tx = database.beginTx()) {
             assertTrue(database.index().existsForNodes("uuidIndex"));
-            for (Node personNode : Iterables.asResourceIterable(database.findNodes(personLabel))) {
+            for (Node personNode : asIterable(database.findNodes(personLabel))) {
                 assertTrue(personNode.hasProperty("uuid"));
                 String uuid = (String) personNode.getProperty("uuid");
                 assertNotNull(uuidReader.getNodeByUuid(uuid));
@@ -149,7 +133,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
         //Then
         //Retrieve the node and check that it has a uuid property
         try (Transaction tx = database.beginTx()) {
-            for (Node node : Iterables.asResourceIterable(database.findNodes(testLabel))) {
+            for (Node node : asIterable(database.findNodes(testLabel))) {
                 assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
                 String uuid = (String) node.getProperty("uuid");
                 assertNotNull(uuidReader.getNodeByUuid(uuid));
@@ -174,7 +158,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
         //Then
         //Retrieve the node and check that it has a uuid property
         try (Transaction tx = database.beginTx()) {
-            for (Node node : GlobalGraphOperations.at(database).getAllNodes()) {
+            for (Node node : database.getAllNodes()) {
                 if (IncludeAllBusinessNodes.getInstance().include(node)) {
                     assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
                     String uuid = (String) node.getProperty("uuid");
@@ -202,7 +186,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
         String uuid="";
         Node retrievedNode=null;
         try (Transaction tx = database.beginTx()) {
-            for (Node node : GlobalGraphOperations.at(database).getAllNodes()) {
+            for (Node node : database.getAllNodes()) {
                 if (IncludeAllBusinessNodes.getInstance().include(node)) {
                     retrievedNode = node;
                     assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
@@ -221,7 +205,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //Then
         try (Transaction tx = database.beginTx()) {
-            assertFalse(GlobalGraphOperations.at(database).getAllNodes().iterator().hasNext());
+            assertFalse(database.getAllNodes().iterator().hasNext());
             try {
                 uuidReader.getNodeByUuid(uuid);
                 fail();
@@ -247,7 +231,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //When
         try (Transaction tx = database.beginTx()) {
-            for (Node n : Iterables.asResourceIterable(database.findNodes(testLabel))) {
+            for (Node n : asIterable(database.findNodes(testLabel))) {
                 n.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
             }
             tx.success();
@@ -272,7 +256,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //When
         try (Transaction tx = database.beginTx()) {
-            for (Node n : GlobalGraphOperations.at(database).getAllNodes()) {
+            for (Node n : database.getAllNodes()) {
                 n.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
             }
             tx.success();
@@ -297,7 +281,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //When
         try (Transaction tx = database.beginTx()) {
-            for (Node n : Iterables.asResourceIterable(database.findNodes(testLabel))) {
+            for (Node n : asIterable(database.findNodes(testLabel))) {
                 n.removeProperty(uuidConfiguration.getUuidProperty());
             }
             tx.success();
@@ -322,7 +306,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //When
         try (Transaction tx = database.beginTx()) {
-            for (Node n : GlobalGraphOperations.at(database).getAllNodes()) {
+            for (Node n : database.getAllNodes()) {
                 n.removeProperty(uuidConfiguration.getUuidProperty());
             }
             tx.success();
@@ -347,7 +331,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
         //Then
         //Retrieve the node and check that it has a uuid property
         try (Transaction tx = database.beginTx()) {
-            for (Node node : Iterables.asResourceIterable(database.findNodes(personLabel))) {
+            for (Node node : asIterable(database.findNodes(personLabel))) {
                 assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
                 String uuid = (String) node.getProperty("uuid");
                 assertNotNull(uuidReader.getNodeByUuid(uuid));
@@ -372,7 +356,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
         //Then
         //Retrieve the node and check that it has no uuid property
         try (Transaction tx = database.beginTx()) {
-            for (Node node : Iterables.asResourceIterable(database.findNodes(testLabel))) {
+            for (Node node : asIterable(database.findNodes(testLabel))) {
                 assertFalse(node.hasProperty(uuidConfiguration.getUuidProperty()));
             }
             tx.success();
@@ -394,7 +378,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
         //Then
         //Retrieve the node and check that it has no uuid property
         try (Transaction tx = database.beginTx()) {
-            for (Node node : GlobalGraphOperations.at(database).getAllNodes()) {
+            for (Node node : database.getAllNodes()) {
                 if (!node.getLabels().iterator().hasNext()) {  //Exclude GA nodes
                     assertFalse(node.hasProperty(uuidConfiguration.getUuidProperty()));
                 }
@@ -419,7 +403,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //When
         try (Transaction tx = database.beginTx()) {
-            for (Node n : Iterables.asResourceIterable(database.findNodes(testLabel))) {
+            for (Node n : asIterable(database.findNodes(testLabel))) {
                 n.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
 
             }
@@ -428,7 +412,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //Then
         try (Transaction tx = database.beginTx()) {
-            for (Node n : Iterables.asResourceIterable(database.findNodes(testLabel))) {
+            for (Node n : asIterable(database.findNodes(testLabel))) {
                 assertEquals("aNewUuid", n.getProperty(uuidConfiguration.getUuidProperty()));
                 try {
                     uuidReader.getNodeByUuid("aNewUuid");
@@ -456,7 +440,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //When
         try (Transaction tx = database.beginTx()) {
-            for (Node n : GlobalGraphOperations.at(database).getAllNodesWithLabel(personLabel)) {
+            for (Node n : asIterable(database.findNodes(personLabel))) {
                 n.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
             }
             tx.success();
@@ -481,7 +465,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //When
         try (Transaction tx = database.beginTx()) {
-            for (Node n : GlobalGraphOperations.at(database).getAllNodes()) {
+            for (Node n : database.getAllNodes()) {
                 if (!node.getLabels().iterator().hasNext()) {  //Exclude GA nodes
                     n.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
                 }
@@ -491,7 +475,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //Then
         try (Transaction tx = database.beginTx()) {
-            for (Node n : GlobalGraphOperations.at(database).getAllNodes()) {
+            for (Node n : database.getAllNodes()) {
                 if (!node.getLabels().iterator().hasNext()) {  //Exclude GA nodes
                     assertEquals("aNewUuid", n.getProperty(uuidConfiguration.getUuidProperty()));
                 }
@@ -515,7 +499,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //When
         try (Transaction tx = database.beginTx()) {
-            for (Node n : Iterables.asResourceIterable(database.findNodes(testLabel))) {
+            for (Node n : asIterable(database.findNodes(testLabel))) {
                 n.removeProperty(uuidConfiguration.getUuidProperty());
             }
             tx.success();
@@ -523,7 +507,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //Then
         try (Transaction tx = database.beginTx()) {
-            for (Node n : Iterables.asResourceIterable(database.findNodes(testLabel))) {
+            for (Node n : asIterable(database.findNodes(testLabel))) {
                 assertFalse(n.hasProperty(uuidConfiguration.getUuidProperty()));
             }
             tx.success();
@@ -545,7 +529,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //When
         try (Transaction tx = database.beginTx()) {
-            for (Node n : Iterables.asResourceIterable(database.findNodes(personLabel))) {
+            for (Node n : asIterable(database.findNodes(personLabel))) {
                 n.removeProperty(uuidConfiguration.getUuidProperty());
             }
             tx.success();
@@ -569,7 +553,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //When
         try (Transaction tx = database.beginTx()) {
-            for (Node n : GlobalGraphOperations.at(database).getAllNodes()) {
+            for (Node n : database.getAllNodes()) {
                 if (!node.getLabels().iterator().hasNext()) {  //Exclude GA nodes
                     n.removeProperty(uuidConfiguration.getUuidProperty());
                 }
@@ -578,7 +562,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
         }
         //Then
         try (Transaction tx = database.beginTx()) {
-            for (Node n : GlobalGraphOperations.at(database).getAllNodes()) {
+            for (Node n : database.getAllNodes()) {
                 if (!node.getLabels().iterator().hasNext()) {  //Exclude GA nodes
                     assertFalse(n.hasProperty(uuidConfiguration.getUuidProperty()));
                 }
@@ -1099,7 +1083,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
         );
 
         try (Transaction tx = database.beginTx()) {
-            for (Node node : GlobalGraphOperations.at(database).getAllNodes()) {
+            for (Node node : database.getAllNodes()) {
                 if (IncludeAllBusinessNodes.getInstance().include(node)) {
                     assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
                 }
@@ -1124,7 +1108,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
         //Then
         //Retrieve the node and check that it has the assigned uuid property
         try (Transaction tx = database.beginTx()) {
-            for (Node node : Iterables.asResourceIterable(database.findNodes(testLabel))) {
+            for (Node node : asIterable(database.findNodes(testLabel))) {
                 assertEquals("1",node.getProperty(uuidConfiguration.getUuidProperty()));
             }
             tx.success();
@@ -1171,7 +1155,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
         //Then
         //Retrieve the relationship and check that it has a uuid property
         try (Transaction tx = database.beginTx()) {
-            for (Node node : Iterables.asResourceIterable(database.findNodes(testLabel))) {
+            for (Node node : asIterable(database.findNodes(testLabel))) {
                 assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
                 Relationship rel = node.getSingleRelationship(knowsType, Direction.OUTGOING);
                 if (rel != null) {
@@ -1202,7 +1186,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
         String uuid="";
         Node retrievedNode=null;
         try (Transaction tx = database.beginTx()) {
-            for (Node node : Iterables.asResourceIterable(database.findNodes(testLabel))) {
+            for (Node node : asIterable(database.findNodes(testLabel))) {
                 assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
                 retrievedNode = node;
                 break;
@@ -1219,7 +1203,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //Then
         try (Transaction tx = database.beginTx()) {
-            assertFalse(GlobalGraphOperations.at(database).getAllRelationships().iterator().hasNext());
+            assertFalse(database.getAllRelationships().iterator().hasNext());
             try {
                 uuidReader.getNodeByUuid(uuid);
                 fail();
@@ -1246,7 +1230,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //When
         try (Transaction tx = database.beginTx()) {
-            for (Relationship r : Iterables.asResourceIterable(GlobalGraphOperations.at(database).getAllRelationships())) {
+            for (Relationship r : database.getAllRelationships()) {
                 r.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
             }
             tx.success();
@@ -1273,7 +1257,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
         //Then
         //Retrieve the node and check that it has no uuid property
         try (Transaction tx = database.beginTx()) {
-            for (Relationship rel : GlobalGraphOperations.at(database).getAllRelationships()) {
+            for (Relationship rel : database.getAllRelationships()) {
                 if (rel.isType(ignoredType)) {
                     assertFalse(rel.hasProperty(uuidConfiguration.getUuidProperty()));
                 }
@@ -1300,7 +1284,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //When
         try (Transaction tx = database.beginTx()) {
-            for (Relationship r : GlobalGraphOperations.at(database).getAllRelationships()) {
+            for (Relationship r : database.getAllRelationships()) {
                 if (r.isType(ignoredType)) {
                     r.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
                 }
@@ -1311,7 +1295,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //Then
         try (Transaction tx = database.beginTx()) {
-            for (Relationship r : GlobalGraphOperations.at(database).getAllRelationships()) {
+            for (Relationship r : database.getAllRelationships()) {
                 if (r.isType(ignoredType)) {
                     assertEquals("aNewUuid", r.getProperty(uuidConfiguration.getUuidProperty()));
                 }
@@ -1343,7 +1327,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //When
         try (Transaction tx = database.beginTx()) {
-            for (Relationship r : GlobalGraphOperations.at(database).getAllRelationships()) {
+            for (Relationship r : database.getAllRelationships()) {
                 if (r.isType(knowsType)) {
                     r.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
                 }
@@ -1373,7 +1357,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //When
         try (Transaction tx = database.beginTx()) {
-            for (Relationship r : GlobalGraphOperations.at(database).getAllRelationships()) {
+            for (Relationship r : database.getAllRelationships()) {
                 if (r.isType(ignoredType)) {
                     r.removeProperty(uuidConfiguration.getUuidProperty());
                 }
@@ -1384,7 +1368,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //Then
         try (Transaction tx = database.beginTx()) {
-            for (Relationship r : GlobalGraphOperations.at(database).getAllRelationships()) {
+            for (Relationship r : database.getAllRelationships()) {
                 if (r.isType(ignoredType)) {
                     assertFalse(r.hasProperty(uuidConfiguration.getUuidProperty()));
                 }
@@ -1411,7 +1395,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
                 .with(new BaseNodeInclusionPolicy() {
                     @Override
                     public boolean include(Node node) {
-                        return node.hasLabel(DynamicLabel.label("Person")) || node.hasLabel(DynamicLabel.label("Company"));
+                        return node.hasLabel(Label.label("Person")) || node.hasLabel(Label.label("Company"));
                     }
                 })
                 .with(new BaseRelationshipInclusionPolicy() {

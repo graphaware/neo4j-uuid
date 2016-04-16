@@ -27,7 +27,7 @@ import static org.apache.http.HttpStatus.SC_OK;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-public class UuidModuleEndToEndTest extends GraphAwareIntegrationTest {
+public class UuidModuleEndToEndApiTest extends GraphAwareIntegrationTest {
 
     public static final Pattern UUID_PATTERN = Pattern.compile("\\\"uuid\\\":\\\"([a-zA-Z0-9-]*)\\\"");
 
@@ -100,7 +100,7 @@ public class UuidModuleEndToEndTest extends GraphAwareIntegrationTest {
     public void testIssue6() {
         String response = httpClient.executeCypher(baseNeoUrl(), "CREATE (:Person {name:'Luanne', uuid:'123'}), (:Person {name:'Michal', uuid:'123'})");
         System.out.println(response);
-        assertTrue(response.contains("Neo.ClientError.Transaction.HookFailed"));
+        assertTrue(response.contains("Neo.ClientError.Transaction.TransactionHookFailed"));
 
         assertEquals("{\"results\":[{\"columns\":[\"p\"],\"data\":[]}],\"errors\":[]}", httpClient.executeCypher(baseNeoUrl(), "MATCH (p:Person) RETURN p"));
     }
