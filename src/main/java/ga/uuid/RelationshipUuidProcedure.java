@@ -16,34 +16,43 @@
 
 package ga.uuid;
 
-import com.graphaware.module.uuid.UuidConfiguration;
-import com.graphaware.module.uuid.UuidModule;
-import com.graphaware.module.uuid.UuidReader;
-import com.graphaware.runtime.GraphAwareRuntime;
+import ga.uuid.result.RelationshipListResult;
+import ga.uuid.result.RelationshipResult;
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
 import org.neo4j.procedure.Context;
 import org.neo4j.procedure.Name;
 import org.neo4j.procedure.PerformsWrites;
 import org.neo4j.procedure.Procedure;
 
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Stream;
 
-import static com.graphaware.runtime.RuntimeRegistry.getStartedRuntime;
-
-public class UuidProcedures {
+public class RelationshipUuidProcedure extends UuidProcedure {
 
     @Context
     public GraphDatabaseService database;
 
+    @Override
+    protected GraphDatabaseService getDatabase() {
+        return database;
+    }
+
     @Procedure
-    public Stream<NodeResult> findNode(@Name("uuid") String uuid) {
-        GraphAwareRuntime runtime = getStartedRuntime(database);
-        UuidModule module = runtime.getModule(UuidModule.DEFAULT_MODULE_ID, UuidModule.class);
-        UuidConfiguration configuration = module.getConfiguration();
-        Node nodeById = database.getNodeById(new UuidReader(configuration, database).getNodeIdByUuid(uuid));
-        
-        return Stream.of(new NodeResult(nodeById));
+    @PerformsWrites
+    public Stream<RelationshipResult> findRelationship(@Name("uuid") String uuid) {
+        return Stream.of(new RelationshipResult(findRelationshipByUuid(uuid)));
+    }
+
+    @Procedure
+    @PerformsWrites
+    public Stream<RelationshipListResult> findRelationships(@Name("uuids") List<String> uuids) {
+        List<Relationship> relationships = new ArrayList<>();
+        for (String uuid : uuids) {
+            relationships.add(findRelationshipByUuid(uuid));
+        }
+
+        return Stream.of(new RelationshipListResult(relationships));
     }
 }

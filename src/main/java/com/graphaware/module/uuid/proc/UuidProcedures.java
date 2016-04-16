@@ -16,11 +16,10 @@
 
 package com.graphaware.module.uuid.proc;
 
+import ga.uuid.NodeUuidProcedure;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.kernel.api.exceptions.KernelException;
-import org.neo4j.kernel.api.exceptions.ProcedureException;
 import org.neo4j.kernel.impl.proc.Procedures;
-import org.neo4j.procedure.Procedure;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -40,6 +39,6 @@ public class UuidProcedures {
 
     @PostConstruct
     public void init() throws KernelException {
-        procedures.register(ga.uuid.UuidProcedures.class);
+        procedures.register(NodeUuidProcedure.class);
     }
 }

@@ -14,7 +14,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-package ga.uuid;
+package ga.uuid.result;
 
 import org.neo4j.graphdb.Node;
 
