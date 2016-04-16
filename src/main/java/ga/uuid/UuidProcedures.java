@@ -37,13 +37,13 @@ public class UuidProcedures {
     @Context
     public GraphDatabaseService database;
 
-    @PerformsWrites
     @Procedure
     public Stream<NodeResult> findNode(@Name("uuid") String uuid) {
         GraphAwareRuntime runtime = getStartedRuntime(database);
         UuidModule module = runtime.getModule(UuidModule.DEFAULT_MODULE_ID, UuidModule.class);
         UuidConfiguration configuration = module.getConfiguration();
         Node nodeById = database.getNodeById(new UuidReader(configuration, database).getNodeIdByUuid(uuid));
+        
         return Stream.of(new NodeResult(nodeById));
     }
 }
