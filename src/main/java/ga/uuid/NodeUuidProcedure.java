@@ -47,9 +47,10 @@ public class NodeUuidProcedure extends UuidProcedure {
 
     @Procedure
     @PerformsWrites
-    public Stream<NodeListResult> findNodes(@Name("uuids")List<String> uuids) {
+    public Stream<NodeListResult> findNodes(@Name("uuids") List<String> uuids) {
         List<Node> nodes = new ArrayList<>();
         for (String uuid : uuids) {
+            System.out.println(uuid);
             nodes.add(findNodeByUuid(uuid));
         }
 

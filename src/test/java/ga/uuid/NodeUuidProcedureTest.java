@@ -21,7 +21,6 @@ public class NodeUuidProcedureTest extends ProcedureIntegrationTest {
 
     @Test
     public void testGetNodeByUuid() {
-        emptyDb();
         Long aleId = createPerson("Alessandro");
         String aleUuid = getUuidForNode(aleId);
         try (Transaction tx = getDatabase().beginTx()) {
@@ -38,7 +37,6 @@ public class NodeUuidProcedureTest extends ProcedureIntegrationTest {
 
     @Test
     public void testGetNodesWithMultipleUuids() {
-        emptyDb();
         Long aleId = createPerson("Alessandro");
         Long luanneId = createPerson("Luanne");
         String aleUuid = getUuidForNode(aleId);
@@ -47,10 +45,10 @@ public class NodeUuidProcedureTest extends ProcedureIntegrationTest {
         List<String> ids = new ArrayList<>();
         ids.add(aleUuid);
         ids.add(luanneUuid);
-        params.put("ids", ids);
+        params.put("uuids", ids);
 
         try (Transaction tx = getDatabase().beginTx()) {
-            Result result = getDatabase().execute("CALL ga.uuid.findNodes({ids}) YIELD nodes RETURN nodes", params);
+            Result result = getDatabase().execute("CALL ga.uuid.findNodes({uuids}) YIELD nodes RETURN nodes", params);
             while (result.hasNext()) {
                 Map<String, Object> row = result.next();
                 List<Node> nodes = (List<Node>) row.get("nodes");

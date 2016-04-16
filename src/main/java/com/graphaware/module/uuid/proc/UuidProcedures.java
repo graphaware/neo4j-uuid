@@ -17,6 +17,7 @@
 package com.graphaware.module.uuid.proc;
 
 import ga.uuid.NodeUuidProcedure;
+import ga.uuid.RelationshipUuidProcedure;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.kernel.api.exceptions.KernelException;
 import org.neo4j.kernel.impl.proc.Procedures;
@@ -40,5 +41,6 @@ public class UuidProcedures {
     @PostConstruct
     public void init() throws KernelException {
         procedures.register(NodeUuidProcedure.class);
+        procedures.register(RelationshipUuidProcedure.class);
     }
 }
