@@ -23,32 +23,32 @@ import com.graphaware.runtime.GraphAwareRuntime;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
+import org.neo4j.procedure.Context;
 
 import static com.graphaware.runtime.RuntimeRegistry.getStartedRuntime;
 
 public abstract class UuidProcedure {
 
+    @Context
+    public GraphDatabaseService database;
+
     private static UuidReader uuidReader;
 
-    protected abstract GraphDatabaseService getDatabase();
-
     protected UuidReader reader() {
-        if (null == uuidReader) {
-            GraphAwareRuntime runtime = getStartedRuntime(getDatabase());
-            UuidModule module = runtime.getModule(UuidModule.DEFAULT_MODULE_ID, UuidModule.class);
-            UuidConfiguration configuration = module.getConfiguration();
-            uuidReader = new UuidReader(configuration, getDatabase());
-        }
+        GraphAwareRuntime runtime = getStartedRuntime(database);
+        UuidModule module = runtime.getModule(UuidModule.DEFAULT_MODULE_ID, UuidModule.class);
+        UuidConfiguration configuration = module.getConfiguration();
+        uuidReader = new UuidReader(configuration, database);
 
         return uuidReader;
     }
 
     protected Node findNodeByUuid(String uuid) {
-        return getDatabase().getNodeById(reader().getNodeIdByUuid(uuid));
+        return database.getNodeById(reader().getNodeIdByUuid(uuid));
     }
 
     protected Relationship findRelationshipByUuid(String uuid) {
-        return getDatabase().getRelationshipById(reader().getRelationshipIdByUuid(uuid));
+        return database.getRelationshipById(reader().getRelationshipIdByUuid(uuid));
     }
 
 }
