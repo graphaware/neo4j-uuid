@@ -26,6 +26,7 @@ import static org.apache.http.HttpStatus.SC_NOT_FOUND;
 import static org.apache.http.HttpStatus.SC_OK;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+
 //todo complete this
 public class UuidModuleEndToEndProcTest extends GraphAwareIntegrationTest {
 
@@ -48,7 +49,7 @@ public class UuidModuleEndToEndProcTest extends GraphAwareIntegrationTest {
         String uuid = matcher.group(1);
 
         //Retrieve
-        assertEquals("{\"results\":[{\"columns\":[\"id(n)\"],\"data\":[{\"row\":[0],\"meta\":[null]}]}],\"errors\":[]}", httpClient.executeCypher(baseNeoUrl(), "CALL ga.uuid.findNode('" + uuid + "') YIELD node as n return id(n)"));
+        assertEquals("{\"results\":[{\"columns\":[\"id(n)\"],\"data\":[{\"row\":[0],\"meta\":[null]}]}],\"errors\":[]}", findNodeByUuid(uuid));
 
         //(can't) Update
         response = httpClient.executeCypher(baseNeoUrl(), "MATCH (p:Person {name:'Luanne'}) SET p.uuid=new");
@@ -61,7 +62,11 @@ public class UuidModuleEndToEndProcTest extends GraphAwareIntegrationTest {
 
         //Delete
         httpClient.executeCypher(baseNeoUrl(), "MATCH (p:Person {name:'Luanne'}) DELETE p");
-        httpClient.get(baseNeoUrl() + "/graphaware/uuid/node/" + uuid, SC_NOT_FOUND);
+        assertEquals("{\"results\":[{\"columns\":[\"id(n)\"],\"data\":[]}],\"errors\":[]}", findNodeByUuid(uuid));
+    }
+
+    private String findNodeByUuid(String uuid) {
+        return httpClient.executeCypher(baseNeoUrl(), "CALL ga.uuid.findNode('" + uuid + "') YIELD node as n return id(n)");
     }
 
     @Test
@@ -97,7 +102,7 @@ public class UuidModuleEndToEndProcTest extends GraphAwareIntegrationTest {
     @Test
     public void testIssue6() {
         String response = httpClient.executeCypher(baseNeoUrl(), "CREATE (:Person {name:'Luanne', uuid:'123'}), (:Person {name:'Michal', uuid:'123'})");
-        System.out.println(response);
+
         assertTrue(response.contains("Neo.ClientError.Transaction.TransactionHookFailed"));
 
         assertEquals("{\"results\":[{\"columns\":[\"p\"],\"data\":[]}],\"errors\":[]}", httpClient.executeCypher(baseNeoUrl(), "MATCH (p:Person) RETURN p"));
