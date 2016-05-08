@@ -16,10 +16,9 @@
 
 package ga.uuid;
 
-import com.graphaware.module.uuid.UuidConfiguration;
 import com.graphaware.module.uuid.UuidModule;
-import com.graphaware.module.uuid.UuidReader;
-import com.graphaware.runtime.GraphAwareRuntime;
+import com.graphaware.module.uuid.read.DefaultUuidReader;
+import com.graphaware.module.uuid.read.UuidReader;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
@@ -28,27 +27,19 @@ import static com.graphaware.runtime.RuntimeRegistry.getStartedRuntime;
 
 public abstract class UuidProcedure {
 
-    private static UuidReader uuidReader;
-
     protected abstract GraphDatabaseService getDatabase();
 
-    protected UuidReader reader() {
-        if (null == uuidReader) {
-            GraphAwareRuntime runtime = getStartedRuntime(getDatabase());
-            UuidModule module = runtime.getModule(UuidModule.DEFAULT_MODULE_ID, UuidModule.class);
-            UuidConfiguration configuration = module.getConfiguration();
-            uuidReader = new UuidReader(configuration, getDatabase());
-        }
-
-        return uuidReader;
+    protected UuidReader reader(String moduleId) {
+        //note: this can't be cached, needs new instance every time
+        return new DefaultUuidReader(getStartedRuntime(getDatabase()).getModule(moduleId, UuidModule.class).getConfiguration(), getDatabase());
     }
 
-    protected Node findNodeByUuid(String uuid) {
-        return getDatabase().getNodeById(reader().getNodeIdByUuid(uuid));
+    protected Node findNodeByUuid(String moduleId, String uuid) {
+        return getDatabase().getNodeById(reader(moduleId).getNodeIdByUuid(uuid));
     }
 
-    protected Relationship findRelationshipByUuid(String uuid) {
-        return getDatabase().getRelationshipById(reader().getRelationshipIdByUuid(uuid));
+    protected Relationship findRelationshipByUuid(String moduleId, String uuid) {
+        return getDatabase().getRelationshipById(reader(moduleId).getRelationshipIdByUuid(uuid));
     }
 
 }

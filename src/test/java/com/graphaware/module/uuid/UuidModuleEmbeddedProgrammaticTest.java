@@ -18,6 +18,8 @@ package com.graphaware.module.uuid;
 import com.graphaware.common.policy.BaseNodeInclusionPolicy;
 import com.graphaware.common.policy.BaseRelationshipInclusionPolicy;
 import com.graphaware.common.util.IterableUtils;
+import com.graphaware.module.uuid.read.DefaultUuidReader;
+import com.graphaware.module.uuid.read.UuidReader;
 import com.graphaware.runtime.GraphAwareRuntime;
 import com.graphaware.runtime.GraphAwareRuntimeFactory;
 import com.graphaware.runtime.policy.all.IncludeAllBusinessNodes;
@@ -40,7 +42,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
     private final RelationshipType knowsType = RelationshipType.withName("KNOWS");
     private final RelationshipType ignoredType = RelationshipType.withName("IGNORED");
     private UuidConfiguration uuidConfiguration;
-    private UuidReader uuidReader;
+    private DefaultUuidReader uuidReader;
 
     @Before
     public void setUp() {
@@ -78,14 +80,12 @@ public class UuidModuleEmbeddedProgrammaticTest {
             Node personNode = IterableUtils.getSingle(database.findNodes(personLabel));
             assertTrue(personNode.hasProperty("uuid"));
             String uuid = (String) personNode.getProperty("uuid");
-            assertNotNull(uuidReader.getNodeByUuid(uuid));
-            assertEquals(personNode, uuidReader.getNodeByUuid(uuid));
+            assertEquals(personNode.getId(), uuidReader.getNodeIdByUuid(uuid));
 
             Relationship relationship = personNode.getSingleRelationship(knowsType, Direction.OUTGOING);
             assertTrue(relationship.hasProperty("uuid"));
             String relUuid = (String) relationship.getProperty("uuid");
-            assertNotNull(uuidReader.getRelationshipByUuid(relUuid));
-            assertEquals(relationship, uuidReader.getRelationshipByUuid(relUuid));
+            assertEquals(relationship.getId(), uuidReader.getRelationshipIdByUuid(relUuid));
             tx.success();
         }
     }
@@ -110,8 +110,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
             for (Node personNode : asIterable(database.findNodes(personLabel))) {
                 assertTrue(personNode.hasProperty("uuid"));
                 String uuid = (String) personNode.getProperty("uuid");
-                assertNotNull(uuidReader.getNodeByUuid(uuid));
-                assertEquals(personNode, uuidReader.getNodeByUuid(uuid));
+                assertEquals(personNode.getId(), uuidReader.getNodeIdByUuid(uuid));
             }
 
             tx.success();
@@ -136,8 +135,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
             for (Node node : asIterable(database.findNodes(testLabel))) {
                 assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
                 String uuid = (String) node.getProperty("uuid");
-                assertNotNull(uuidReader.getNodeByUuid(uuid));
-                assertEquals(node, uuidReader.getNodeByUuid(uuid));
+                assertEquals(node.getId(), uuidReader.getNodeIdByUuid(uuid));
             }
             tx.success();
         }
@@ -162,8 +160,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
                 if (IncludeAllBusinessNodes.getInstance().include(node)) {
                     assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
                     String uuid = (String) node.getProperty("uuid");
-                    assertNotNull(uuidReader.getNodeByUuid(uuid));
-                    assertEquals(node, uuidReader.getNodeByUuid(uuid));
+                    assertEquals(node.getId(), uuidReader.getNodeIdByUuid(uuid));
                 }
             }
             tx.success();
@@ -191,8 +188,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
                     retrievedNode = node;
                     assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
                     uuid = (String) node.getProperty("uuid");
-                    assertNotNull(uuidReader.getNodeByUuid(uuid));
-                    assertEquals(node, uuidReader.getNodeByUuid(uuid));
+                    assertEquals(node.getId(), uuidReader.getNodeIdByUuid(uuid));
                 }
             }
             tx.success();
@@ -207,7 +203,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
         try (Transaction tx = database.beginTx()) {
             assertFalse(database.getAllNodes().iterator().hasNext());
             try {
-                uuidReader.getNodeByUuid(uuid);
+                uuidReader.getNodeIdByUuid(uuid);
                 fail();
             } catch (NotFoundException e) {
                 //ok
@@ -242,7 +238,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
     }
 
     @Test(expected = TransactionFailureException.class)
-    public void shouldNotBeAbleToChangeTheUuidOfUnlabeledNode() {
+     public void shouldNotBeAbleToChangeTheUuidOfUnlabeledNode() {
         Node node;
 
         //Given
@@ -334,8 +330,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
             for (Node node : asIterable(database.findNodes(personLabel))) {
                 assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
                 String uuid = (String) node.getProperty("uuid");
-                assertNotNull(uuidReader.getNodeByUuid(uuid));
-                assertEquals(node, uuidReader.getNodeByUuid(uuid));
+                assertEquals(node.getId(), uuidReader.getNodeIdByUuid(uuid));
             }
             tx.success();
         }
@@ -415,7 +410,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
             for (Node n : asIterable(database.findNodes(testLabel))) {
                 assertEquals("aNewUuid", n.getProperty(uuidConfiguration.getUuidProperty()));
                 try {
-                    uuidReader.getNodeByUuid("aNewUuid");
+                    uuidReader.getNodeIdByUuid("aNewUuid");
                     fail();
                 } catch (NotFoundException e) {
                     //ok
@@ -1160,8 +1155,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
                 Relationship rel = node.getSingleRelationship(knowsType, Direction.OUTGOING);
                 if (rel != null) {
                     String uuid = (String) rel.getProperty("uuid");
-                    assertNotNull(uuidReader.getRelationshipByUuid(uuid));
-                    assertEquals(rel, uuidReader.getRelationshipByUuid(uuid));
+                    assertEquals(rel.getId(), uuidReader.getRelationshipIdByUuid(uuid));
                 }
             }
             tx.success();
@@ -1205,7 +1199,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
         try (Transaction tx = database.beginTx()) {
             assertFalse(database.getAllRelationships().iterator().hasNext());
             try {
-                uuidReader.getNodeByUuid(uuid);
+                uuidReader.getNodeIdByUuid(uuid);
                 fail();
             } catch (NotFoundException e) {
                 //ok
@@ -1240,6 +1234,31 @@ public class UuidModuleEmbeddedProgrammaticTest {
         //Exception should be thrown
     }
 
+    @Test(expected = TransactionFailureException.class)
+    public void shouldNotBeAbleToDeleteTheUuidOfRelationship() {
+        Node node, another;
+
+        //Given
+        registerModuleWithNoLabels();
+
+        try (Transaction tx = database.beginTx()) {
+            node = database.createNode(testLabel);
+            another = database.createNode(testLabel);
+            node.createRelationshipTo(another, knowsType);
+            tx.success();
+        }
+
+        //When
+        try (Transaction tx = database.beginTx()) {
+            for (Relationship r : database.getAllRelationships()) {
+                r.removeProperty(uuidConfiguration.getUuidProperty());
+            }
+            tx.success();
+        }
+
+        //Then
+        //Exception should be thrown
+    }
 
     @Test
     public void uuidShouldNotBeAssignedToRelWithLabelNotSpecifiedInConfig() {
@@ -1300,7 +1319,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
                     assertEquals("aNewUuid", r.getProperty(uuidConfiguration.getUuidProperty()));
                 }
                 try {
-                    uuidReader.getRelationshipByUuid("aNewUuid");
+                    uuidReader.getRelationshipIdByUuid("aNewUuid");
                     fail();
                 } catch (NotFoundException e) {
                     //ok
@@ -1385,7 +1404,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
         UuidModule module = new UuidModule("UUIDM", uuidConfiguration, database);
         runtime.registerModule(module);
         runtime.start();
-        uuidReader = new UuidReader(uuidConfiguration,database);
+        uuidReader = new DefaultUuidReader(uuidConfiguration,database);
     }
 
     private void registerModuleWithLabelsAndTypes() {
@@ -1415,7 +1434,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
         UuidModule module = new UuidModule("UUIDM", uuidConfiguration, database);
         runtime.registerModule(module);
         runtime.start();
-        uuidReader = new UuidReader(uuidConfiguration,database);
+        uuidReader = new DefaultUuidReader(uuidConfiguration,database);
 
     }
 

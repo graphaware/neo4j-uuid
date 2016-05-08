@@ -30,7 +30,7 @@ public class UuidModuleEndToEndMinimalTest extends GraphAwareIntegrationTest {
 
     @Override
     protected String configFile() {
-        return "neo4j-uuid-minimal.properties";
+        return "neo4j-uuid-minimal.conf";
     }
 
     @Test

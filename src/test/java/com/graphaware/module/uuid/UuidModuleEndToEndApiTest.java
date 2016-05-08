@@ -33,7 +33,7 @@ public class UuidModuleEndToEndApiTest extends GraphAwareIntegrationTest {
 
     @Override
     protected String configFile() {
-        return "neo4j-uuid-all.properties";
+        return "neo4j-uuid-all.conf";
     }
 
     @Test
@@ -48,7 +48,7 @@ public class UuidModuleEndToEndApiTest extends GraphAwareIntegrationTest {
         String uuid = matcher.group(1);
 
         //Retrieve
-        assertEquals("0", httpClient.get(baseNeoUrl() + "/graphaware/uuid/UIDM/node/" + uuid, SC_OK));
+        assertEquals("0", httpClient.get(baseUrl() + "/uuid/UIDM/node/" + uuid, SC_OK));
 
         //(can't) Update
         response = httpClient.executeCypher(baseNeoUrl(), "MATCH (p:Person {name:'Luanne'}) SET p.uuid=new");
@@ -63,7 +63,7 @@ public class UuidModuleEndToEndApiTest extends GraphAwareIntegrationTest {
 
         //Delete
         httpClient.executeCypher(baseNeoUrl(), "MATCH (p:Person {name:'Luanne'}) DELETE p");
-        httpClient.get(baseNeoUrl() + "/graphaware/uuid/node/" + uuid, SC_NOT_FOUND);
+        httpClient.get(baseUrl() + "/uuid/node/" + uuid, SC_NOT_FOUND);
     }
 
     @Test
@@ -78,7 +78,7 @@ public class UuidModuleEndToEndApiTest extends GraphAwareIntegrationTest {
         String uuid = matcher.group(1);
 
         //Retrieve
-        assertEquals("0", httpClient.get(baseNeoUrl() + "/graphaware/uuid/UIDM/node/" + uuid, SC_OK));
+        assertEquals("0", httpClient.get(baseUrl() + "/uuid/UIDM/node/" + uuid, SC_OK));
 
         //(can't) Update
         response = httpClient.executeCypher(baseNeoUrl(), "MATCH (p:Person {name:'Luanne'}) SET p.uuid=new");
@@ -93,13 +93,22 @@ public class UuidModuleEndToEndApiTest extends GraphAwareIntegrationTest {
 
         //Delete
         httpClient.executeCypher(baseNeoUrl(), "MATCH (p:Person {name:'Luanne'}) DELETE p");
-        httpClient.get(baseNeoUrl() + "/graphaware/uuid/node/" + uuid, SC_NOT_FOUND);
+        httpClient.get(baseUrl() + "/uuid/node/" + uuid, SC_NOT_FOUND);
     }
 
     @Test
-    public void testIssue6() {
+    public void shouldNotBeAbleToCreateTwoNodesWithTheSameUUID() {
         String response = httpClient.executeCypher(baseNeoUrl(), "CREATE (:Person {name:'Luanne', uuid:'123'}), (:Person {name:'Michal', uuid:'123'})");
-        System.out.println(response);
+
+        assertTrue(response.contains("Neo.ClientError.Transaction.TransactionHookFailed"));
+
+        assertEquals("{\"results\":[{\"columns\":[\"p\"],\"data\":[]}],\"errors\":[]}", httpClient.executeCypher(baseNeoUrl(), "MATCH (p:Person) RETURN p"));
+    }
+
+    @Test
+    public void shouldNotBeAbleToCreateTwoRelsWithTheSameUUID() {
+        String response = httpClient.executeCypher(baseNeoUrl(), "CREATE (p1:Person {name:'Luanne'}), (p2:Person {name:'Michal'}), (p1)-[:FRIEND_OF {uuid:'123'}]->(p2), (p1)-[:COLLEAGUE_OF {uuid:'123'}]->(p2)");
+
         assertTrue(response.contains("Neo.ClientError.Transaction.TransactionHookFailed"));
 
         assertEquals("{\"results\":[{\"columns\":[\"p\"],\"data\":[]}],\"errors\":[]}", httpClient.executeCypher(baseNeoUrl(), "MATCH (p:Person) RETURN p"));
@@ -107,11 +116,11 @@ public class UuidModuleEndToEndApiTest extends GraphAwareIntegrationTest {
 
     @Test
     public void shouldReturn404WhenUuidNotExists() {
-        httpClient.get(baseNeoUrl() + "/graphaware/uuid/node/not-exists", SC_NOT_FOUND);
+        httpClient.get(baseUrl() + "/uuid/node/not-exists", SC_NOT_FOUND);
     }
 
     @Test
     public void shouldReturn404WhenModuleNotExists() {
-        httpClient.get(baseNeoUrl() + "/graphaware/uuid/non-existing-module/node/not-exists", SC_NOT_FOUND);
+        httpClient.get(baseUrl() + "/uuid/non-existing-module/node/not-exists", SC_NOT_FOUND);
     }
 }

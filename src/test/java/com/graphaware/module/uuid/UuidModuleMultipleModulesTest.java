@@ -16,7 +16,7 @@
 
 package com.graphaware.module.uuid;
 
-import com.graphaware.test.integration.NeoServerIntegrationTest;
+import com.graphaware.test.integration.GraphAwareIntegrationTest;
 import org.junit.Test;
 
 import java.util.regex.Matcher;
@@ -26,36 +26,70 @@ import static org.apache.http.HttpStatus.SC_OK;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-public class UuidModuleMultipleModulesTest extends NeoServerIntegrationTest {
+public class UuidModuleMultipleModulesTest extends GraphAwareIntegrationTest {
 
     @Override
-    protected String neo4jConfigFile() {
-        return "neo4j-uuid-multiple.properties";
+    protected String configFile() {
+        return "neo4j-uuid-multiple.conf";
     }
 
     @Test
     public void testWorkflow() {
         //Create & Assign
-        httpClient.executeCypher(baseUrl(), "CREATE (:Customer {name:'c1'})");
-        httpClient.executeCypher(baseUrl(), "CREATE (:User {name:'u1'})");
-        httpClient.executeCypher(baseUrl(), "CREATE (:SomethingElse {name:'s1'})");
+        httpClient.executeCypher(baseNeoUrl(), "CREATE (:Customer {name:'c1'})");
+        httpClient.executeCypher(baseNeoUrl(), "CREATE (:User {name:'u1'})");
+        httpClient.executeCypher(baseNeoUrl(), "CREATE (:SomethingElse {name:'s1'})");
 
-        String response = httpClient.executeCypher(baseUrl(), "MATCH (c:Customer) RETURN c");
+        String response = httpClient.executeCypher(baseNeoUrl(), "MATCH (c:Customer) RETURN c");
 
         Matcher matcher = Pattern.compile("\\\"customerId\\\":\\\"([a-zA-Z0-9-]*)\\\"").matcher(response);
         assertTrue(matcher.find());
         String uuid = matcher.group(1);
 
         //Retrieve
-        assertEquals("0", httpClient.get(baseUrl() + "/graphaware/uuid/UID1/node/" + uuid, SC_OK));
+        assertEquals("0", httpClient.get(baseUrl() + "/uuid/UID1/node/" + uuid, SC_OK));
 
-        response = httpClient.executeCypher(baseUrl(), "MATCH (u:User) RETURN u");
+        response = httpClient.executeCypher(baseNeoUrl(), "MATCH (u:User) RETURN u");
 
         matcher = Pattern.compile("\\\"userId\\\":\\\"([a-zA-Z0-9-]*)\\\"").matcher(response);
         assertTrue(matcher.find());
         uuid = matcher.group(1);
 
         //Retrieve
-        assertEquals("1", httpClient.get(baseUrl() + "/graphaware/uuid/UID2/node/" + uuid, SC_OK));
+        assertEquals("1", httpClient.get(baseUrl() + "/uuid/UID2/node/" + uuid, SC_OK));
+    }
+
+    @Test
+    public void testProcedures() {
+        //Create & Assign
+        httpClient.executeCypher(baseNeoUrl(), "CREATE (:Customer {name:'c1'})");
+        httpClient.executeCypher(baseNeoUrl(), "CREATE (:User {name:'u1'})");
+        httpClient.executeCypher(baseNeoUrl(), "CREATE (:SomethingElse {name:'s1'})");
+
+        String response = httpClient.executeCypher(baseNeoUrl(), "MATCH (c:Customer) RETURN c");
+
+        Matcher matcher = Pattern.compile("\\\"customerId\\\":\\\"([a-zA-Z0-9-]*)\\\"").matcher(response);
+        assertTrue(matcher.find());
+        String uuid = matcher.group(1);
+
+        //Retrieve
+        assertEquals("{\"results\":[{\"columns\":[\"id(n)\"],\"data\":[{\"row\":[0],\"meta\":[null]}]}],\"errors\":[]}", findNodeByUuid("UID1", uuid));
+
+        response = httpClient.executeCypher(baseNeoUrl(), "MATCH (u:User) RETURN u");
+
+        matcher = Pattern.compile("\\\"userId\\\":\\\"([a-zA-Z0-9-]*)\\\"").matcher(response);
+        assertTrue(matcher.find());
+        uuid = matcher.group(1);
+
+        //Retrieve
+        assertEquals("{\"results\":[{\"columns\":[\"id(n)\"],\"data\":[{\"row\":[1],\"meta\":[null]}]}],\"errors\":[]}", findNodeByUuid("UID2", uuid));
+    }
+
+    private String findNodeByUuid(String uuid) {
+        return httpClient.executeCypher(baseNeoUrl(), "CALL ga.uuid.findNode('" + uuid + "') YIELD node as n return id(n)");
+    }
+
+    private String findNodeByUuid(String moduleId, String uuid) {
+        return httpClient.executeCypher(baseNeoUrl(), "CALL ga.uuid.nd.findNode('" + moduleId + "','" + uuid + "') YIELD node as n return id(n)");
     }
 }

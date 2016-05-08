@@ -27,8 +27,6 @@ import com.graphaware.runtime.policy.all.IncludeAllBusinessNodes;
 import com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships;
 import org.junit.After;
 import org.junit.Test;
-import org.neo4j.graphdb.DynamicLabel;
-import org.neo4j.graphdb.DynamicRelationshipType;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
@@ -37,7 +35,6 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.helpers.collection.Iterables;
-import org.neo4j.helpers.collection.Iterators;
 import org.neo4j.test.TestGraphDatabaseFactory;
 
 public class UuidModuleDeclarativeIntegrationTest {
@@ -60,7 +57,7 @@ public class UuidModuleDeclarativeIntegrationTest {
     @Test
     public void testUuidAssigned() throws InterruptedException {
         database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
-                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid.properties").getPath())
+                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid.conf").getPath())
                 .newGraphDatabase();
 
         getRuntime(database).waitUntilStarted();
@@ -87,7 +84,7 @@ public class UuidModuleDeclarativeIntegrationTest {
     @Test
     public void testUuidNotAssigned() throws InterruptedException {
         database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
-                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid.properties").getPath())
+                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid.conf").getPath())
                 .newGraphDatabase();
 
         getRuntime(database).waitUntilStarted();
@@ -112,7 +109,7 @@ public class UuidModuleDeclarativeIntegrationTest {
     @Test(expected = NotFoundException.class)
     public void testGetNodeThrowsExceptionForInvalidUuid() throws InterruptedException {
         database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
-                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid.properties").getPath())
+                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid.conf").getPath())
                 .newGraphDatabase();
 
         getRuntime(database).waitUntilStarted();
@@ -127,7 +124,7 @@ public class UuidModuleDeclarativeIntegrationTest {
     @Test
     public void testUuidAssignedToRelationship() throws InterruptedException {
         database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
-                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid.properties").getPath())
+                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid.conf").getPath())
                 .newGraphDatabase();
 
         getRuntime(database).waitUntilStarted();
@@ -164,7 +161,7 @@ public class UuidModuleDeclarativeIntegrationTest {
     @Test
     public void testUuidNotAssignedToRelationship() throws InterruptedException {
         database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
-                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid.properties").getPath())
+                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid.conf").getPath())
                 .newGraphDatabase();
 
         getRuntime(database).waitUntilStarted();
@@ -201,7 +198,7 @@ public class UuidModuleDeclarativeIntegrationTest {
     @Test(expected = NotFoundException.class)
     public void testGetRelationshipThrowsExceptionForInvalidUuid() throws InterruptedException {
         database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
-                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid.properties").getPath())
+                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid.conf").getPath())
                 .newGraphDatabase();
 
         getRuntime(database).waitUntilStarted();
@@ -216,7 +213,7 @@ public class UuidModuleDeclarativeIntegrationTest {
     @Test
     public void longCypherCreateShouldResultInAllNodesAndRelsWithUuid() {
         database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
-                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid-all.properties").getPath())
+                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid-all.conf").getPath())
                 .newGraphDatabase();
 
         getRuntime(database).waitUntilStarted();

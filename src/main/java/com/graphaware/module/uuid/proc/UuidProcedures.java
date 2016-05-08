@@ -41,6 +41,8 @@ public class UuidProcedures {
     @PostConstruct
     public void init() throws KernelException {
         procedures.register(NodeUuidProcedure.class);
+        procedures.register(ga.uuid.nd.NodeUuidProcedure.class);
         procedures.register(RelationshipUuidProcedure.class);
+        procedures.register(ga.uuid.nd.RelationshipUuidProcedure.class);
     }
 }

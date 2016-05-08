@@ -16,6 +16,7 @@
 
 package ga.uuid;
 
+import com.graphaware.module.uuid.UuidModule;
 import ga.uuid.result.RelationshipListResult;
 import ga.uuid.result.RelationshipResult;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -42,7 +43,7 @@ public class RelationshipUuidProcedure extends UuidProcedure {
     @Procedure
     @PerformsWrites
     public Stream<RelationshipResult> findRelationship(@Name("uuid") String uuid) {
-        return Stream.of(new RelationshipResult(findRelationshipByUuid(uuid)));
+        return Stream.of(new RelationshipResult(findRelationshipByUuid(UuidModule.DEFAULT_MODULE_ID, uuid)));
     }
 
     @Procedure
@@ -50,7 +51,7 @@ public class RelationshipUuidProcedure extends UuidProcedure {
     public Stream<RelationshipListResult> findRelationships(@Name("uuids") List<String> uuids) {
         List<Relationship> relationships = new ArrayList<>();
         for (String uuid : uuids) {
-            relationships.add(findRelationshipByUuid(uuid));
+            relationships.add(findRelationshipByUuid(UuidModule.DEFAULT_MODULE_ID, uuid));
         }
 
         return Stream.of(new RelationshipListResult(relationships));

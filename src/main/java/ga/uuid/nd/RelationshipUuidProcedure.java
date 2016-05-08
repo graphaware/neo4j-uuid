@@ -14,13 +14,14 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-package ga.uuid;
+package ga.uuid.nd;
 
 import com.graphaware.module.uuid.UuidModule;
-import ga.uuid.result.NodeListResult;
-import ga.uuid.result.NodeResult;
+import ga.uuid.UuidProcedure;
+import ga.uuid.result.RelationshipListResult;
+import ga.uuid.result.RelationshipResult;
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
 import org.neo4j.procedure.Context;
 import org.neo4j.procedure.Name;
 import org.neo4j.procedure.PerformsWrites;
@@ -30,7 +31,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
-public class NodeUuidProcedure extends UuidProcedure {
+public class RelationshipUuidProcedure extends UuidProcedure {
 
     @Context
     public GraphDatabaseService database;
@@ -42,18 +43,18 @@ public class NodeUuidProcedure extends UuidProcedure {
 
     @Procedure
     @PerformsWrites
-    public Stream<NodeResult> findNode(@Name("uuid") String uuid) {
-        return Stream.of(new NodeResult(findNodeByUuid(UuidModule.DEFAULT_MODULE_ID, uuid)));
+    public Stream<RelationshipResult> findRelationship(@Name("moduleId") String moduleId, @Name("uuid") String uuid) {
+        return Stream.of(new RelationshipResult(findRelationshipByUuid(moduleId, uuid)));
     }
 
     @Procedure
     @PerformsWrites
-    public Stream<NodeListResult> findNodes(@Name("uuids") List<String> uuids) {
-        List<Node> nodes = new ArrayList<>();
+    public Stream<RelationshipListResult> findRelationships(@Name("moduleId") String moduleId, @Name("uuids") List<String> uuids) {
+        List<Relationship> relationships = new ArrayList<>();
         for (String uuid : uuids) {
-            nodes.add(findNodeByUuid(UuidModule.DEFAULT_MODULE_ID, uuid));
+            relationships.add(findRelationshipByUuid(moduleId, uuid));
         }
 
-        return Stream.of(new NodeListResult(nodes));
+        return Stream.of(new RelationshipListResult(relationships));
     }
 }

@@ -14,9 +14,10 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-package ga.uuid;
+package ga.uuid.nd;
 
 import com.graphaware.module.uuid.UuidModule;
+import ga.uuid.UuidProcedure;
 import ga.uuid.result.NodeListResult;
 import ga.uuid.result.NodeResult;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -42,16 +43,16 @@ public class NodeUuidProcedure extends UuidProcedure {
 
     @Procedure
     @PerformsWrites
-    public Stream<NodeResult> findNode(@Name("uuid") String uuid) {
-        return Stream.of(new NodeResult(findNodeByUuid(UuidModule.DEFAULT_MODULE_ID, uuid)));
+    public Stream<NodeResult> findNode(@Name("moduleId") String moduleId, @Name("uuid") String uuid) {
+        return Stream.of(new NodeResult(findNodeByUuid(moduleId, uuid)));
     }
 
     @Procedure
     @PerformsWrites
-    public Stream<NodeListResult> findNodes(@Name("uuids") List<String> uuids) {
+    public Stream<NodeListResult> findNodes(@Name("moduleId") String moduleId, @Name("uuids") List<String> uuids) {
         List<Node> nodes = new ArrayList<>();
         for (String uuid : uuids) {
-            nodes.add(findNodeByUuid(UuidModule.DEFAULT_MODULE_ID, uuid));
+            nodes.add(findNodeByUuid(moduleId, uuid));
         }
 
         return Stream.of(new NodeListResult(nodes));

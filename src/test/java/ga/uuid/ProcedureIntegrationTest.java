@@ -16,7 +16,7 @@ abstract class ProcedureIntegrationTest extends EmbeddedDatabaseIntegrationTest 
 
     @Override
     protected String configFile() {
-        return getClass().getClassLoader().getResource("neo4j-uuid-all.properties").getPath();
+        return getClass().getClassLoader().getResource("neo4j-uuid-all.conf").getPath();
     }
 
     protected abstract Class procedureClass();
