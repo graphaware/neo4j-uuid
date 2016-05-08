@@ -16,33 +16,21 @@
 
 package com.graphaware.module.uuid;
 
-import com.graphaware.test.integration.GraphAwareApiTest;
+import com.graphaware.test.integration.GraphAwareIntegrationTest;
 import org.junit.Test;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.tooling.GlobalGraphOperations;
-import org.springframework.core.io.ClassPathResource;
+import org.neo4j.helpers.collection.Iterables;
 
-import java.io.IOException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import static org.apache.http.HttpStatus.SC_NOT_FOUND;
-import static org.apache.http.HttpStatus.SC_OK;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-public class UuidModuleEndToEndMinimalTest extends GraphAwareApiTest {
+public class UuidModuleEndToEndMinimalTest extends GraphAwareIntegrationTest {
 
     @Override
-    protected String propertiesFile() {
-        try {
-            return new ClassPathResource("neo4j-uuid-minimal.properties").getFile().getAbsolutePath();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    protected String configFile() {
+        return "neo4j-uuid-minimal.conf";
     }
 
     @Test
@@ -50,11 +38,11 @@ public class UuidModuleEndToEndMinimalTest extends GraphAwareApiTest {
         getDatabase().execute("CREATE (p:Person {name:'Luanne'})-[:WORKS_FOR]->(c:Company {name:'GraphAware'})");
 
         try (Transaction tx = getDatabase().beginTx()) {
-            for (Node node : GlobalGraphOperations.at(getDatabase()).getAllNodes()) {
+            for (Node node : Iterables.asResourceIterable(getDatabase().getAllNodes())) {
                 assertTrue(node.hasProperty("uuid"));
             }
 
-            for (Relationship rel : GlobalGraphOperations.at(getDatabase()).getAllRelationships()) {
+            for (Relationship rel : Iterables.asResourceIterable(getDatabase().getAllRelationships())) {
                 assertFalse(rel.hasProperty("uuid"));
             }
 

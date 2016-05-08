@@ -72,12 +72,9 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
                 database,
                 BATCH_SIZE,
                 new AllNodes(database, BATCH_SIZE),
-                new UnitOfWork<Node>() {
-                    @Override
-                    public void execute(GraphDatabaseService database, Node node, int batchNumber, int stepNumber) {
-                        if (getConfiguration().getInclusionPolicies().getNodeInclusionPolicy().include(node)) {
-                            assignUuid(node);
-                        }
+                (db, node, batchNumber, stepNumber) -> {
+                    if (getConfiguration().getInclusionPolicies().getNodeInclusionPolicy().include(node)) {
+                        assignUuid(node);
                     }
                 }
         ).execute();
@@ -86,12 +83,9 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
                 database,
                 BATCH_SIZE,
                 new AllRelationships(database, BATCH_SIZE),
-                new UnitOfWork<Relationship>() {
-                    @Override
-                    public void execute(GraphDatabaseService database, Relationship rel, int batchNumber, int stepNumber) {
-                        if (getConfiguration().getInclusionPolicies().getRelationshipInclusionPolicy().include(rel)) {
-                            assignUuid(rel);
-                        }
+                (db, rel, batchNumber, stepNumber) -> {
+                    if (getConfiguration().getInclusionPolicies().getRelationshipInclusionPolicy().include(rel)) {
+                        assignUuid(rel);
                     }
                 }
         ).execute();

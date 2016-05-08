@@ -20,7 +20,9 @@ import static com.graphaware.runtime.RuntimeRegistry.getStartedRuntime;
 
 import com.graphaware.module.uuid.UuidConfiguration;
 import com.graphaware.module.uuid.UuidModule;
-import com.graphaware.module.uuid.UuidReader;
+import com.graphaware.module.uuid.read.DefaultUuidReader;
+import com.graphaware.module.uuid.read.TransactionalUuidReader;
+import com.graphaware.module.uuid.read.UuidReader;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,7 +74,7 @@ public class UuidApi {
     @ResponseBody
     public Long getNodeIdByModuleAndUuid(@PathVariable(value = "moduleId") String moduleId, @PathVariable(value = "uuid") String uuid) {
         UuidConfiguration configuration = getStartedRuntime(database).getModule(moduleId, UuidModule.class).getConfiguration();
-        return new UuidReader(configuration, database).getNodeIdByUuid(uuid);
+        return getReader(configuration).getNodeIdByUuid(uuid);
     }
 
     /**
@@ -100,7 +102,11 @@ public class UuidApi {
     @ResponseBody
     public Long getRelationshipIdByModuleAndUuid(@PathVariable(value = "moduleId") String moduleId, @PathVariable(value = "uuid") String uuid) {
         UuidConfiguration configuration = getStartedRuntime(database).getModule(moduleId, UuidModule.class).getConfiguration();
-        return new UuidReader(configuration, database).getRelationshipIdByUuid(uuid);
+        return getReader(configuration).getRelationshipIdByUuid(uuid);
+    }
+
+    private UuidReader getReader(UuidConfiguration configuration) {
+        return new TransactionalUuidReader(database, new DefaultUuidReader(configuration, database));
     }
 
     @ExceptionHandler(NotFoundException.class)

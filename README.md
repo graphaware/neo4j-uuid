@@ -1,7 +1,7 @@
 GraphAware Neo4j UUID
 =====================
 
-[![Build Status](https://travis-ci.org/graphaware/neo4j-uuid.png)](https://travis-ci.org/graphaware/neo4j-uuid) | <a href="http://graphaware.com/downloads/" target="_blank">Downloads</a> | <a href="http://graphaware.com/site/uuid/latest/apidocs/" target="_blank">Javadoc</a> | Latest Release: 2.3.3.37.8
+[![Build Status](https://travis-ci.org/graphaware/neo4j-uuid.png)](https://travis-ci.org/graphaware/neo4j-uuid) | <a href="http://graphaware.com/downloads/" target="_blank">Downloads</a> | <a href="http://graphaware.com/site/uuid/latest/apidocs/" target="_blank">Javadoc</a> | Latest Release: 3.0.1.38.8
 
 GraphAware UUID is a simple library that transparently assigns a UUID to newly created nodes and relationships in the graph and makes sure nobody
 can (accidentally or intentionally) change or delete them.
@@ -31,7 +31,7 @@ Releases are synced to <a href="http://search.maven.org/#search%7Cga%7C1%7Ca%3A%
         <dependency>
             <groupId>com.graphaware.neo4j</groupId>
             <artifactId>uuid</artifactId>
-            <version>2.3.3.37.8</version>
+            <version>3.0.1.38.8</version>
         </dependency>
         ...
     </dependencies>
@@ -39,7 +39,7 @@ Releases are synced to <a href="http://search.maven.org/#search%7Cga%7C1%7Ca%3A%
 #### Snapshots
 
 To use the latest development version, just clone this repository, run `mvn clean install` and change the version in the
-dependency above to 2.3.3.37.9-SNAPSHOT.
+dependency above to 3.0.1.38.9-SNAPSHOT.
 
 #### Note on Versioning Scheme
 
@@ -116,13 +116,30 @@ Alternatively:
 Using GraphAware UUID
 ---------------------
 
-Apart from the configuration described above, the GraphAware UUID module requires nothing else to function. It will assign a UUID to nodes configured,
-and will prevent modifications to the UUID or deletion of the UUID property from these nodes by not allowing the transaction to commit.
-You can also retrieve a node by UUID.
+Apart from the configuration described above, the GraphAware UUID module requires nothing else to function. It will assign a UUID to nodes and relationships configured,
+and will prevent modifications to the UUID or deletion of the UUID property from these nodes/relationships by not allowing the transaction to commit.
+You can also retrieve a node/relationship by UUID.
 
-### Server Mode
+### Cypher
 
-In Server Mode, a node can be retrieved by its UUID via the REST API.
+Once deployed, you can use the following Cypher syntax:
+
+* `CALL ga.uuid.findNode('<your UUID>') YIELD node AS n ...` (then do something with `n`, e.g. `CALL ga.uuid.findNode('<your UUID>') YIELD node AS n RETURN id(n)`
+* `CALL ga.uuid.findRelationship('<your UUID>') YIELD relationship AS r ...`
+* `CALL ga.uuid.findNodes(['<UUID1>,<UUID2>,...']) YIELD nodes UNWIND nodes as node ...`
+* `CALL ga.uuid.findRelationships(['<UUID1>,<UUID2>,...']) YIELD relationships UNWIND relationships as rel ...`
+
+In case you did not use `UIDM` (the default) as the module ID in your configuration, or if you registered multiple UUID modules,
+you will have to use slightly different syntax that allows you to pass in the module ID. 'nd' stands for "non-default":
+
+* `CALL ga.uuid.nd.findNode('<module ID>','<your UUID>') YIELD node AS n ...` (then do something with `n`, e.g. `CALL ga.uuid.findNode('<your UUID>') YIELD node AS n RETURN id(n)`
+* `CALL ga.uuid.nd.findRelationship('<module ID>','<your UUID>') YIELD relationship AS r ...`
+* `CALL ga.uuid.nd.findNodes('<module ID>',['<UUID1>,<UUID2>,...']) YIELD nodes UNWIND nodes as node ...`
+* `CALL ga.uuid.nd.findRelationships('<module ID>',['<UUID1>,<UUID2>,...']) YIELD relationships UNWIND relationships as rel ...`
+
+### REST API
+
+In Server Mode, a node/relationship can be retrieved by its UUID via the REST API.
 
 You can issue GET requests to `http://your-server-address:7474/graphaware/uuid/{moduleId}/node/{uuid}` to get the node ID for a given uuid.
 
