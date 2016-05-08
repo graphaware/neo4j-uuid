@@ -22,24 +22,25 @@ import com.graphaware.module.uuid.read.UuidReader;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
+import org.neo4j.procedure.Context;
 
 import static com.graphaware.runtime.RuntimeRegistry.getStartedRuntime;
 
 public abstract class UuidProcedure {
 
-    protected abstract GraphDatabaseService getDatabase();
+    @Context
+    public GraphDatabaseService database;
 
     protected UuidReader reader(String moduleId) {
         //note: this can't be cached, needs new instance every time
-        return new DefaultUuidReader(getStartedRuntime(getDatabase()).getModule(moduleId, UuidModule.class).getConfiguration(), getDatabase());
+        return new DefaultUuidReader(getStartedRuntime(database).getModule(moduleId, UuidModule.class).getConfiguration(), database);
     }
 
     protected Node findNodeByUuid(String moduleId, String uuid) {
-        return getDatabase().getNodeById(reader(moduleId).getNodeIdByUuid(uuid));
+        return database.getNodeById(reader(moduleId).getNodeIdByUuid(uuid));
     }
 
     protected Relationship findRelationshipByUuid(String moduleId, String uuid) {
-        return getDatabase().getRelationshipById(reader(moduleId).getRelationshipIdByUuid(uuid));
+        return database.getRelationshipById(reader(moduleId).getRelationshipIdByUuid(uuid));
     }
-
 }
