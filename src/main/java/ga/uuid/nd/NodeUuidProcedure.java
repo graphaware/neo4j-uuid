@@ -16,13 +16,10 @@
 
 package ga.uuid.nd;
 
-import com.graphaware.module.uuid.UuidModule;
 import ga.uuid.UuidProcedure;
 import ga.uuid.result.NodeListResult;
 import ga.uuid.result.NodeResult;
-import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
-import org.neo4j.procedure.Context;
 import org.neo4j.procedure.Name;
 import org.neo4j.procedure.PerformsWrites;
 import org.neo4j.procedure.Procedure;
@@ -32,14 +29,6 @@ import java.util.List;
 import java.util.stream.Stream;
 
 public class NodeUuidProcedure extends UuidProcedure {
-
-    @Context
-    public GraphDatabaseService database;
-
-    @Override
-    protected GraphDatabaseService getDatabase() {
-        return database;
-    }
 
     @Procedure
     @PerformsWrites
