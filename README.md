@@ -53,7 +53,7 @@ Setup and Configuration
 
 ### Server Mode
 
-Edit neo4j.properties to register the UUID module:
+Edit `conf/neo4j.conf` to register the UUID module:
 
 ```
 com.graphaware.runtime.enabled=true
