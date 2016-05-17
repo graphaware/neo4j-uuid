@@ -29,12 +29,10 @@ import javax.annotation.PostConstruct;
 @Component
 public class UuidProcedures {
 
-    private final GraphDatabaseService database;
     private final Procedures procedures;
 
     @Autowired
-    public UuidProcedures(GraphDatabaseService database, Procedures procedures) {
-        this.database = database;
+    public UuidProcedures(Procedures procedures) {
         this.procedures = procedures;
     }
 
