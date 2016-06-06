@@ -18,19 +18,19 @@ package com.graphaware.module.uuid;
 
 import java.util.Map;
 
+import com.graphaware.common.log.LoggerFactory;
 import com.graphaware.runtime.module.BaseRuntimeModuleBootstrapper;
 import com.graphaware.runtime.module.RuntimeModule;
 import com.graphaware.runtime.module.RuntimeModuleBootstrapper;
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.neo4j.logging.Log;
 
 /**
  * Bootstraps the {@link UuidModule} in server mode.
  */
 public class UuidBootstrapper extends BaseRuntimeModuleBootstrapper<UuidConfiguration> implements RuntimeModuleBootstrapper {
 
-    private static final Logger LOG = LoggerFactory.getLogger(UuidBootstrapper.class);
+    private static final Log LOG = LoggerFactory.getLogger(UuidBootstrapper.class);
 
     private static final String UUID_PROPERTY = "uuidProperty";
     private static final String UUID_INDEX = "uuidIndex";
@@ -51,17 +51,17 @@ public class UuidBootstrapper extends BaseRuntimeModuleBootstrapper<UuidConfigur
     protected RuntimeModule doBootstrapModule(String moduleId, Map<String, String> config, GraphDatabaseService database, UuidConfiguration configuration) {
         if (config.get(UUID_PROPERTY) != null && config.get(UUID_PROPERTY).length() > 0) {
             configuration = configuration.withUuidProperty(config.get(UUID_PROPERTY));
-            LOG.info("uuidProperty set to {}", configuration.getUuidProperty());
+            LOG.info("uuidProperty set to %s", configuration.getUuidProperty());
         }
 
         if (config.get(UUID_INDEX) != null && config.get(UUID_INDEX).length() > 0) {
             configuration = configuration.withUuidIndex(config.get(UUID_INDEX));
-            LOG.info("uuidIndex set to {}", configuration.getUuidIndex());
+            LOG.info("uuidIndex set to %s", configuration.getUuidIndex());
         }
 
         if (config.get(UUID_RELATIONSHIP_INDEX) != null && config.get(UUID_RELATIONSHIP_INDEX).length() > 0) {
             configuration = configuration.withUuidRelationshipIndex(config.get(UUID_RELATIONSHIP_INDEX));
-            LOG.info("uuidRelationshipIndex set to {}", configuration.getUuidRelationshipIndex());
+            LOG.info("uuidRelationshipIndex set to %s", configuration.getUuidRelationshipIndex());
         }
 
         return new UuidModule(moduleId, configuration, database);
