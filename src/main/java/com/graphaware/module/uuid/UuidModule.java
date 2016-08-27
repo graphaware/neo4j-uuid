@@ -17,6 +17,7 @@ package com.graphaware.module.uuid;
 
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.PropertyContainer;
 import org.neo4j.graphdb.Relationship;
 
 import com.graphaware.common.util.Change;
@@ -140,29 +141,38 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
         return null;
     }
 
-    private void assignUuid(Node node) {
-        if (!node.hasProperty(uuidConfiguration.getUuidProperty())) {
+    protected void assignUuid(PropertyContainer propertyContainer) {
+    	
+    	String uuidProperty = uuidConfiguration.getUuidProperty();
+    	
+        if (!propertyContainer.hasProperty(uuidProperty)) {        	
             String uuid = uuidGenerator.generateUuid();
-            node.setProperty(uuidConfiguration.getUuidProperty(), uuid);
+            propertyContainer.setProperty(uuidProperty, uuid);            
         } else {
-            Node existingNode = uuidIndexer.getNodeByUuid(node.getProperty(uuidConfiguration.getUuidProperty()).toString());
-            if (existingNode != null && existingNode.getId() != node.getId()) {
-                throw new DeliberateTransactionRollbackException("Another node with UUID " + node.getProperty(uuidConfiguration.getUuidProperty()) + " already exists (" + existingNode + ")!");
+        	Long existingId = null;
+        	long propertyContainerId;
+        	String uuidPropertyValue = propertyContainer.getProperty(uuidProperty).toString();
+        	
+        	if (propertyContainer instanceof Node) {        		
+        		propertyContainerId = ((Node) propertyContainer).getId();        		
+	        	Node existingNode = uuidIndexer.getNodeByUuid(uuidPropertyValue);	        	
+	        	if (existingNode != null) {
+	        		existingId = existingNode.getId();
+	        	}
+        	} else {        		
+        		propertyContainerId = ((Relationship) propertyContainer).getId();        		
+        		Relationship existingRelationship = uuidIndexer.getRelationshipByUuid(uuidPropertyValue);
+        		if (existingRelationship != null) {
+	        		existingId = existingRelationship.getId();
+	        	}                
+        	}
+        	
+        	if (existingId != null && existingId != propertyContainerId) {
+                throw new DeliberateTransactionRollbackException("Another node with UUID " + uuidPropertyValue + " already exists (#" + existingId + ")!");
             }
         }
-        uuidIndexer.indexNode(node);
+        
+        uuidIndexer.index(propertyContainer);
     }
 
-    private void assignUuid(Relationship relationship) {
-        if (!relationship.hasProperty(uuidConfiguration.getUuidProperty())) {
-            String uuid = uuidGenerator.generateUuid();
-            relationship.setProperty(uuidConfiguration.getUuidProperty(), uuid);
-        } else {
-            Relationship existingRelationship = uuidIndexer.getRelationshipByUuid(relationship.getProperty(uuidConfiguration.getUuidProperty()).toString());
-            if (existingRelationship != null && existingRelationship.getId() != relationship.getId()) {
-                throw new DeliberateTransactionRollbackException("Another relationship with UUID " + relationship.getProperty(uuidConfiguration.getUuidProperty()) + " already exists (" + existingRelationship + ")!");
-            }
-        }
-        uuidIndexer.indexRelationship(relationship);
-    }
 }
