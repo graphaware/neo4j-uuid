@@ -84,12 +84,9 @@ public class UuidModuleMultipleModulesTest extends GraphAwareIntegrationTest {
         //Retrieve
         assertEquals("{\"results\":[{\"columns\":[\"id(n)\"],\"data\":[{\"row\":[1],\"meta\":[null]}]}],\"errors\":[]}", findNodeByUuid("UID2", uuid));
     }
-
-    private String findNodeByUuid(String uuid) {
-        return httpClient.executeCypher(baseNeoUrl(), "CALL ga.uuid.findNode('" + uuid + "') YIELD node as n return id(n)");
-    }
-
+    
     private String findNodeByUuid(String moduleId, String uuid) {
         return httpClient.executeCypher(baseNeoUrl(), "CALL ga.uuid.nd.findNode('" + moduleId + "','" + uuid + "') YIELD node as n return id(n)");
     }
+
 }

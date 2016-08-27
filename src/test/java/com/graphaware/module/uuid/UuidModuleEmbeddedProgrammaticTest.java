@@ -15,23 +15,34 @@
  */
 package com.graphaware.module.uuid;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.neo4j.helpers.collection.Iterators.asIterable;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Label;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.NotFoundException;
+import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.RelationshipType;
+import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.TransactionFailureException;
+import org.neo4j.test.TestGraphDatabaseFactory;
+
 import com.graphaware.common.policy.BaseNodeInclusionPolicy;
 import com.graphaware.common.policy.BaseRelationshipInclusionPolicy;
 import com.graphaware.common.util.IterableUtils;
 import com.graphaware.module.uuid.read.DefaultUuidReader;
-import com.graphaware.module.uuid.read.UuidReader;
 import com.graphaware.runtime.GraphAwareRuntime;
 import com.graphaware.runtime.GraphAwareRuntimeFactory;
 import com.graphaware.runtime.policy.all.IncludeAllBusinessNodes;
 import com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.neo4j.graphdb.*;
-import org.neo4j.test.TestGraphDatabaseFactory;
-
-import static org.junit.Assert.*;
-import static org.neo4j.helpers.collection.Iterators.asIterable;
 
 
 public class UuidModuleEmbeddedProgrammaticTest {

@@ -1,22 +1,22 @@
 package ga.uuid;
 
-import org.junit.Test;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.Result;
-import org.neo4j.graphdb.Transaction;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.*;
+import org.junit.Test;
+import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.Result;
+import org.neo4j.graphdb.Transaction;
 
 public class RelationshipUuidProcedureTest extends ProcedureIntegrationTest {
 
     @Override
-    protected Class procedureClass() {
+    protected Class<RelationshipUuidProcedure> procedureClass() {
         return RelationshipUuidProcedure.class;
     }
 
@@ -55,7 +55,8 @@ public class RelationshipUuidProcedureTest extends ProcedureIntegrationTest {
             while (result.hasNext()) {
                 ++i;
                 Map<String, Object> row = result.next();
-                List<Relationship> rels = (List<Relationship>) row.get("relationships");
+                @SuppressWarnings("unchecked")
+				List<Relationship> rels = (List<Relationship>) row.get("relationships");
                 assertEquals(2, rels.size());
                 assertEquals(relId1, rels.get(0).getId(), 0L);
                 assertEquals(relId2, rels.get(1).getId(), 0L);

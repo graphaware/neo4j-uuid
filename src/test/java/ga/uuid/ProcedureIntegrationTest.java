@@ -19,7 +19,7 @@ abstract class ProcedureIntegrationTest extends EmbeddedDatabaseIntegrationTest 
         return "neo4j-uuid-all.conf";
     }
 
-    protected abstract Class procedureClass();
+    protected abstract Class<? extends UuidProcedure> procedureClass();
 
     protected void emptyDb() {
         try (Transaction tx = getDatabase().beginTx()) {

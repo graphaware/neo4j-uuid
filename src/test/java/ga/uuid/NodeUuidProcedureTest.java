@@ -15,7 +15,7 @@ import static org.junit.Assert.*;
 public class NodeUuidProcedureTest extends ProcedureIntegrationTest {
 
     @Override
-    protected Class procedureClass() {
+    protected Class<NodeUuidProcedure> procedureClass() {
         return NodeUuidProcedure.class;
     }
 
@@ -51,7 +51,8 @@ public class NodeUuidProcedureTest extends ProcedureIntegrationTest {
             Result result = getDatabase().execute("CALL ga.uuid.findNodes({uuids}) YIELD nodes RETURN nodes", params);
             while (result.hasNext()) {
                 Map<String, Object> row = result.next();
-                List<Node> nodes = (List<Node>) row.get("nodes");
+                @SuppressWarnings("unchecked")
+				List<Node> nodes = (List<Node>) row.get("nodes");
                 assertEquals(2, nodes.size());
                 assertEquals(aleId, nodes.get(0).getId(), 0L);
                 assertEquals(luanneId, nodes.get(1).getId(), 0L);
