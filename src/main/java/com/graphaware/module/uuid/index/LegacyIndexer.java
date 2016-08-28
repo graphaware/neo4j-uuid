@@ -19,7 +19,6 @@ package com.graphaware.module.uuid.index;
 import com.graphaware.module.uuid.UuidConfiguration;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.PropertyContainer;
 import org.neo4j.graphdb.Relationship;
 
 /**
@@ -35,18 +34,6 @@ public class LegacyIndexer implements UuidIndexer {
         this.configuration = configuration;
     }
 
-    /**
-     * @inheritDoc
-     */
-    @Override
-	public void index(PropertyContainer propertyContainer) {		
-    	if (propertyContainer instanceof Node) {
-    		indexNode( (Node) propertyContainer);
-    	} else {
-    		indexRelationship( (Relationship) propertyContainer);
-    	}    	
-	}
-    
     /**
      * @inheritDoc
      */

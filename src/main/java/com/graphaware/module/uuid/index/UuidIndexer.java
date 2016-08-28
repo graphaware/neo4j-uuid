@@ -25,13 +25,19 @@ import org.neo4j.graphdb.Relationship;
  */
 public interface UuidIndexer {
 
-	/**
-     * Index a node based on the UUID property
+    /**
+     * Index a property container based on the UUID property.
      *
-     * @param node the node to index
+     * @param propertyContainer the property container to index.
      */
-    void index(PropertyContainer propertyContainer);
-    
+    default void index(PropertyContainer propertyContainer) {
+        if (propertyContainer instanceof Node) {
+            indexNode((Node) propertyContainer);
+        } else {
+            indexRelationship((Relationship) propertyContainer);
+        }
+    }
+
     /**
      * Index a node based on the UUID property
      *
@@ -53,7 +59,6 @@ public interface UuidIndexer {
      * @return the Node with the given UUID or null
      */
     Node getNodeByUuid(String uuid);
-
 
     /**
      * Index a relationship based on the UUID property

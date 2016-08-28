@@ -32,6 +32,8 @@ import com.graphaware.tx.executor.batch.IterableInputBatchTransactionExecutor;
 import com.graphaware.tx.executor.input.AllNodes;
 import com.graphaware.tx.executor.input.AllRelationships;
 
+import static com.graphaware.common.util.PropertyContainerUtils.*;
+
 /**
  * {@link com.graphaware.runtime.module.TxDrivenModule} that assigns UUID's to nodes in the graph.
  */
@@ -142,37 +144,33 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
     }
 
     protected void assignUuid(PropertyContainer propertyContainer) {
-    	
-    	String uuidProperty = uuidConfiguration.getUuidProperty();
-    	
-        if (!propertyContainer.hasProperty(uuidProperty)) {        	
-            String uuid = uuidGenerator.generateUuid();
-            propertyContainer.setProperty(uuidProperty, uuid);            
+        String uuidProperty = uuidConfiguration.getUuidProperty();
+
+        if (!propertyContainer.hasProperty(uuidProperty)) {
+            assignNewUuid(propertyContainer, uuidProperty);
         } else {
-        	Long existingId = null;
-        	long propertyContainerId;
-        	String uuidPropertyValue = propertyContainer.getProperty(uuidProperty).toString();
-        	
-        	if (propertyContainer instanceof Node) {        		
-        		propertyContainerId = ((Node) propertyContainer).getId();        		
-	        	Node existingNode = uuidIndexer.getNodeByUuid(uuidPropertyValue);	        	
-	        	if (existingNode != null) {
-	        		existingId = existingNode.getId();
-	        	}
-        	} else {        		
-        		propertyContainerId = ((Relationship) propertyContainer).getId();        		
-        		Relationship existingRelationship = uuidIndexer.getRelationshipByUuid(uuidPropertyValue);
-        		if (existingRelationship != null) {
-	        		existingId = existingRelationship.getId();
-	        	}                
-        	}
-        	
-        	if (existingId != null && existingId != propertyContainerId) {
-                throw new DeliberateTransactionRollbackException("Another node with UUID " + uuidPropertyValue + " already exists (#" + existingId + ")!");
-            }
+            handleExistingUuid(propertyContainer, uuidProperty);
         }
-        
+
         uuidIndexer.index(propertyContainer);
+    }
+
+    private void assignNewUuid(PropertyContainer propertyContainer, String uuidProperty) {
+        propertyContainer.setProperty(uuidProperty, uuidGenerator.generateUuid());
+    }
+
+    private void handleExistingUuid(PropertyContainer propertyContainer, String uuidProperty) {
+        PropertyContainer existingPc;
+
+        if (propertyContainer instanceof Node) {
+            existingPc = uuidIndexer.getNodeByUuid(propertyContainer.getProperty(uuidProperty).toString());
+        } else {
+            existingPc = uuidIndexer.getRelationshipByUuid(propertyContainer.getProperty(uuidProperty).toString());
+        }
+
+        if (existingPc != null && (id(existingPc) != id(propertyContainer))) {
+            throw new DeliberateTransactionRollbackException("Another " + existingPc.getClass().getName() + " with UUID " + propertyContainer.getProperty(uuidProperty).toString() + " already exists (#" + id(existingPc) + ")!");
+        }
     }
 
 }
