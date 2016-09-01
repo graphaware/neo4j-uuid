@@ -64,6 +64,9 @@ com.graphaware.module.UIDM.1=com.graphaware.module.uuid.UuidBootstrapper
 #optional, default is uuid:
 com.graphaware.module.UIDM.uuidProperty=uuid
 
+#optional, default is false:
+com.graphaware.module.UIDM.stripHyphens=false
+
 #optional, default is all nodes:
 com.graphaware.module.UIDM.node=hasLabel('Label1') || hasLabel('Label2')
 
@@ -80,6 +83,8 @@ com.graphaware.module.UIDM.uuidRelationshipIndex=uuidRelIndex
 Note that "UIDM" becomes the module ID. 
 
 `com.graphaware.module.UIDM.uuidProperty` is the property name that will be used to store the assigned UUID on nodes and relationships. The default is "uuid".
+
+`com.graphaware.module.UIDM.stripHyphens` is the property name that controls hyphen existence. If its true created UUID will be free from hyphens. 
 
 `com.graphaware.module.UIDM.node` specifies either a fully qualified class name of [`NodeInclusionPolicy`](http://graphaware.com/site/framework/latest/apidocs/com/graphaware/common/policy/NodeInclusionPolicy.html) implementation,
 or a Spring Expression Language expression determining, which nodes to assign a UUID to. The default is to assign the
