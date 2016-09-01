@@ -82,6 +82,34 @@ public class UuidModuleDeclarativeIntegrationTest {
     }
 
     @Test
+    public void testUuidAssignedWithoutHyphens() throws InterruptedException {
+        database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
+                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid-strip-hyphens.conf").getPath())
+                .newGraphDatabase();
+
+        getRuntime(database).waitUntilStarted();
+        UuidApi api = new UuidApi(database);
+        //When
+        try (Transaction tx = database.beginTx()) {
+            Node node = database.createNode();
+            node.addLabel(personLabel);
+            node.setProperty("name", "aNode");
+            tx.success();
+        }
+
+        //Then
+        //Retrieve the node and check that it has a uuid property
+        try (Transaction tx = database.beginTx()) {
+            for (Node node : asIterable(database.findNodes(personLabel))) {
+                assertTrue(node.hasProperty(UUID));
+                assertFalse(node.getProperty(UUID).toString().contains("-"));
+                assertEquals(Long.valueOf(node.getId()), api.getNodeIdByUuid((String) node.getProperty(UUID)));
+            }
+            tx.success();
+        }
+    }
+
+    @Test
     public void testUuidNotAssigned() throws InterruptedException {
         database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
                 .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid.conf").getPath())
