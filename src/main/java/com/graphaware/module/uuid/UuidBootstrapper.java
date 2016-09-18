@@ -35,7 +35,7 @@ public class UuidBootstrapper extends BaseRuntimeModuleBootstrapper<UuidConfigur
     private static final String UUID_PROPERTY = "uuidProperty";
     private static final String UUID_INDEX = "uuidIndex";
     private static final String UUID_RELATIONSHIP_INDEX = "uuidRelationshipIndex";
-    private static final String STRIP_HYPHENS_PROPERTY = "stripHyphens";
+    private static final String STRIP_HYPHENS = "stripHyphens";
 
     /**
      * {@inheritDoc}
@@ -65,10 +65,10 @@ public class UuidBootstrapper extends BaseRuntimeModuleBootstrapper<UuidConfigur
             LOG.info("uuidRelationshipIndex set to %s", configuration.getUuidRelationshipIndex());
         }
 
-        if (config.get(STRIP_HYPHENS_PROPERTY) != null && config.get(STRIP_HYPHENS_PROPERTY).length() > 0) {
-            Boolean stripHyphens = new Boolean(config.get(STRIP_HYPHENS_PROPERTY));
+        if (config.get(STRIP_HYPHENS) != null && config.get(STRIP_HYPHENS).length() > 0) {
+            boolean stripHyphens = Boolean.valueOf(config.get(STRIP_HYPHENS));
             configuration = configuration.withStripHyphensProperty(stripHyphens);
-            LOG.info("stripHyphens set to %s", configuration.getStripHyphensProperty());
+            LOG.info("stripHyphens set to %s", configuration.shouldStripHyphens());
         }
 
         return new UuidModule(moduleId, configuration, database);

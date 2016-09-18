@@ -156,12 +156,10 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
     }
 
     private void assignNewUuid(PropertyContainer propertyContainer, String uuidProperty) {
-        String uuid;
+        String uuid = uuidGenerator.generateUuid();
 
-        if (uuidConfiguration.getStripHyphensProperty()) {
-            uuid = uuidGenerator.generateUuid().replaceAll("-", "");
-        } else {
-            uuid = uuidGenerator.generateUuid();
+        if (uuidConfiguration.shouldStripHyphens()) {
+            uuid = uuid.replaceAll("-", "");
         }
 
         propertyContainer.setProperty(uuidProperty, uuid);

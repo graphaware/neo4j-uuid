@@ -21,7 +21,6 @@ package com.graphaware.module.uuid;
 public final class Properties {
 
     public static final String UUID = "uuid";
-    public static final Boolean STRIP_HYPHENS = false;
 
     private Properties() {
     }
