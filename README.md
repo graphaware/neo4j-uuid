@@ -169,7 +169,7 @@ Please refer to Javadoc for more detail.
 ### Specifying the Generator Through Configuration
 
 By default, the `com.graphaware.common.uuid.EaioUuidGenerator` is used to generate the underlying UUID. Any generator implementation can be used, be it 
-out of the box or your own custom code, by modifying the `conf/neo4j.conf`. The following example configures the UUID module to make use of the JavaUtilUUIDGenerator:
+out of the box or your own custom code, by modifying the `conf/neo4j.conf`. The following example configures the UUID module to make use of the `JavaUtilUUIDGenerator`:
 
 ```
 com.graphaware.runtime.enabled=true
@@ -179,7 +179,7 @@ com.graphaware.module.UUID.relationship=com.graphaware.runtime.policy.all.Includ
 com.graphaware.module.UUID.uuidGeneratorClass=com.graphaware.module.uuid.generator.JavaUtilUUIDGenerator
 ```
 
-The following example configures the UUID module to make use of the SequenceIdGenerator:
+The following example configures the UUID module to make use of the `SequenceIdGenerator`:
 
 ```
 com.graphaware.runtime.enabled=true
