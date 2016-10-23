@@ -166,6 +166,34 @@ To use the Java API to find a node by its UUID, please instantiate `UuidReader` 
 
 Please refer to Javadoc for more detail.
 
+### Specifying the Generator Through Configuration
+
+By default, the `com.graphaware.common.uuid.EaioUuidGenerator` is used to generate the underlying UUID. Any generator implementation can be used, be it 
+out of the box or your own custom code, by modifying the `conf/neo4j.conf`. The following example configures the UUID module to make use of the JavaUtilUUIDGenerator:
+
+```
+com.graphaware.runtime.enabled=true
+
+com.graphaware.module.UUID.1=com.graphaware.module.uuid.UuidBootstrapper
+com.graphaware.module.UUID.relationship=com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships
+com.graphaware.module.UUID.uuidGeneratorClass=com.graphaware.module.uuid.generator.JavaUtilUUIDGenerator
+```
+
+The following example configures the UUID module to make use of the SequenceIdGenerator:
+
+```
+com.graphaware.runtime.enabled=true
+
+com.graphaware.module.UUID.1=com.graphaware.module.uuid.UuidBootstrapper
+com.graphaware.module.UUID.relationship=com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships
+com.graphaware.module.UUID.uuidProperty=sequence
+com.graphaware.module.UUID.uuidGeneratorClass=com.graphaware.module.uuid.generator.SequenceIdGenerator
+```
+
+Please see the `com.graphaware.common.uuid.UuidGenerator` interface and the `com.graphaware.module.uuid.generator` package for more information 
+and examples of how to implement your own generator. 
+
+
 License
 -------
 
