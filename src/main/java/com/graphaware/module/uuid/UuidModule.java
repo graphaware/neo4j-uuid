@@ -15,14 +15,17 @@
  */
 package com.graphaware.module.uuid;
 
+import static com.graphaware.common.util.PropertyContainerUtils.id;
+
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.PropertyContainer;
 import org.neo4j.graphdb.Relationship;
+import org.springframework.util.ClassUtils;
 
 import com.graphaware.common.util.Change;
-import com.graphaware.common.uuid.EaioUuidGenerator;
 import com.graphaware.common.uuid.UuidGenerator;
+import com.graphaware.module.GraphDatabaseServiceAware;
 import com.graphaware.module.uuid.index.LegacyIndexer;
 import com.graphaware.module.uuid.index.UuidIndexer;
 import com.graphaware.runtime.module.BaseTxDrivenModule;
@@ -31,8 +34,6 @@ import com.graphaware.tx.event.improved.api.ImprovedTransactionData;
 import com.graphaware.tx.executor.batch.IterableInputBatchTransactionExecutor;
 import com.graphaware.tx.executor.input.AllNodes;
 import com.graphaware.tx.executor.input.AllRelationships;
-
-import static com.graphaware.common.util.PropertyContainerUtils.*;
 
 /**
  * {@link com.graphaware.runtime.module.TxDrivenModule} that assigns UUID's to nodes in the graph.
@@ -52,12 +53,36 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
      * @param moduleId ID of the module.
      */
     public UuidModule(String moduleId, UuidConfiguration configuration, GraphDatabaseService database) {
-        super(moduleId);
-        this.uuidGenerator = new EaioUuidGenerator();
+        super(moduleId);        
         this.uuidConfiguration = configuration;
+        this.uuidGenerator = instantiateUuidGenerator(configuration, database);
         this.uuidIndexer = new LegacyIndexer(database, configuration);
     }
 
+    protected UuidGenerator instantiateUuidGenerator(UuidConfiguration uuidConfiguration, GraphDatabaseService database) {
+    
+    	String uuidGeneratorClassString = uuidConfiguration.getUuidGenerator();
+    	
+    	try {
+    		
+    		// Instantiate the configured/supplied class
+    		@SuppressWarnings("unchecked")
+			Class<UuidGenerator> uuidGeneratorClass = (Class<UuidGenerator>) ClassUtils.forName(uuidGeneratorClassString,  getClass().getClassLoader());
+    		UuidGenerator uuidGenerator = uuidGeneratorClass.newInstance();
+    		
+    		// Provide the GraphDatabaseService to those that wish to make use of it
+    		if (uuidGenerator instanceof GraphDatabaseServiceAware) {
+    			((GraphDatabaseServiceAware) uuidGenerator).setGraphDatabaseService(database);
+    		}
+    		
+    		return uuidGenerator;
+    		
+    	} catch (Exception e) {
+    		throw new RuntimeException("Unable to instantiate UuidGenerator of type '" + uuidGeneratorClassString + "'", e);
+    	}
+    	
+    }
+    
     /**
      * {@inheritDoc}
      */

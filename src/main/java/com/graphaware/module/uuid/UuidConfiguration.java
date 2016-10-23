@@ -26,18 +26,22 @@ import com.graphaware.runtime.policy.InclusionPoliciesFactory;
  */
 public class UuidConfiguration extends BaseTxDrivenModuleConfiguration<UuidConfiguration> {
 
+	private static final String DEFAULT_UUID_GENERATOR = "com.graphaware.common.uuid.EaioUuidGenerator";
+	
     private static final String DEFAULT_UUID_PROPERTY = Properties.UUID;
     private static final String DEFAULT_UUID_NODEX_INDEX = Indexes.UUID_NODE_INDEX;
     private static final String DEFAULT_UUID_REL_INDEX = Indexes.UUID_REL_INDEX;
     private static final boolean DEFAULT_STRIP_HYPHENS = false;
 
+    private final String uuidGenerator;
     private final String uuidProperty;
     private final String uuidIndex;
     private final String uuidRelationshipIndex;
     private final Boolean stripHyphens;
 
-    private UuidConfiguration(InclusionPolicies inclusionPolicies, long initializeUntil, String uuidProperty, boolean stripHyphens, String uuidIndex, String uuidRelationshipIndex) {
+    private UuidConfiguration(InclusionPolicies inclusionPolicies, long initializeUntil, String uuidGenerator, String uuidProperty, boolean stripHyphens, String uuidIndex, String uuidRelationshipIndex) {
         super(inclusionPolicies, initializeUntil);
+        this.uuidGenerator = uuidGenerator;
         this.uuidProperty = uuidProperty;
         this.uuidIndex = uuidIndex;
         this.uuidRelationshipIndex = uuidRelationshipIndex;
@@ -57,7 +61,7 @@ public class UuidConfiguration extends BaseTxDrivenModuleConfiguration<UuidConfi
         return new UuidConfiguration(InclusionPoliciesFactory
                 .allBusiness()
                 .with(IncludeNoRelationships.getInstance())
-                , ALWAYS, DEFAULT_UUID_PROPERTY, DEFAULT_STRIP_HYPHENS, DEFAULT_UUID_NODEX_INDEX, DEFAULT_UUID_REL_INDEX);
+                , ALWAYS, DEFAULT_UUID_GENERATOR, DEFAULT_UUID_PROPERTY, DEFAULT_STRIP_HYPHENS, DEFAULT_UUID_NODEX_INDEX, DEFAULT_UUID_REL_INDEX);
     }
 
     /**
@@ -65,10 +69,14 @@ public class UuidConfiguration extends BaseTxDrivenModuleConfiguration<UuidConfi
      */
     @Override
     protected UuidConfiguration newInstance(InclusionPolicies inclusionPolicies, long initializeUntil) {
-        return new UuidConfiguration(inclusionPolicies, initializeUntil, getUuidProperty(), shouldStripHyphens(), getUuidIndex(), getUuidRelationshipIndex());
+        return new UuidConfiguration(inclusionPolicies, initializeUntil, getUuidGenerator(), getUuidProperty(), shouldStripHyphens(), getUuidIndex(), getUuidRelationshipIndex());
     }
 
-    public String getUuidProperty() {
+    public String getUuidGenerator() {
+		return uuidGenerator;
+	}
+
+	public String getUuidProperty() {
         return uuidProperty;
     }
 
@@ -85,13 +93,23 @@ public class UuidConfiguration extends BaseTxDrivenModuleConfiguration<UuidConfi
     }
 
     /**
+     * Create a new instance of this {@link UuidConfiguration} with different uuid generator.
+     *
+     * @param uuidProperty of the new instance.
+     * @return new instance.
+     */
+    public UuidConfiguration withUuidGenerator(String uuidGenerator) {
+    	return new UuidConfiguration(getInclusionPolicies(), initializeUntil(), uuidGenerator, getUuidProperty(), shouldStripHyphens(), getUuidIndex(), getUuidRelationshipIndex());
+    }
+    
+    /**
      * Create a new instance of this {@link UuidConfiguration} with different uuid property.
      *
      * @param uuidProperty of the new instance.
      * @return new instance.
      */
     public UuidConfiguration withUuidProperty(String uuidProperty) {
-        return new UuidConfiguration(getInclusionPolicies(), initializeUntil(), uuidProperty, shouldStripHyphens(), getUuidIndex(), getUuidRelationshipIndex());
+        return new UuidConfiguration(getInclusionPolicies(), initializeUntil(), getUuidGenerator(), uuidProperty, shouldStripHyphens(), getUuidIndex(), getUuidRelationshipIndex());
     }
 
     /**
@@ -101,7 +119,7 @@ public class UuidConfiguration extends BaseTxDrivenModuleConfiguration<UuidConfi
      * @return new instance.
      */
     public UuidConfiguration withUuidIndex(String uuidIndex) {
-        return new UuidConfiguration(getInclusionPolicies(), initializeUntil(), getUuidProperty(), shouldStripHyphens(), uuidIndex, getUuidRelationshipIndex());
+        return new UuidConfiguration(getInclusionPolicies(), initializeUntil(), getUuidGenerator(), getUuidProperty(), shouldStripHyphens(), uuidIndex, getUuidRelationshipIndex());
     }
 
     /**
@@ -111,7 +129,7 @@ public class UuidConfiguration extends BaseTxDrivenModuleConfiguration<UuidConfi
      * @return new instance.
      */
     public UuidConfiguration withUuidRelationshipIndex(String uuidRelationshipIndex) {
-        return new UuidConfiguration(getInclusionPolicies(), initializeUntil(), getUuidProperty(), shouldStripHyphens(), getUuidIndex(), uuidRelationshipIndex);
+        return new UuidConfiguration(getInclusionPolicies(), initializeUntil(), getUuidGenerator(), getUuidProperty(), shouldStripHyphens(), getUuidIndex(), uuidRelationshipIndex);
     }
 
     /**
@@ -121,7 +139,7 @@ public class UuidConfiguration extends BaseTxDrivenModuleConfiguration<UuidConfi
      * @return new instance.
      */
     public UuidConfiguration withStripHyphensProperty(boolean stripHyphens) {
-        return new UuidConfiguration(getInclusionPolicies(), initializeUntil(), getUuidProperty(), stripHyphens, getUuidIndex(), getUuidRelationshipIndex());
+        return new UuidConfiguration(getInclusionPolicies(), initializeUntil(), getUuidGenerator(), getUuidProperty(), stripHyphens, getUuidIndex(), getUuidRelationshipIndex());
     }
 
     /**
@@ -165,6 +183,7 @@ public class UuidConfiguration extends BaseTxDrivenModuleConfiguration<UuidConfi
     @Override
     public int hashCode() {
         int result = super.hashCode();
+        result = 31 * result + uuidGenerator.hashCode();
         result = 31 * result + uuidProperty.hashCode();
         result = 31 * result + uuidIndex.hashCode();
         result = 31 * result + uuidRelationshipIndex.hashCode();
