@@ -25,7 +25,6 @@ import org.springframework.util.ClassUtils;
 
 import com.graphaware.common.util.Change;
 import com.graphaware.common.uuid.UuidGenerator;
-import com.graphaware.module.GraphDatabaseServiceAware;
 import com.graphaware.module.uuid.index.LegacyIndexer;
 import com.graphaware.module.uuid.index.UuidIndexer;
 import com.graphaware.runtime.module.BaseTxDrivenModule;

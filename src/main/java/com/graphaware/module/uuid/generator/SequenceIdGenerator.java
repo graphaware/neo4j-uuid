@@ -4,7 +4,7 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Result;
 
 import com.graphaware.common.uuid.UuidGenerator;
-import com.graphaware.module.GraphDatabaseServiceAware;
+import com.graphaware.module.uuid.GraphDatabaseServiceAware;
 
 /**
  * A complex implementation of UuidGenerator that makes use of the provided GraphDatabaseService to 
