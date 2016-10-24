@@ -39,6 +39,7 @@ import com.graphaware.common.uuid.EaioUuidGenerator;
 import com.graphaware.common.uuid.UuidGenerator;
 import com.graphaware.module.uuid.api.UuidApi;
 import com.graphaware.module.uuid.generator.JavaUtilUUIDGenerator;
+import com.graphaware.module.uuid.generator.SequenceIdGenerator;
 import com.graphaware.runtime.policy.all.IncludeAllBusinessNodes;
 import com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships;
 
@@ -50,7 +51,8 @@ public class UuidModuleDeclarativeIntegrationTest {
     private final RelationshipType knowsType = RelationshipType.withName("KNOWS");
     private final RelationshipType ignoredType = RelationshipType.withName("IGNORES");
     private final String UUID = "uuid";
-
+    private final String SEQUENCE = "sequence";
+    
     private GraphDatabaseService database;
 
     @After
@@ -157,6 +159,40 @@ public class UuidModuleDeclarativeIntegrationTest {
                 assertTrue(node.hasProperty(UUID));
                 assertFalse(node.getProperty(UUID).toString().contains("-"));
                 assertEquals(Long.valueOf(node.getId()), api.getNodeIdByUuid((String) node.getProperty(UUID)));
+            }
+            tx.success();
+        }
+    }
+    
+    @Test
+    public void testUuidGeneratorSequenceIdGenerator() throws InterruptedException {
+        database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
+                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid-generator-sequenceid.conf").getPath())
+                .newGraphDatabase();
+
+        // Verify the generator instantiated is as expected
+        UuidModule uuidModule = getRuntime(database).getModule(UuidModule.class);
+        UuidGenerator uuidGenerator = uuidModule.getUuidGenerator();
+        Assert.assertEquals(SequenceIdGenerator.class, uuidGenerator.getClass());
+        
+        getRuntime(database).waitUntilStarted();
+        
+        UuidApi api = new UuidApi(database);
+        //When
+        try (Transaction tx = database.beginTx()) {
+            Node node = database.createNode();
+            node.addLabel(personLabel);
+            node.setProperty("name", "aNode");
+            tx.success();
+        }
+
+        //Then
+        //Retrieve the node and check that it has a sequence property (per the configuraiton)
+        try (Transaction tx = database.beginTx()) {
+            for (Node node : asIterable(database.findNodes(personLabel))) {
+                assertTrue(node.hasProperty(SEQUENCE));
+                assertFalse(node.getProperty(SEQUENCE).toString().contains("-"));
+                assertEquals(Long.valueOf(node.getId()), api.getNodeIdByUuid((String) node.getProperty(SEQUENCE)));
             }
             tx.success();
         }
