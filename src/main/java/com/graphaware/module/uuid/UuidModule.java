@@ -81,8 +81,12 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
     	}
     	
     }
-    
-    /**
+
+    public UuidGenerator getUuidGenerator() {
+		return uuidGenerator;
+	}
+
+	/**
      * {@inheritDoc}
      */
     @Override
