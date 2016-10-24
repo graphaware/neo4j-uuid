@@ -198,6 +198,17 @@ public class UuidModuleDeclarativeIntegrationTest {
         }
     }
     
+    @Test(expected = NotFoundException.class)
+    public void testUuidGeneratorInvalidGenerator()  {
+        database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
+                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid-generator-invalid.conf").getPath())
+                .newGraphDatabase();
+
+        // This should cause the expected exception due to an invalid generator being configured
+        getRuntime(database).getModule(UuidModule.class);
+        
+    }
+    
     @Test
     public void testUuidNotAssigned() throws InterruptedException {
         database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
