@@ -151,6 +151,31 @@ public class UuidModuleEmbeddedProgrammaticTest {
             tx.success();
         }
     }
+    @Test
+    public void newNodesWithLabelShouldBeAssignedUuidSequence() {
+    	
+        //Given
+    	registerModuleWithSequenceGenerator(); //erics
+
+        //When
+        try (Transaction tx = database.beginTx()) {
+            Node node = database.createNode(testLabel);
+            node.setProperty("name", "aNode");
+            tx.success();
+        }
+
+        //Then
+        //Retrieve the node and check that it has a uuid property
+        try (Transaction tx = database.beginTx()) {
+            for (Node node : asIterable(database.findNodes(testLabel))) {
+                assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
+                String sequence = (String) node.getProperty("sequence");
+                assertEquals(node.getId(), uuidReader.getNodeIdByUuid(sequence));
+            }
+            tx.success();
+        }
+    }
+    
 
     @Test
     public void newNodesWithoutLabelShouldBeAssignedUuid() {
@@ -1418,6 +1443,15 @@ public class UuidModuleEmbeddedProgrammaticTest {
         uuidReader = new DefaultUuidReader(uuidConfiguration,database);
     }
 
+    private void registerModuleWithSequenceGenerator() {
+        uuidConfiguration = UuidConfiguration.defaultConfiguration().withUuidGenerator("com.graphaware.module.uuid.generator.SequenceIdGenerator").withUuidProperty("sequence").with(IncludeAllBusinessRelationships.getInstance());
+        GraphAwareRuntime runtime = GraphAwareRuntimeFactory.createRuntime(database);
+        UuidModule module = new UuidModule("UUIDM", uuidConfiguration, database);
+        runtime.registerModule(module);
+        runtime.start();
+        uuidReader = new DefaultUuidReader(uuidConfiguration,database);
+    }
+    
     private void registerModuleWithLabelsAndTypes() {
         uuidConfiguration = UuidConfiguration.defaultConfiguration()
                 .withUuidProperty("uuid")
