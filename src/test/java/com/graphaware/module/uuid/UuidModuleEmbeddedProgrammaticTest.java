@@ -155,7 +155,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
     public void newNodesWithLabelShouldBeAssignedUuidSequence() {
     	
         //Given
-    	registerModuleWithSequenceGenerator(); //erics
+    	registerModuleWithSequenceGenerator();
 
         //When
         try (Transaction tx = database.beginTx()) {
