@@ -24,15 +24,7 @@ import static org.neo4j.helpers.collection.Iterators.asIterable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.neo4j.graphdb.Direction;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Label;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.NotFoundException;
-import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.RelationshipType;
-import org.neo4j.graphdb.Transaction;
-import org.neo4j.graphdb.TransactionFailureException;
+import org.neo4j.graphdb.*;
 import org.neo4j.test.TestGraphDatabaseFactory;
 
 import com.graphaware.common.policy.BaseNodeInclusionPolicy;
@@ -43,6 +35,15 @@ import com.graphaware.runtime.GraphAwareRuntime;
 import com.graphaware.runtime.GraphAwareRuntimeFactory;
 import com.graphaware.runtime.policy.all.IncludeAllBusinessNodes;
 import com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.IntStream;
 
 
 public class UuidModuleEmbeddedProgrammaticTest {
@@ -1433,6 +1434,55 @@ public class UuidModuleEmbeddedProgrammaticTest {
         }
     }
 
+    @Test
+    public void testSequenceGeneratorInMultithreadedEnv() throws Exception {
+        registerModuleWithSequenceGenerator();
+
+        final Runnable runner = () -> {
+            try (final Transaction tx = database.beginTx()) {
+                database.createNode(Label.label("SequenceTest"));
+                tx.success();
+            }
+        };
+
+        final ExecutorService service = Executors.newCachedThreadPool();
+        List<Future> futures = new ArrayList<>();
+        IntStream.range(0, 100).forEach(i -> {
+            futures.add(service.submit(runner));
+        });
+
+        try {
+            for (Future future : futures) {
+                future.get();
+            }
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+        service.shutdown();
+
+        Thread.sleep(1500);
+        AtomicInteger i = new AtomicInteger(0);
+        try (Transaction tx = database.beginTx()) {
+            Result result = database.execute("MATCH (n:SequenceTest) RETURN n.sequence AS uuid");
+            while (result.hasNext()) {
+                Map<String, Object> record = result.next();
+                System.out.println(record.get("uuid"));
+                i.incrementAndGet();
+            }
+            tx.success();
+        }
+
+        assertEquals(100, i.get());
+
+        try (Transaction tx = database.beginTx()) {
+            Result result = database.execute("MATCH (n:SequenceMetadata) RETURN count(n) AS c");
+            System.out.println(result.next().get("c"));
+        }
+
+
+    }
+
 
     private void registerModuleWithNoLabels() {
         uuidConfiguration = UuidConfiguration.defaultConfiguration().withUuidProperty("uuid").with(IncludeAllBusinessRelationships.getInstance());
@@ -1450,6 +1500,15 @@ public class UuidModuleEmbeddedProgrammaticTest {
         runtime.registerModule(module);
         runtime.start();
         uuidReader = new DefaultUuidReader(uuidConfiguration,database);
+        createSequenceGeneratorConstraint();
+
+    }
+
+    private void createSequenceGeneratorConstraint() {
+        try (Transaction tx = database.beginTx()) {
+            database.execute("CREATE CONSTRAINT ON (s:SequenceMetadata) ASSERT s.id IS UNIQUE;");
+            tx.success();
+        }
     }
     
     private void registerModuleWithLabelsAndTypes() {
