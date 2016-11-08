@@ -20,12 +20,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.neo4j.helpers.collection.Iterators.*;
+import static org.neo4j.helpers.collection.Iterators.asIterable;
 
-import com.graphaware.module.uuid.api.UuidApi;
-import com.graphaware.runtime.policy.all.IncludeAllBusinessNodes;
-import com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Test;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
@@ -37,6 +35,15 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.helpers.collection.Iterables;
 import org.neo4j.test.TestGraphDatabaseFactory;
 
+import com.graphaware.common.uuid.EaioUuidGenerator;
+import com.graphaware.common.uuid.UuidGenerator;
+import com.graphaware.module.uuid.api.UuidApi;
+import com.graphaware.module.uuid.generator.JavaUtilUUIDGenerator;
+import com.graphaware.module.uuid.generator.SequenceIdGenerator;
+import com.graphaware.runtime.policy.all.IncludeAllBusinessNodes;
+import com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships;
+
+
 public class UuidModuleDeclarativeIntegrationTest {
 
     private final Label personLabel = Label.label("Person");
@@ -44,7 +51,8 @@ public class UuidModuleDeclarativeIntegrationTest {
     private final RelationshipType knowsType = RelationshipType.withName("KNOWS");
     private final RelationshipType ignoredType = RelationshipType.withName("IGNORES");
     private final String UUID = "uuid";
-
+    private final String SEQUENCE = "sequence";
+    
     private GraphDatabaseService database;
 
     @After
@@ -109,6 +117,98 @@ public class UuidModuleDeclarativeIntegrationTest {
         }
     }
 
+    @Test
+    public void testDefaultGenerator() {
+        database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
+                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid.conf").getPath())
+                .newGraphDatabase();
+
+        // Verify the generator instantiated is as expected (the default)
+        UuidModule uuidModule = getRuntime(database).getModule(UuidModule.class);
+        UuidGenerator uuidGenerator = uuidModule.getUuidGenerator();
+        Assert.assertEquals(EaioUuidGenerator.class, uuidGenerator.getClass());
+
+    }
+    
+    @Test
+    public void testUuidGeneratorJavaUtilUUID() throws InterruptedException {
+        database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
+                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid-generator-java-util.conf").getPath())
+                .newGraphDatabase();
+
+        // Verify the generator instantiated is as expected
+        UuidModule uuidModule = getRuntime(database).getModule(UuidModule.class);
+        UuidGenerator uuidGenerator = uuidModule.getUuidGenerator();
+        Assert.assertEquals(JavaUtilUUIDGenerator.class, uuidGenerator.getClass());
+        
+        getRuntime(database).waitUntilStarted();
+        
+        UuidApi api = new UuidApi(database);
+        //When
+        try (Transaction tx = database.beginTx()) {
+            Node node = database.createNode();
+            node.addLabel(personLabel);
+            node.setProperty("name", "aNode");
+            tx.success();
+        }
+
+        //Then
+        //Retrieve the node and check that it has a uuid property
+        try (Transaction tx = database.beginTx()) {
+            for (Node node : asIterable(database.findNodes(personLabel))) {
+                assertTrue(node.hasProperty(UUID));
+                assertFalse(node.getProperty(UUID).toString().contains("-"));
+                assertEquals(Long.valueOf(node.getId()), api.getNodeIdByUuid((String) node.getProperty(UUID)));
+            }
+            tx.success();
+        }
+    }
+    
+    @Test
+    public void testUuidGeneratorSequenceIdGenerator() throws InterruptedException {
+        database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
+                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid-generator-sequenceid.conf").getPath())
+                .newGraphDatabase();
+
+        // Verify the generator instantiated is as expected
+        UuidModule uuidModule = getRuntime(database).getModule(UuidModule.class);
+        UuidGenerator uuidGenerator = uuidModule.getUuidGenerator();
+        Assert.assertEquals(SequenceIdGenerator.class, uuidGenerator.getClass());
+        
+        getRuntime(database).waitUntilStarted();
+        
+        UuidApi api = new UuidApi(database);
+        //When
+        try (Transaction tx = database.beginTx()) {
+            Node node = database.createNode();
+            node.addLabel(personLabel);
+            node.setProperty("name", "aNode");
+            tx.success();
+        }
+
+        //Then
+        //Retrieve the node and check that it has a sequence property (per the configuraiton)
+        try (Transaction tx = database.beginTx()) {
+            for (Node node : asIterable(database.findNodes(personLabel))) {
+                assertTrue(node.hasProperty(SEQUENCE));
+                assertFalse(node.getProperty(SEQUENCE).toString().contains("-"));
+                assertEquals(Long.valueOf(node.getId()), api.getNodeIdByUuid((String) node.getProperty(SEQUENCE)));
+            }
+            tx.success();
+        }
+    }
+    
+    @Test(expected = NotFoundException.class)
+    public void testUuidGeneratorInvalidGenerator()  {
+        database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
+                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid-generator-invalid.conf").getPath())
+                .newGraphDatabase();
+
+        // This should cause the expected exception due to an invalid generator being configured
+        getRuntime(database).getModule(UuidModule.class);
+        
+    }
+    
     @Test
     public void testUuidNotAssigned() throws InterruptedException {
         database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()

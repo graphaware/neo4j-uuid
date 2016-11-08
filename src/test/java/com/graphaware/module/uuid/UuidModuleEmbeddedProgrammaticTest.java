@@ -21,6 +21,14 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.neo4j.helpers.collection.Iterators.asIterable;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.stream.IntStream;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,6 +39,7 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.NotFoundException;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
+import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.TransactionFailureException;
 import org.neo4j.test.TestGraphDatabaseFactory;
@@ -43,6 +52,7 @@ import com.graphaware.runtime.GraphAwareRuntime;
 import com.graphaware.runtime.GraphAwareRuntimeFactory;
 import com.graphaware.runtime.policy.all.IncludeAllBusinessNodes;
 import com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships;
+
 
 
 public class UuidModuleEmbeddedProgrammaticTest {
@@ -151,6 +161,31 @@ public class UuidModuleEmbeddedProgrammaticTest {
             tx.success();
         }
     }
+    @Test
+    public void newNodesWithLabelShouldBeAssignedUuidSequence() {
+    	
+        //Given
+    	registerModuleWithSequenceGenerator();
+
+        //When
+        try (Transaction tx = database.beginTx()) {
+            Node node = database.createNode(testLabel);
+            node.setProperty("name", "aNode");
+            tx.success();
+        }
+
+        //Then
+        //Retrieve the node and check that it has a uuid property
+        try (Transaction tx = database.beginTx()) {
+            for (Node node : asIterable(database.findNodes(testLabel))) {
+                assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
+                String sequence = (String) node.getProperty("sequence");
+                assertEquals(node.getId(), uuidReader.getNodeIdByUuid(sequence));
+            }
+            tx.success();
+        }
+    }
+    
 
     @Test
     public void newNodesWithoutLabelShouldBeAssignedUuid() {
@@ -1418,6 +1453,15 @@ public class UuidModuleEmbeddedProgrammaticTest {
         uuidReader = new DefaultUuidReader(uuidConfiguration,database);
     }
 
+    private void registerModuleWithSequenceGenerator() {
+        uuidConfiguration = UuidConfiguration.defaultConfiguration().withUuidGenerator("com.graphaware.module.uuid.generator.SequenceIdGenerator").withUuidProperty("sequence").with(IncludeAllBusinessRelationships.getInstance());
+        GraphAwareRuntime runtime = GraphAwareRuntimeFactory.createRuntime(database);
+        UuidModule module = new UuidModule("UUIDM", uuidConfiguration, database);
+        runtime.registerModule(module);
+        runtime.start();
+        uuidReader = new DefaultUuidReader(uuidConfiguration,database);
+    }
+    
     private void registerModuleWithLabelsAndTypes() {
         uuidConfiguration = UuidConfiguration.defaultConfiguration()
                 .withUuidProperty("uuid")
@@ -1449,5 +1493,65 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
     }
 
+	@Test
+    public void testSequenceGeneratorInMultithreadedEnv() throws Exception {
+		
+        registerModuleWithSequenceGenerator();
 
+        // TODO: Put this into the server extension initialize
+        // TODO: Prevent this node from being deleted
+        try (Transaction tx = database.beginTx()) {
+        	
+        	Node sequenceMetadataNode = database.createNode(Label.label("SequenceMetadata"));
+        	sequenceMetadataNode.setProperty("sequence", 100);
+        	
+        	tx.success();
+        	
+        }
+                
+        final Runnable runner = () -> {
+            try (final Transaction tx = database.beginTx()) {
+                database.createNode(Label.label("SequenceTest"));
+                tx.success();
+            }
+        };
+
+        final ExecutorService service = Executors.newCachedThreadPool();
+        List<Future> futures = new ArrayList<>();
+        IntStream.range(0, 100).forEach(i -> {
+            futures.add(service.submit(runner));
+        });
+
+        try {
+            for (Future future : futures) {
+                future.get();
+            }
+        } catch (Throwable ignore) {}
+
+        service.shutdown();
+
+        Thread.sleep(1000);
+
+        List<String> uuids = new ArrayList<String>();
+        try (Transaction tx = database.beginTx()) {
+            Result result = database.execute("MATCH (n:SequenceTest) RETURN n.sequence AS uuid");
+            while (result.hasNext()) {
+                String uuid = String.valueOf(result.next().get("uuid"));
+                System.out.println("UUID: " + uuid);                
+                assertFalse(uuids.contains(uuid));
+                uuids.add(uuid);
+                	
+            }
+            tx.success();
+        }
+
+        try (Transaction tx = database.beginTx()) {
+            Result result = database.execute("MATCH (n:SequenceMetadata) RETURN count(n) AS c");
+            long count = ((Number) result.next().get("c")).longValue();
+            System.out.println("SequenceMetadata count: " + count);
+            assertEquals(1, count);
+        }
+        
+    }
+    
 }
