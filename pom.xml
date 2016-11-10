@@ -18,7 +18,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>uuid</artifactId>
+    <artifactId>guid</artifactId>
     <version>3.0.6.43.12-SNAPSHOT</version>
 
     <parent>
@@ -27,8 +27,8 @@
         <version>3.0.6.43</version>
     </parent>
 
-    <name>GraphAware UUID Module</name>
-    <description>GraphAware UUID Module that assigns a UUID to every node in the graph and doesn't let anyone change it
+    <name>GraphAware GUID Module</name>
+    <description>GraphAware GUID Module that assigns a GUID to every node in the graph and doesn't let anyone change it
         or delete it.
     </description>
     <url>http://graphaware.com</url>
@@ -42,9 +42,9 @@
     </licenses>
 
     <scm>
-        <connection>scm:git:git@github.com:graphaware/neo4j-uuid.git</connection>
-        <developerConnection>scm:git:git@github.com:graphaware/neo4j-uuid.git</developerConnection>
-        <url>git@github.com:graphaware/neo4j-uuid.git</url>
+        <connection>scm:git:git@github.com:graphaware/neo4j-guid.git</connection>
+        <developerConnection>scm:git:git@github.com:graphaware/neo4j-guid.git</developerConnection>
+        <url>git@github.com:graphaware/neo4j-guid.git</url>
         <tag>HEAD</tag>
     </scm>
 
@@ -57,12 +57,12 @@
         <developer>
             <id>bachmanm</id>
             <name>Michal Bachman</name>
-            <email>neo4j-uuid@graphaware.com</email>
+            <email>neo4j-guid@graphaware.com</email>
         </developer>
     </developers>
 
     <ciManagement>
-        <url>https://travis-ci.org/graphaware/neo4j-uuid</url>
+        <url>https://travis-ci.org/graphaware/neo4j-guid</url>
         <system>Travis CI</system>
     </ciManagement>
 
@@ -70,7 +70,7 @@
 
     <issueManagement>
         <system>GitHub</system>
-        <url>https://github.com/graphaware/neo4j-uuid/issues</url>
+        <url>https://github.com/graphaware/neo4j-guid/issues</url>
     </issueManagement>
 
     <organization>
