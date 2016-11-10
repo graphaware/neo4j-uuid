@@ -21,9 +21,9 @@ public class SequenceIdGenerator implements GuidGenerator, GraphDatabaseServiceA
 	protected String sequencePropertyKey = "sequence";
 
 	@Override
-	public String generateGuid() {
+	public Long generateGuid() {
 
-		String result = null;		
+		Long result = null;		
 		Label sequenceMetadataLabel = Label.label(label);
 
 		try (Transaction tx = database.beginTx()) {
@@ -52,7 +52,8 @@ public class SequenceIdGenerator implements GuidGenerator, GraphDatabaseServiceA
 			long nextSequence = updateSequence(currentSequence);
 			sequenceMetadataNode.setProperty(sequencePropertyKey, nextSequence);
 
-            result = String.valueOf(nextSequence);
+            //result = String.valueOf(nextSequence);
+			result = nextSequence;
             
             tx.success();
             

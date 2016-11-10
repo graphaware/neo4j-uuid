@@ -188,12 +188,13 @@ public class GuidModuleDeclarativeIntegrationTest {
         }
 
         //Then
-        //Retrieve the node and check that it has a sequence property (per the configuraiton)
+        //Retrieve the node and check that it has a sequence property (per the configuration)
         try (Transaction tx = database.beginTx()) {
             for (Node node : asIterable(database.findNodes(personLabel))) {
                 assertTrue(node.hasProperty(SEQUENCE));
                 assertFalse(node.getProperty(SEQUENCE).toString().contains("-"));
-                assertEquals(Long.valueOf(node.getId()), api.getNodeIdByGuid((String) node.getProperty(SEQUENCE)));
+                long sequence = (long) node.getProperty(SEQUENCE);
+                assertEquals(Long.valueOf(node.getId()), api.getNodeIdByGuid(String.valueOf(sequence)));
             }
             tx.success();
         }
