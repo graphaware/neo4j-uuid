@@ -33,7 +33,7 @@ public class TransactionalGuidReader implements GuidReader {
      * {@inheritDoc}
      */
     @Override
-    public long getNodeIdByGuid(String guid) {
+    public long getNodeIdByGuid(Object guid) {
         long result;
 
         try (Transaction tx = database.beginTx()) {
@@ -48,7 +48,7 @@ public class TransactionalGuidReader implements GuidReader {
      * {@inheritDoc}
      */
     @Override
-    public long getRelationshipIdByGuid(String guid) {
+    public long getRelationshipIdByGuid(Object guid) {
         long result;
 
         try (Transaction tx = database.beginTx()) {

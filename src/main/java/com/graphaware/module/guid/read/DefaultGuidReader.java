@@ -37,7 +37,7 @@ public class DefaultGuidReader implements GuidReader {
      * {@inheritDoc}
      */
     @Override
-    public long getNodeIdByGuid(String guid) {
+    public long getNodeIdByGuid(Object guid) {
         Node node = indexer.getNodeByGuid(guid);
 
         if (node == null) {
@@ -51,7 +51,7 @@ public class DefaultGuidReader implements GuidReader {
      * {@inheritDoc}
      */
     @Override
-    public long getRelationshipIdByGuid(String guid) {
+    public long getRelationshipIdByGuid(Object guid) {
         Relationship relationship = indexer.getRelationshipByGuid(guid);
 
         if (relationship == null) {

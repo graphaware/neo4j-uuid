@@ -46,7 +46,7 @@ public class LegacyIndexer implements GuidIndexer {
      * {@inheritDoc}
      */
     @Override
-    public Node getNodeByGuid(String guid) {
+    public Node getNodeByGuid(Object guid) {
         return database.index().forNodes(configuration.getGuidIndex()).get(configuration.getGuidProperty(), guid).getSingle();
     }
 
@@ -78,7 +78,7 @@ public class LegacyIndexer implements GuidIndexer {
      * {@inheritDoc}
      */
     @Override
-    public Relationship getRelationshipByGuid(String guid) {
+    public Relationship getRelationshipByGuid(Object guid) {
         return database.index().forRelationships(configuration.getGuidRelationshipIndex()).get(configuration.getGuidProperty(), guid).getSingle();
     }
 

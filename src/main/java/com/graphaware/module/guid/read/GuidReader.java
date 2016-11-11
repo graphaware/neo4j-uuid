@@ -25,7 +25,7 @@ public interface GuidReader {
      * @return Node ID.
      * @throws org.neo4j.graphdb.NotFoundException in case no node exists with such GUID.
      */
-    long getNodeIdByGuid(String guid);
+    long getNodeIdByGuid(Object guid);
 
     /**
      * Get a relationship ID by its GUID.
@@ -34,5 +34,5 @@ public interface GuidReader {
      * @return Relationship ID.
      * @throws org.neo4j.graphdb.NotFoundException in case no node exists with such GUID.
      */
-    long getRelationshipIdByGuid(String guid);
+    long getRelationshipIdByGuid(Object guid);
 }

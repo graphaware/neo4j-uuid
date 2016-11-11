@@ -58,7 +58,7 @@ public interface GuidIndexer {
      * @param guid the guid
      * @return the Node with the given GUID or null
      */
-    Node getNodeByGuid(String guid);
+    Node getNodeByGuid(Object guid);
 
     /**
      * Index a relationship based on the GUID property
@@ -80,6 +80,6 @@ public interface GuidIndexer {
      * @param guid the guid
      * @return the Relationship with the given GUID or null
      */
-    Relationship getRelationshipByGuid(String guid);
+    Relationship getRelationshipByGuid(Object guid);
 
 }
