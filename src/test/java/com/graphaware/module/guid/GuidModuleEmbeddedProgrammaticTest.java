@@ -178,7 +178,7 @@ public class GuidModuleEmbeddedProgrammaticTest {
         try (Transaction tx = database.beginTx()) {
             for (Node node : asIterable(database.findNodes(testLabel))) {
                 assertTrue(node.hasProperty(guidConfiguration.getGuidProperty()));
-                String sequence = (String) node.getProperty("sequence");
+                long sequence = (long) node.getProperty("sequence");
                 assertEquals(node.getId(), guidReader.getNodeIdByGuid(sequence));
             }
             tx.success();
