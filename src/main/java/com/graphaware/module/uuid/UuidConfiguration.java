@@ -95,7 +95,7 @@ public class UuidConfiguration extends BaseTxDrivenModuleConfiguration<UuidConfi
     /**
      * Create a new instance of this {@link UuidConfiguration} with different uuid generator.
      *
-     * @param uuidProperty of the new instance.
+     * @param uuidGenerator of the new instance.
      * @return new instance.
      */
     public UuidConfiguration withUuidGenerator(String uuidGenerator) {
