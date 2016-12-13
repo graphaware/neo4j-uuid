@@ -8,16 +8,25 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.graphaware.test.integration.EmbeddedDatabaseIntegrationTest;
 import org.junit.Test;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.kernel.impl.proc.Procedures;
 
-public class RelationshipUuidProcedureTest extends ProcedureIntegrationTest {
+public class RelationshipUuidProcedureTest extends EmbeddedDatabaseIntegrationTest {
 
     @Override
-    protected Class<RelationshipUuidProcedure> procedureClass() {
-        return RelationshipUuidProcedure.class;
+    protected String configFile() {
+        return "neo4j-uuid-all.conf";
+    }
+
+    @Override
+    protected void registerProcedures(Procedures procedures) throws Exception {
+        super.registerProcedures(procedures);
+
+        procedures.registerProcedure(RelationshipUuidProcedure.class);
     }
 
     @Test
@@ -56,7 +65,7 @@ public class RelationshipUuidProcedureTest extends ProcedureIntegrationTest {
                 ++i;
                 Map<String, Object> row = result.next();
                 @SuppressWarnings("unchecked")
-				List<Relationship> rels = (List<Relationship>) row.get("relationships");
+                List<Relationship> rels = (List<Relationship>) row.get("relationships");
                 assertEquals(2, rels.size());
                 assertEquals(relId1, rels.get(0).getId(), 0L);
                 assertEquals(relId2, rels.get(1).getId(), 0L);

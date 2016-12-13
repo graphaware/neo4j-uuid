@@ -1,9 +1,11 @@
 package ga.uuid;
 
+import com.graphaware.test.integration.EmbeddedDatabaseIntegrationTest;
 import org.junit.Test;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.kernel.impl.proc.Procedures;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,11 +14,18 @@ import java.util.Map;
 
 import static org.junit.Assert.*;
 
-public class NodeUuidProcedureTest extends ProcedureIntegrationTest {
+public class NodeUuidProcedureTest extends EmbeddedDatabaseIntegrationTest {
 
     @Override
-    protected Class<NodeUuidProcedure> procedureClass() {
-        return NodeUuidProcedure.class;
+    protected String configFile() {
+        return "neo4j-uuid-all.conf";
+    }
+
+    @Override
+    protected void registerProcedures(Procedures procedures) throws Exception {
+        super.registerProcedures(procedures);
+
+        procedures.registerProcedure(NodeUuidProcedure.class);
     }
 
     @Test

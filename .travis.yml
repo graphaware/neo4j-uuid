@@ -6,7 +6,6 @@ jdk:
 branches:
   only:
     - master
-    - 3.0
 
 sudo: false
 

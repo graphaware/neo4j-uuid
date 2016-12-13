@@ -26,6 +26,7 @@ import org.neo4j.procedure.Procedure;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class NodeUuidProcedure extends UuidProcedure {
@@ -39,10 +40,7 @@ public class NodeUuidProcedure extends UuidProcedure {
     @Procedure
     @PerformsWrites
     public Stream<NodeListResult> findNodes(@Name("moduleId") String moduleId, @Name("uuids") List<String> uuids) {
-        List<Node> nodes = new ArrayList<>();
-        for (String uuid : uuids) {
-            nodes.add(findNodeByUuid(moduleId, uuid));
-        }
+        List<Node> nodes = uuids.stream().map(uuid -> findNodeByUuid(moduleId, uuid)).collect(Collectors.toList());
 
         return Stream.of(new NodeListResult(nodes));
     }

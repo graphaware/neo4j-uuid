@@ -26,6 +26,7 @@ import org.neo4j.procedure.Procedure;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class RelationshipUuidProcedure extends UuidProcedure {
@@ -39,10 +40,7 @@ public class RelationshipUuidProcedure extends UuidProcedure {
     @Procedure
     @PerformsWrites
     public Stream<RelationshipListResult> findRelationships(@Name("moduleId") String moduleId, @Name("uuids") List<String> uuids) {
-        List<Relationship> relationships = new ArrayList<>();
-        for (String uuid : uuids) {
-            relationships.add(findRelationshipByUuid(moduleId, uuid));
-        }
+        List<Relationship> relationships = uuids.stream().map(uuid -> findRelationshipByUuid(moduleId, uuid)).collect(Collectors.toList());
 
         return Stream.of(new RelationshipListResult(relationships));
     }
