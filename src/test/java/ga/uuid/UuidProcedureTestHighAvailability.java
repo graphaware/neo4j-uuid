@@ -20,7 +20,6 @@ import static org.junit.Assert.assertEquals;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.Before;
 import org.junit.Test;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -43,18 +42,14 @@ import com.graphaware.test.integration.cluster.HighAvailabilityClusterDatabasesI
  */
 public class UuidProcedureTestHighAvailability extends HighAvailabilityClusterDatabasesIntegrationTest {
 
-	// private final RelationshipType knowsType =
-	// RelationshipType.withName("KNOWS");
-	private static UuidConfiguration uuidConfiguration;
-
-	private static void registerRuntimeWithModule(GraphDatabaseService database, RuntimeModule module) {
+	private void registerRuntimeWithModule(GraphDatabaseService database, RuntimeModule module) {
 		GraphAwareRuntime runtime = GraphAwareRuntimeFactory.createRuntime(database);
 		runtime.registerModule(module);
 		runtime.start();
 	}
 
-	private static void registerModule(GraphDatabaseService database) {
-		uuidConfiguration = UuidConfiguration.defaultConfiguration().withUuidProperty("uuid").withUuidIndex("uuidIndex")
+	protected void registerModule(GraphDatabaseService database) {
+		UuidConfiguration uuidConfiguration = UuidConfiguration.defaultConfiguration().withUuidProperty("uuid").withUuidIndex("uuidIndex")
 				.with(new BaseNodeInclusionPolicy() {
 					@Override
 					public boolean include(Node node) {
@@ -78,6 +73,11 @@ public class UuidProcedureTestHighAvailability extends HighAvailabilityClusterDa
 	}
 
 	@Override
+	protected boolean shouldRegisterModules() {
+		return true;
+	}
+	
+	@Override
 	protected boolean shouldRegisterProcedures() {
 		return true;
 	}
@@ -87,16 +87,6 @@ public class UuidProcedureTestHighAvailability extends HighAvailabilityClusterDa
 		super.registerProcedures(procedures);
 		procedures.registerProcedure(NodeUuidProcedure.class);
 		procedures.registerProcedure(RelationshipUuidProcedure.class);
-	}
-	
-	@Before
-	@Override
-	public void setUp() throws Exception {
-		super.setUp();
-		if(uuidConfiguration == null){
-			registerModule(getMainDatabase());
-			getSlaveDatabases().forEach(db -> registerModule(db));			
-		}
 	}
 
     @Test

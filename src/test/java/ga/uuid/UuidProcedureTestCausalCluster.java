@@ -36,6 +36,7 @@ import com.graphaware.module.uuid.UuidModule;
 import com.graphaware.runtime.GraphAwareRuntime;
 import com.graphaware.runtime.GraphAwareRuntimeFactory;
 import com.graphaware.runtime.module.RuntimeModule;
+import com.graphaware.test.data.DatabasePopulator;
 import com.graphaware.test.integration.cluster.CausalClusterDatabasesintegrationTest;
 
 /**
@@ -43,20 +44,20 @@ import com.graphaware.test.integration.cluster.CausalClusterDatabasesintegration
  */
 public class UuidProcedureTestCausalCluster extends CausalClusterDatabasesintegrationTest {
 
-	private static UuidConfiguration uuidConfiguration;
+	private static boolean initialized = false;
 	private static String aleUuid;
 	private static Long aleId;
 	private static Long idRel;
 	private static String relUuid;
 
-	private static void registerRuntimeWithModule(GraphDatabaseService database, RuntimeModule module) {
+	private void registerRuntimeWithModule(GraphDatabaseService database, RuntimeModule module) {
 		GraphAwareRuntime runtime = GraphAwareRuntimeFactory.createRuntime(database);
 		runtime.registerModule(module);
 		runtime.start();
 	}
 
-	private static void registerModule(GraphDatabaseService database) {
-		uuidConfiguration = UuidConfiguration.defaultConfiguration().withUuidProperty("uuid").withUuidIndex("uuidIndex")
+	protected void registerModule(GraphDatabaseService database) {
+		UuidConfiguration uuidConfiguration = UuidConfiguration.defaultConfiguration().withUuidProperty("uuid").withUuidIndex("uuidIndex")
 				.with(new BaseNodeInclusionPolicy() {
 					@Override
 					public boolean include(Node node) {
@@ -80,6 +81,11 @@ public class UuidProcedureTestCausalCluster extends CausalClusterDatabasesintegr
 	}
 
 	@Override
+	protected boolean shouldRegisterModules() {
+		return true;
+	}
+	
+	@Override
 	protected boolean shouldRegisterProcedures() {
 		return true;
 	}
@@ -90,25 +96,28 @@ public class UuidProcedureTestCausalCluster extends CausalClusterDatabasesintegr
 		procedures.registerProcedure(NodeUuidProcedure.class);
 		procedures.registerProcedure(RelationshipUuidProcedure.class);
 	}
+
+	@Override
+	protected DatabasePopulator databasePopulator() {
+		return new DatabasePopulator() {
+			
+			@Override
+			public void populate(GraphDatabaseService database) {
+				aleId = createPerson(database,"Alessandro");
+				aleUuid = getUuidForNode(database,aleId);
+
+				createPerson(database,"Raffaello");
+				idRel = createRelation(database, "Alessandro","Raffaello");
+				relUuid = getUuidForRelation(database, idRel);
+			}
+		};
+	}
 	
 	@Before
 	@Override
 	public void setUp() throws Exception {
 		super.setUp();
-		if(uuidConfiguration == null){
-			GraphDatabaseService leaderDatabase = getLeaderDatabase();
-			
-			registerModule(leaderDatabase);
-			getFollowers().forEach(db -> registerModule(db));			
-			getReplicas().forEach(db -> registerModule(db));	
-			
-			aleId = createPerson(leaderDatabase,"Alessandro");
-			aleUuid = getUuidForNode(leaderDatabase,aleId);
-
-			createPerson(leaderDatabase,"Raffaello");
-			idRel = createRelation(leaderDatabase, "Alessandro","Raffaello");
-			relUuid = getUuidForRelation(leaderDatabase, idRel);
-			
+		if(!initialized){
 	    	GraphDatabaseService replDb = getOneReplicaDatabase();
 	    	
 	    	//waiting for replica synchronization
@@ -120,6 +129,8 @@ public class UuidProcedureTestCausalCluster extends CausalClusterDatabasesintegr
 	        	
 	            tx.failure();
 	        }
+	        
+	        initialized = true;
 		}
 	}
 	
