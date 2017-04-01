@@ -34,22 +34,16 @@ import com.graphaware.module.uuid.UuidConfiguration;
  */
 public class LegacyIndexer implements UuidIndexer {
 
-	private static final Log LOG = LoggerFactory.getLogger(LegacyIndexer.class);
+    private static final Log LOG = LoggerFactory.getLogger(LegacyIndexer.class);
 
-	/**
-	 * Used by relationshipLegacyIndex to skip node-to-node searching (and use only key:value)
-	 */
-	private static final long NO_NODE = -1;
-	
     private final GraphDatabaseService database;
     private final UuidConfiguration configuration;
-	private ThreadToStatementContextBridge statementContext;
+    private ThreadToStatementContextBridge statementContext;
 
     public LegacyIndexer(GraphDatabaseService database, UuidConfiguration configuration) {
         this.database = database;
         this.configuration = configuration;
-        GraphDatabaseAPI db = (GraphDatabaseAPI) database;
-        statementContext = db.getDependencyResolver().resolveDependency(ThreadToStatementContextBridge.class);
+        statementContext = ((GraphDatabaseAPI) database).getDependencyResolver().resolveDependency(ThreadToStatementContextBridge.class);
     }
 
     /**
@@ -65,18 +59,16 @@ public class LegacyIndexer implements UuidIndexer {
      */
     @Override
     public Node getNodeByUuid(String uuid) {
-    	// database.index().forNodes is a writing operation, so in a READ_REPLICA and FOLLOWER instances the call fails
-    	ReadOperations readOperations = statementContext.get().readOperations();
-    	try (LegacyIndexHits get = readOperations.nodeLegacyIndexGet(configuration.getUuidIndex(), configuration.getUuidProperty(), uuid);){
-    		if(get.hasNext()){
-    			long idNode = get.next();
-    			return database.getNodeById(idNode);    			
-    		}
-		} catch (LegacyIndexNotFoundKernelException e) {
-			LOG.error("getNodeByUuid("+uuid+"): "+e.getMessage(), e);
-			return null;
-		}
-    	return null;
+        ReadOperations readOperations = statementContext.get().readOperations();
+        try (LegacyIndexHits get = readOperations.nodeLegacyIndexGet(configuration.getUuidIndex(), configuration.getUuidProperty(), uuid)) {
+            if (get.hasNext()) {
+                long idNode = get.next();
+                return database.getNodeById(idNode);
+            }
+        } catch (LegacyIndexNotFoundKernelException e) {
+            LOG.warn("Legacy node index " + configuration.getUuidIndex() + " does not yet exist.", e);
+        }
+        return null;
     }
 
     /**
@@ -107,24 +99,17 @@ public class LegacyIndexer implements UuidIndexer {
      * {@inheritDoc}
      */
     @Override
-	public Relationship getRelationshipByUuid(String uuid) {
-		// database.index().forNodes is a writing operation, so in a
-		// READ_REPLICA and FOLLOWER instances the call fails
-		ReadOperations readOperations = statementContext.get().readOperations();
-
-		try (LegacyIndexHits get = readOperations.relationshipLegacyIndexGet(configuration.getUuidRelationshipIndex(),
-				configuration.getUuidProperty(), uuid, NO_NODE, NO_NODE);) {
-			
-			if (get.hasNext()) {
-				long idRel = get.next();
-				return database.getRelationshipById(idRel);
-			}
-			
-		} catch (LegacyIndexNotFoundKernelException e) {
-			LOG.error("getNodeByUuid(" + uuid + "): " + e.getMessage(), e);
-			return null;
-		}
-		return null;
-	}
+    public Relationship getRelationshipByUuid(String uuid) {
+        ReadOperations readOperations = statementContext.get().readOperations();
+        try (LegacyIndexHits get = readOperations.relationshipLegacyIndexGet(configuration.getUuidRelationshipIndex(), configuration.getUuidProperty(), uuid, -1L, -1L)) {
+            if (get.hasNext()) {
+                long idRel = get.next();
+                return database.getRelationshipById(idRel);
+            }
+        } catch (LegacyIndexNotFoundKernelException e) {
+            LOG.warn("Legacy relationship index " + configuration.getUuidRelationshipIndex() + " does not yet exist.", e);
+        }
+        return null;
+    }
 
 }
