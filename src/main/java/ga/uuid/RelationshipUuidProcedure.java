@@ -16,29 +16,28 @@
 
 package ga.uuid;
 
-import com.graphaware.module.uuid.UuidModule;
-import ga.uuid.result.RelationshipListResult;
-import ga.uuid.result.RelationshipResult;
-import org.neo4j.graphdb.Relationship;
-import org.neo4j.procedure.Name;
-import org.neo4j.procedure.PerformsWrites;
-import org.neo4j.procedure.Procedure;
-
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.neo4j.graphdb.Relationship;
+import org.neo4j.procedure.Mode;
+import org.neo4j.procedure.Name;
+import org.neo4j.procedure.Procedure;
+
+import com.graphaware.module.uuid.UuidModule;
+
+import ga.uuid.result.RelationshipListResult;
+import ga.uuid.result.RelationshipResult;
+
 public class RelationshipUuidProcedure extends UuidProcedure {
 
-    @Procedure
-    @PerformsWrites
+    @Procedure(mode = Mode.READ)
     public Stream<RelationshipResult> findRelationship(@Name("uuid") String uuid) {
         return Stream.of(new RelationshipResult(findRelationshipByUuid(UuidModule.DEFAULT_MODULE_ID, uuid)));
     }
 
-    @Procedure
-    @PerformsWrites
+    @Procedure(mode = Mode.READ)
     public Stream<RelationshipListResult> findRelationships(@Name("uuids") List<String> uuids) {
         List<Relationship> relationships = uuids.stream().map(uuid -> findRelationshipByUuid(UuidModule.DEFAULT_MODULE_ID, uuid)).collect(Collectors.toList());
 

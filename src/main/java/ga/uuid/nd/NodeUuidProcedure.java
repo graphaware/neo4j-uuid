@@ -16,29 +16,27 @@
 
 package ga.uuid.nd;
 
-import ga.uuid.UuidProcedure;
-import ga.uuid.result.NodeListResult;
-import ga.uuid.result.NodeResult;
-import org.neo4j.graphdb.Node;
-import org.neo4j.procedure.Name;
-import org.neo4j.procedure.PerformsWrites;
-import org.neo4j.procedure.Procedure;
-
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.neo4j.graphdb.Node;
+import org.neo4j.procedure.Mode;
+import org.neo4j.procedure.Name;
+import org.neo4j.procedure.Procedure;
+
+import ga.uuid.UuidProcedure;
+import ga.uuid.result.NodeListResult;
+import ga.uuid.result.NodeResult;
+
 public class NodeUuidProcedure extends UuidProcedure {
 
-    @Procedure
-    @PerformsWrites
+	@Procedure(mode = Mode.READ)
     public Stream<NodeResult> findNode(@Name("moduleId") String moduleId, @Name("uuid") String uuid) {
         return Stream.of(new NodeResult(findNodeByUuid(moduleId, uuid)));
     }
 
-    @Procedure
-    @PerformsWrites
+    @Procedure(mode = Mode.READ)
     public Stream<NodeListResult> findNodes(@Name("moduleId") String moduleId, @Name("uuids") List<String> uuids) {
         List<Node> nodes = uuids.stream().map(uuid -> findNodeByUuid(moduleId, uuid)).collect(Collectors.toList());
 
