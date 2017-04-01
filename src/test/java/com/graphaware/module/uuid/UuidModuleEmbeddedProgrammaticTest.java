@@ -29,6 +29,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.IntStream;
 
+import com.graphaware.common.policy.inclusion.BaseNodeInclusionPolicy;
+import com.graphaware.common.policy.inclusion.BaseRelationshipInclusionPolicy;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -44,8 +46,6 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.TransactionFailureException;
 import org.neo4j.test.TestGraphDatabaseFactory;
 
-import com.graphaware.common.policy.BaseNodeInclusionPolicy;
-import com.graphaware.common.policy.BaseRelationshipInclusionPolicy;
 import com.graphaware.common.util.IterableUtils;
 import com.graphaware.module.uuid.read.DefaultUuidReader;
 import com.graphaware.runtime.GraphAwareRuntime;

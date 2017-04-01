@@ -15,8 +15,8 @@
  */
 package com.graphaware.module.uuid;
 
-import com.graphaware.common.policy.InclusionPolicies;
-import com.graphaware.common.policy.none.IncludeNoRelationships;
+import com.graphaware.common.policy.inclusion.InclusionPolicies;
+import com.graphaware.common.policy.inclusion.none.IncludeNoRelationships;
 import com.graphaware.runtime.config.BaseTxDrivenModuleConfiguration;
 import com.graphaware.runtime.policy.InclusionPoliciesFactory;
 
@@ -51,7 +51,7 @@ public class UuidConfiguration extends BaseTxDrivenModuleConfiguration<UuidConfi
     /**
      * Create a default configuration with default uuid property = {@link #DEFAULT_UUID_PROPERTY},
      * uuid index = {@link #DEFAULT_UUID_NODEX_INDEX}
-     * inclusion policies = {@link InclusionPoliciesFactory#allBusiness()} with {@link IncludeNoRelationships},
+     * inclusion policies = {@link InclusionPoliciesFactory#allBusiness()} with {@link com.graphaware.common.policy.inclusion.none.IncludeNoRelationships},
      * and initialize until = {@link #ALWAYS}.
      * <p/>
      * Change this by calling {@link #withUuidProperty(String)}, with* other inclusion strategies
