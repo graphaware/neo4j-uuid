@@ -27,6 +27,7 @@ import com.graphaware.common.util.Change;
 import com.graphaware.common.uuid.UuidGenerator;
 import com.graphaware.module.uuid.index.LegacyIndexer;
 import com.graphaware.module.uuid.index.UuidIndexer;
+import com.graphaware.runtime.config.util.InstanceRoleUtils;
 import com.graphaware.runtime.module.BaseTxDrivenModule;
 import com.graphaware.runtime.module.DeliberateTransactionRollbackException;
 import com.graphaware.tx.event.improved.api.ImprovedTransactionData;
@@ -99,27 +100,31 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
      */
     @Override
     public void initialize(GraphDatabaseService database) {
-        new IterableInputBatchTransactionExecutor<>(
-                database,
-                BATCH_SIZE,
-                new AllNodes(database, BATCH_SIZE),
-                (db, node, batchNumber, stepNumber) -> {
-                    if (getConfiguration().getInclusionPolicies().getNodeInclusionPolicy().include(node)) {
-                        assignUuid(node);
-                    }
-                }
-        ).execute();
+    	
+    	if(new InstanceRoleUtils(database).getInstaceRole().isWritable()){
+    	
+    		new IterableInputBatchTransactionExecutor<>(
+    				database,
+    				BATCH_SIZE,
+    				new AllNodes(database, BATCH_SIZE),
+    				(db, node, batchNumber, stepNumber) -> {
+    					if (getConfiguration().getInclusionPolicies().getNodeInclusionPolicy().include(node)) {
+    						assignUuid(node);
+    					}
+    				}
+    				).execute();
 
-        new IterableInputBatchTransactionExecutor<>(
-                database,
-                BATCH_SIZE,
-                new AllRelationships(database, BATCH_SIZE),
-                (db, rel, batchNumber, stepNumber) -> {
-                    if (getConfiguration().getInclusionPolicies().getRelationshipInclusionPolicy().include(rel)) {
-                        assignUuid(rel);
-                    }
-                }
-        ).execute();
+    		new IterableInputBatchTransactionExecutor<>(
+    				database,
+    				BATCH_SIZE,
+    				new AllRelationships(database, BATCH_SIZE),
+    				(db, rel, batchNumber, stepNumber) -> {
+    					if (getConfiguration().getInclusionPolicies().getRelationshipInclusionPolicy().include(rel)) {
+    						assignUuid(rel);
+    					}
+    				}
+    				).execute();
+    	}
     }
 
     /**
