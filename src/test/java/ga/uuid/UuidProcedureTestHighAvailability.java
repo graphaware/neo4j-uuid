@@ -15,27 +15,21 @@
  */
 package ga.uuid;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.HashMap;
-import java.util.Map;
-
 import com.graphaware.common.policy.inclusion.BaseNodeInclusionPolicy;
 import com.graphaware.common.policy.inclusion.BaseRelationshipInclusionPolicy;
-import org.junit.Test;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.Result;
-import org.neo4j.graphdb.Transaction;
-import org.neo4j.kernel.impl.proc.Procedures;
-
 import com.graphaware.module.uuid.UuidConfiguration;
 import com.graphaware.module.uuid.UuidModule;
 import com.graphaware.runtime.GraphAwareRuntime;
 import com.graphaware.runtime.GraphAwareRuntimeFactory;
 import com.graphaware.runtime.module.RuntimeModule;
 import com.graphaware.test.integration.cluster.HighAvailabilityClusterDatabasesIntegrationTest;
+import org.junit.Test;
+import org.neo4j.graphdb.*;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * Test for {@link NodeUuidFunctions} and {@link RelationshipUuidFunctions}
@@ -48,7 +42,8 @@ public class UuidProcedureTestHighAvailability extends HighAvailabilityClusterDa
 		runtime.start();
 	}
 
-	protected void registerModule(GraphDatabaseService database) {
+    @Override
+	protected void registerModules(GraphDatabaseService database) {
 		UuidConfiguration uuidConfiguration = UuidConfiguration.defaultConfiguration().withUuidProperty("uuid").withUuidIndex("uuidIndex")
 				.with(new BaseNodeInclusionPolicy() {
 					@Override
@@ -78,17 +73,10 @@ public class UuidProcedureTestHighAvailability extends HighAvailabilityClusterDa
 	}
 	
 	@Override
-	protected boolean shouldRegisterProcedures() {
+	protected boolean shouldRegisterProceduresAndFunctions() {
 		return true;
 	}
 	
-	@Override
-	protected void registerProcedures(Procedures procedures) throws Exception {
-		super.registerProcedures(procedures);
-		procedures.registerProcedure(NodeUuidFunctions.class);
-		procedures.registerProcedure(RelationshipUuidFunctions.class);
-	}
-
     @Test
     public void testGetRelationshipByUuid_MASTER() {
         GraphDatabaseService db = getMasterDatabase();
@@ -98,7 +86,7 @@ public class UuidProcedureTestHighAvailability extends HighAvailabilityClusterDa
         String relUuid = getUuidForRelation(db, idRel);
         
         try (Transaction tx = db.beginTx()) {
-        	Result result = db.execute("CALL ga.uuid.findRelationship('" + relUuid + "') YIELD relationship RETURN relationship as n");
+        	Result result = db.execute("REUTNR ga.uuid.findRelationship('" + relUuid + "') as n");
             while (result.hasNext()) {
                 Map<String, Object> row = result.next();
                 Relationship rel = (Relationship) row.get("n");
@@ -118,7 +106,7 @@ public class UuidProcedureTestHighAvailability extends HighAvailabilityClusterDa
         String relUuid = getUuidForRelation(db, idRel);
         
         try (Transaction tx = db.beginTx()) {
-        	Result result = db.execute("CALL ga.uuid.findRelationship('" + relUuid + "') YIELD relationship RETURN relationship as n");
+        	Result result = db.execute("RETURN ga.uuid.findRelationship('" + relUuid + "') as n");
             while (result.hasNext()) {
                 Map<String, Object> row = result.next();
                 Relationship rel = (Relationship) row.get("n");
@@ -134,7 +122,7 @@ public class UuidProcedureTestHighAvailability extends HighAvailabilityClusterDa
         Long aleId = createPerson(getMasterDatabase(),"AlessandroMaster");
         String aleUuid = getUuidForNode(getMasterDatabase(),aleId);
         try (Transaction tx = getMasterDatabase().beginTx()) {
-            Result result = getMasterDatabase().execute("CALL ga.uuid.findNode('" + aleUuid + "') YIELD node RETURN node as n");
+            Result result = getMasterDatabase().execute("RETURN ga.uuid.findNode('" + aleUuid + "') as n");
             while (result.hasNext()) {
                 Map<String, Object> row = result.next();
                 Node node = (Node) row.get("n");
@@ -150,7 +138,7 @@ public class UuidProcedureTestHighAvailability extends HighAvailabilityClusterDa
         Long aleId = createPerson(getOneSlaveDatabase(),"AlessandroSlave");
         String aleUuid = getUuidForNode(getOneSlaveDatabase(),aleId);
         try (Transaction tx = getOneSlaveDatabase().beginTx()) {
-            Result result = getOneSlaveDatabase().execute("CALL ga.uuid.findNode('" + aleUuid + "') YIELD node RETURN node as n");
+            Result result = getOneSlaveDatabase().execute("RETURN ga.uuid.findNode('" + aleUuid + "') as n");
             while (result.hasNext()) {
                 Map<String, Object> row = result.next();
                 Node node = (Node) row.get("n");

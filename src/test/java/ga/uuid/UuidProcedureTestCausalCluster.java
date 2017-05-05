@@ -56,7 +56,8 @@ public class UuidProcedureTestCausalCluster extends CausalClusterDatabasesintegr
 		runtime.start();
 	}
 
-	protected void registerModule(GraphDatabaseService database) {
+    @Override
+	protected void registerModules(GraphDatabaseService database) {
 		UuidConfiguration uuidConfiguration = UuidConfiguration.defaultConfiguration().withUuidProperty("uuid").withUuidIndex("uuidIndex")
 				.with(new BaseNodeInclusionPolicy() {
 					@Override
@@ -86,22 +87,8 @@ public class UuidProcedureTestCausalCluster extends CausalClusterDatabasesintegr
 	}
 	
 	@Override
-	protected boolean shouldRegisterProcedures() {
+	protected boolean shouldRegisterProceduresAndFunctions() {
 		return true;
-	}
-
-	//todo remove when upgrading to next version of framework
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	protected void registerProcedures(Procedures procedures) throws Exception {
-		super.registerProcedures(procedures);
-
-		procedures.registerFunction(ga.uuid.NodeUuidFunctions.class);
-		procedures.registerFunction(ga.uuid.nd.NodeUuidFunctions.class);
-		procedures.registerFunction(ga.uuid.RelationshipUuidFunctions.class);
-		procedures.registerFunction(ga.uuid.nd.RelationshipUuidFunctions.class);
 	}
 
 	@Override

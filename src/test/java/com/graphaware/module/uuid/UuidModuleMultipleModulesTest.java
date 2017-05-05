@@ -34,20 +34,6 @@ public class UuidModuleMultipleModulesTest extends GraphAwareIntegrationTest {
         return "neo4j-uuid-multiple.conf";
     }
 
-    //todo remove when upgrading to next version of framework
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected void registerProcedures(Procedures procedures) throws Exception {
-        super.registerProcedures(procedures);
-
-        procedures.registerFunction(ga.uuid.NodeUuidFunctions.class);
-        procedures.registerFunction(ga.uuid.nd.NodeUuidFunctions.class);
-        procedures.registerFunction(ga.uuid.RelationshipUuidFunctions.class);
-        procedures.registerFunction(ga.uuid.nd.RelationshipUuidFunctions.class);
-    }
-
     @Test
     public void testWorkflow() {
         //Create & Assign

@@ -23,8 +23,8 @@ public class RelationshipUuidFunctionsTest extends EmbeddedDatabaseIntegrationTe
     }
 
     @Override
-    protected void registerProcedures(Procedures procedures) throws Exception {
-        super.registerProcedures(procedures);
+    protected void registerProceduresAndFunctions(Procedures procedures) throws Exception {
+        super.registerProceduresAndFunctions(procedures);
 
         procedures.registerFunction(RelationshipUuidFunctions.class);
         procedures.registerFunction(ga.uuid.nd.RelationshipUuidFunctions.class);

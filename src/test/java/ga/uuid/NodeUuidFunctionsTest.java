@@ -22,11 +22,12 @@ public class NodeUuidFunctionsTest extends EmbeddedDatabaseIntegrationTest {
     }
 
     @Override
-    protected void registerProcedures(Procedures procedures) throws Exception {
-        super.registerProcedures(procedures);
+    protected void registerProceduresAndFunctions(Procedures procedures) throws Exception {
+        super.registerProceduresAndFunctions(procedures);
 
         procedures.registerFunction(NodeUuidFunctions.class);
         procedures.registerFunction(ga.uuid.nd.NodeUuidFunctions.class);
+
     }
 
     @Test
