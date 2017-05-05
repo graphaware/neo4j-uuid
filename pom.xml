@@ -19,12 +19,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>uuid</artifactId>
-    <version>3.1.3.48.15-SNAPSHOT</version>
+    <version>3.1.4.49.14-SNAPSHOT</version>
 
     <parent>
         <groupId>com.graphaware.neo4j</groupId>
         <artifactId>module-parent</artifactId>
-        <version>3.1.3.48</version>
+        <version>3.1.4.49</version>
     </parent>
 
     <name>GraphAware UUID Module</name>

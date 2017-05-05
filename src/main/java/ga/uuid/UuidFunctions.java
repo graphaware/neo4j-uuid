@@ -26,7 +26,7 @@ import org.neo4j.procedure.Context;
 
 import static com.graphaware.runtime.RuntimeRegistry.getStartedRuntime;
 
-public abstract class UuidProcedure {
+public abstract class UuidFunctions {
 
     @Context
     public GraphDatabaseService database;

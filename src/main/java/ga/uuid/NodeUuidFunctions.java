@@ -16,31 +16,23 @@
 
 package ga.uuid;
 
+import com.graphaware.module.uuid.UuidModule;
+import org.neo4j.graphdb.Node;
+import org.neo4j.procedure.Name;
+import org.neo4j.procedure.UserFunction;
+
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-import org.neo4j.graphdb.Node;
-import org.neo4j.procedure.Mode;
-import org.neo4j.procedure.Name;
-import org.neo4j.procedure.Procedure;
+public class NodeUuidFunctions extends UuidFunctions {
 
-import com.graphaware.module.uuid.UuidModule;
-
-import ga.uuid.result.NodeListResult;
-import ga.uuid.result.NodeResult;
-
-public class NodeUuidProcedure extends UuidProcedure {
-
-    @Procedure(mode = Mode.READ)
-    public Stream<NodeResult> findNode(@Name("uuid") String uuid) {
-        return Stream.of(new NodeResult(findNodeByUuid(UuidModule.DEFAULT_MODULE_ID, uuid)));
+    @UserFunction
+    public Node findNode(@Name("uuid") String uuid) {
+        return findNodeByUuid(UuidModule.DEFAULT_MODULE_ID, uuid);
     }
 
-    @Procedure(mode = Mode.READ)
-    public Stream<NodeListResult> findNodes(@Name("uuids") List<String> uuids) {
-        List<Node> nodes = uuids.stream().map(uuid -> findNodeByUuid(UuidModule.DEFAULT_MODULE_ID, uuid)).collect(Collectors.toList());
-
-        return Stream.of(new NodeListResult(nodes));
+    @UserFunction
+    public List<Node> findNodes(@Name("uuids") List<String> uuids) {
+        return uuids.stream().map(uuid -> findNodeByUuid(UuidModule.DEFAULT_MODULE_ID, uuid)).collect(Collectors.toList());
     }
 }

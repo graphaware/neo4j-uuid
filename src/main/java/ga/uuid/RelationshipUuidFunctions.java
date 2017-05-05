@@ -14,15 +14,27 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-package ga.uuid.result;
+package ga.uuid;
 
-import org.neo4j.graphdb.Node;
+import java.util.List;
+import java.util.stream.Collectors;
 
-public class NodeResult {
+import org.neo4j.graphdb.Relationship;
+import org.neo4j.procedure.Name;
 
-    public final Node node;
+import com.graphaware.module.uuid.UuidModule;
 
-    public NodeResult(Node node) {
-        this.node = node;
+import org.neo4j.procedure.UserFunction;
+
+public class RelationshipUuidFunctions extends UuidFunctions {
+
+    @UserFunction
+    public Relationship findRelationship(@Name("uuid") String uuid) {
+        return findRelationshipByUuid(UuidModule.DEFAULT_MODULE_ID, uuid);
+    }
+
+    @UserFunction
+    public List<Relationship> findRelationships(@Name("uuids") List<String> uuids) {
+        return uuids.stream().map(uuid -> findRelationshipByUuid(UuidModule.DEFAULT_MODULE_ID, uuid)).collect(Collectors.toList());
     }
 }

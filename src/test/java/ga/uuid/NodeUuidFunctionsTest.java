@@ -14,7 +14,7 @@ import java.util.Map;
 
 import static org.junit.Assert.*;
 
-public class NodeUuidProcedureTest extends EmbeddedDatabaseIntegrationTest {
+public class NodeUuidFunctionsTest extends EmbeddedDatabaseIntegrationTest {
 
     @Override
     protected String configFile() {
@@ -25,7 +25,8 @@ public class NodeUuidProcedureTest extends EmbeddedDatabaseIntegrationTest {
     protected void registerProcedures(Procedures procedures) throws Exception {
         super.registerProcedures(procedures);
 
-        procedures.registerProcedure(NodeUuidProcedure.class);
+        procedures.registerFunction(NodeUuidFunctions.class);
+        procedures.registerFunction(ga.uuid.nd.NodeUuidFunctions.class);
     }
 
     @Test
@@ -33,7 +34,7 @@ public class NodeUuidProcedureTest extends EmbeddedDatabaseIntegrationTest {
         Long aleId = createPerson("Alessandro");
         String aleUuid = getUuidForNode(aleId);
         try (Transaction tx = getDatabase().beginTx()) {
-            Result result = getDatabase().execute("CALL ga.uuid.findNode('" + aleUuid + "') YIELD node RETURN node as n");
+            Result result = getDatabase().execute("RETURN ga.uuid.findNode('" + aleUuid + "') as n");
             while (result.hasNext()) {
                 Map<String, Object> row = result.next();
                 Node node = (Node) row.get("n");
@@ -57,7 +58,7 @@ public class NodeUuidProcedureTest extends EmbeddedDatabaseIntegrationTest {
         params.put("uuids", ids);
 
         try (Transaction tx = getDatabase().beginTx()) {
-            Result result = getDatabase().execute("CALL ga.uuid.findNodes({uuids}) YIELD nodes RETURN nodes", params);
+            Result result = getDatabase().execute("RETURN ga.uuid.findNodes({uuids}) as nodes", params);
             while (result.hasNext()) {
                 Map<String, Object> row = result.next();
                 @SuppressWarnings("unchecked")
@@ -71,7 +72,7 @@ public class NodeUuidProcedureTest extends EmbeddedDatabaseIntegrationTest {
     }
 
     private String getUuidForNode(Long id) {
-        String uuid = null;
+        String uuid;
         try (Transaction tx = getDatabase().beginTx()) {
             uuid = getDatabase().getNodeById(id).getProperty("uuid").toString();
             tx.success();

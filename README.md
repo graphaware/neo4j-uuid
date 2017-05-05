@@ -1,7 +1,7 @@
 GraphAware Neo4j UUID
 =====================
 
-[![Build Status](https://travis-ci.org/graphaware/neo4j-uuid.png)](https://travis-ci.org/graphaware/neo4j-uuid) | <a href="http://graphaware.com/downloads/" target="_blank">Downloads</a> | <a href="http://graphaware.com/site/uuid/latest/apidocs/" target="_blank">Javadoc</a> | Latest Release: 3.1.3.48.14
+[![Build Status](https://travis-ci.org/graphaware/neo4j-uuid.png)](https://travis-ci.org/graphaware/neo4j-uuid) | <a href="http://graphaware.com/downloads/" target="_blank">Downloads</a> | <a href="http://graphaware.com/site/uuid/latest/apidocs/" target="_blank">Javadoc</a> | Latest Release: 3.1.4.49.14
 
 GraphAware UUID is a simple library that transparently assigns a UUID to newly created nodes and relationships in the graph and makes sure nobody
 can (accidentally or intentionally) change or delete them.
@@ -31,7 +31,7 @@ Releases are synced to <a href="http://search.maven.org/#search%7Cga%7C1%7Ca%3A%
         <dependency>
             <groupId>com.graphaware.neo4j</groupId>
             <artifactId>uuid</artifactId>
-            <version>3.1.3.48.14</version>
+            <version>3.1.4.49.14</version>
         </dependency>
         ...
     </dependencies>
@@ -39,7 +39,7 @@ Releases are synced to <a href="http://search.maven.org/#search%7Cga%7C1%7Ca%3A%
 #### Snapshots
 
 To use the latest development version, just clone this repository, run `mvn clean install` and change the version in the
-dependency above to 3.1.3.48.15-SNAPSHOT.
+dependency above to 3.1.4.49.15-SNAPSHOT.
 
 #### Note on Versioning Scheme
 
@@ -127,20 +127,20 @@ You can also retrieve a node/relationship by UUID.
 
 ### Cypher
 
-Once deployed, you can use the following Cypher syntax:
+Once deployed, you can use the following Cypher functions:
 
-* `CALL ga.uuid.findNode('<your UUID>') YIELD node AS n ...` (then do something with `n`, e.g. `CALL ga.uuid.findNode('<your UUID>') YIELD node AS n RETURN id(n)`
-* `CALL ga.uuid.findRelationship('<your UUID>') YIELD relationship AS r ...`
-* `CALL ga.uuid.findNodes(['<UUID1>,<UUID2>,...']) YIELD nodes UNWIND nodes as node ...`
-* `CALL ga.uuid.findRelationships(['<UUID1>,<UUID2>,...']) YIELD relationships UNWIND relationships as rel ...`
+* `ga.uuid.findNode('<your UUID>')` (then do something with the result, e.g. `RETURN id(ga.uuid.findNode('<your UUID>')) as nodeId`
+* `ga.uuid.findRelationship('<your UUID>')`
+* `ga.uuid.findNodes(['<UUID1>,<UUID2>,...'])`
+* `ga.uuid.findRelationships(['<UUID1>,<UUID2>,...'])`
 
 In case you did not use `UIDM` (the default) as the module ID in your configuration, or if you registered multiple UUID modules,
 you will have to use slightly different syntax that allows you to pass in the module ID. 'nd' stands for "non-default":
 
-* `CALL ga.uuid.nd.findNode('<module ID>','<your UUID>') YIELD node AS n ...` (then do something with `n`, e.g. `CALL ga.uuid.findNode('<your UUID>') YIELD node AS n RETURN id(n)`
-* `CALL ga.uuid.nd.findRelationship('<module ID>','<your UUID>') YIELD relationship AS r ...`
-* `CALL ga.uuid.nd.findNodes('<module ID>',['<UUID1>,<UUID2>,...']) YIELD nodes UNWIND nodes as node ...`
-* `CALL ga.uuid.nd.findRelationships('<module ID>',['<UUID1>,<UUID2>,...']) YIELD relationships UNWIND relationships as rel ...`
+* `ga.uuid.nd.findNode('<module ID>','<your UUID>')`
+* `ga.uuid.nd.findRelationship('<module ID>','<your UUID>')`
+* `ga.uuid.nd.findNodes('<module ID>',['<UUID1>,<UUID2>,...'])`
+* `ga.uuid.nd.findRelationships('<module ID>',['<UUID1>,<UUID2>,...'])`
 
 ### REST API
 

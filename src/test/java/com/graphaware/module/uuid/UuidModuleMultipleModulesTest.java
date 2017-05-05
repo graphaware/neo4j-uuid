@@ -18,6 +18,7 @@ package com.graphaware.module.uuid;
 
 import com.graphaware.test.integration.GraphAwareIntegrationTest;
 import org.junit.Test;
+import org.neo4j.kernel.impl.proc.Procedures;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -31,6 +32,20 @@ public class UuidModuleMultipleModulesTest extends GraphAwareIntegrationTest {
     @Override
     protected String configFile() {
         return "neo4j-uuid-multiple.conf";
+    }
+
+    //todo remove when upgrading to next version of framework
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void registerProcedures(Procedures procedures) throws Exception {
+        super.registerProcedures(procedures);
+
+        procedures.registerFunction(ga.uuid.NodeUuidFunctions.class);
+        procedures.registerFunction(ga.uuid.nd.NodeUuidFunctions.class);
+        procedures.registerFunction(ga.uuid.RelationshipUuidFunctions.class);
+        procedures.registerFunction(ga.uuid.nd.RelationshipUuidFunctions.class);
     }
 
     @Test
@@ -73,7 +88,7 @@ public class UuidModuleMultipleModulesTest extends GraphAwareIntegrationTest {
         String uuid = matcher.group(1);
 
         //Retrieve
-        assertEquals("{\"results\":[{\"columns\":[\"id(n)\"],\"data\":[{\"row\":[0],\"meta\":[null]}]}],\"errors\":[]}", findNodeByUuid("UID1", uuid));
+        assertEquals("{\"results\":[{\"columns\":[\"id\"],\"data\":[{\"row\":[0],\"meta\":[null]}]}],\"errors\":[]}", findNodeByUuid("UID1", uuid));
 
         response = httpClient.executeCypher(baseNeoUrl(), "MATCH (u:User) RETURN u");
 
@@ -82,11 +97,11 @@ public class UuidModuleMultipleModulesTest extends GraphAwareIntegrationTest {
         uuid = matcher.group(1);
 
         //Retrieve
-        assertEquals("{\"results\":[{\"columns\":[\"id(n)\"],\"data\":[{\"row\":[1],\"meta\":[null]}]}],\"errors\":[]}", findNodeByUuid("UID2", uuid));
+        assertEquals("{\"results\":[{\"columns\":[\"id\"],\"data\":[{\"row\":[1],\"meta\":[null]}]}],\"errors\":[]}", findNodeByUuid("UID2", uuid));
     }
     
     private String findNodeByUuid(String moduleId, String uuid) {
-        return httpClient.executeCypher(baseNeoUrl(), "CALL ga.uuid.nd.findNode('" + moduleId + "','" + uuid + "') YIELD node as n return id(n)");
+        return httpClient.executeCypher(baseNeoUrl(), "RETURN id(ga.uuid.nd.findNode('" + moduleId + "','" + uuid + "')) as id");
     }
 
 }

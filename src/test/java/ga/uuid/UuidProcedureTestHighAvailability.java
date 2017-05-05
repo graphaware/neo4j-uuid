@@ -38,7 +38,7 @@ import com.graphaware.runtime.module.RuntimeModule;
 import com.graphaware.test.integration.cluster.HighAvailabilityClusterDatabasesIntegrationTest;
 
 /**
- * Test for {@link NodeUuidProcedure} and {@link RelationshipUuidProcedure}
+ * Test for {@link NodeUuidFunctions} and {@link RelationshipUuidFunctions}
  */
 public class UuidProcedureTestHighAvailability extends HighAvailabilityClusterDatabasesIntegrationTest {
 
@@ -85,8 +85,8 @@ public class UuidProcedureTestHighAvailability extends HighAvailabilityClusterDa
 	@Override
 	protected void registerProcedures(Procedures procedures) throws Exception {
 		super.registerProcedures(procedures);
-		procedures.registerProcedure(NodeUuidProcedure.class);
-		procedures.registerProcedure(RelationshipUuidProcedure.class);
+		procedures.registerProcedure(NodeUuidFunctions.class);
+		procedures.registerProcedure(RelationshipUuidFunctions.class);
 	}
 
     @Test

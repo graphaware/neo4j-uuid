@@ -15,7 +15,7 @@ import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.impl.proc.Procedures;
 
-public class RelationshipUuidProcedureTest extends EmbeddedDatabaseIntegrationTest {
+public class RelationshipUuidFunctionsTest extends EmbeddedDatabaseIntegrationTest {
 
     @Override
     protected String configFile() {
@@ -26,7 +26,8 @@ public class RelationshipUuidProcedureTest extends EmbeddedDatabaseIntegrationTe
     protected void registerProcedures(Procedures procedures) throws Exception {
         super.registerProcedures(procedures);
 
-        procedures.registerProcedure(RelationshipUuidProcedure.class);
+        procedures.registerFunction(RelationshipUuidFunctions.class);
+        procedures.registerFunction(ga.uuid.nd.RelationshipUuidFunctions.class);
     }
 
     @Test
@@ -35,7 +36,7 @@ public class RelationshipUuidProcedureTest extends EmbeddedDatabaseIntegrationTe
         String uuid = getUuidForRelId(relId);
         int i = 0;
         try (Transaction tx = getDatabase().beginTx()) {
-            Result result = getDatabase().execute("CALL ga.uuid.findRelationship('" + uuid + "') YIELD relationship RETURN id(relationship) as id");
+            Result result = getDatabase().execute("RETURN id(ga.uuid.findRelationship('" + uuid + "')) as id");
             while (result.hasNext()) {
                 Map<String, Object> row = result.next();
                 assertEquals(relId, (long) row.get("id"), 0L);
@@ -60,7 +61,7 @@ public class RelationshipUuidProcedureTest extends EmbeddedDatabaseIntegrationTe
         params.put("rels", uuids);
         int i = 0;
         try (Transaction tx = getDatabase().beginTx()) {
-            Result result = getDatabase().execute("CALL ga.uuid.findRelationships({rels}) YIELD relationships RETURN relationships", params);
+            Result result = getDatabase().execute("RETURN ga.uuid.findRelationships({rels}) as relationships", params);
             while (result.hasNext()) {
                 ++i;
                 Map<String, Object> row = result.next();
@@ -92,7 +93,7 @@ public class RelationshipUuidProcedureTest extends EmbeddedDatabaseIntegrationTe
     }
 
     private String getUuidForRelId(Long id) {
-        String uuid = null;
+        String uuid;
         try (Transaction tx = getDatabase().beginTx()) {
             Relationship relationship = getDatabase().getRelationshipById(id);
             uuid = relationship.getProperty("uuid").toString();

@@ -40,7 +40,7 @@ import com.graphaware.test.data.DatabasePopulator;
 import com.graphaware.test.integration.cluster.CausalClusterDatabasesintegrationTest;
 
 /**
- * Test for {@link NodeUuidProcedure} and {@link RelationshipUuidProcedure}
+ * Test for {@link NodeUuidFunctions} and {@link RelationshipUuidFunctions}
  */
 public class UuidProcedureTestCausalCluster extends CausalClusterDatabasesintegrationTest {
 
@@ -89,28 +89,31 @@ public class UuidProcedureTestCausalCluster extends CausalClusterDatabasesintegr
 	protected boolean shouldRegisterProcedures() {
 		return true;
 	}
-	
+
+	//todo remove when upgrading to next version of framework
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	protected void registerProcedures(Procedures procedures) throws Exception {
 		super.registerProcedures(procedures);
-		procedures.registerProcedure(NodeUuidProcedure.class);
-		procedures.registerProcedure(RelationshipUuidProcedure.class);
+
+		procedures.registerFunction(ga.uuid.NodeUuidFunctions.class);
+		procedures.registerFunction(ga.uuid.nd.NodeUuidFunctions.class);
+		procedures.registerFunction(ga.uuid.RelationshipUuidFunctions.class);
+		procedures.registerFunction(ga.uuid.nd.RelationshipUuidFunctions.class);
 	}
 
 	@Override
 	protected DatabasePopulator databasePopulator() {
-		return new DatabasePopulator() {
-			
-			@Override
-			public void populate(GraphDatabaseService database) {
-				aleId = createPerson(database,"Alessandro");
-				aleUuid = getUuidForNode(database,aleId);
+		return database -> {
+            aleId = createPerson(database,"Alessandro");
+            aleUuid = getUuidForNode(database,aleId);
 
-				createPerson(database,"Raffaello");
-				idRel = createRelation(database, "Alessandro","Raffaello");
-				relUuid = getUuidForRelation(database, idRel);
-			}
-		};
+            createPerson(database,"Raffaello");
+            idRel = createRelation(database, "Alessandro","Raffaello");
+            relUuid = getUuidForRelation(database, idRel);
+        };
 	}
 	
 	@Before
@@ -174,7 +177,7 @@ public class UuidProcedureTestCausalCluster extends CausalClusterDatabasesintegr
 
 	private void testCallRel(GraphDatabaseService database) {
         try (Transaction tx = database.beginTx()) {
-            Result result = database.execute("CALL ga.uuid.findRelationship('" + relUuid + "') YIELD relationship RETURN relationship as n");
+            Result result = database.execute("RETURN ga.uuid.findRelationship('" + relUuid + "') as n");
             while (result.hasNext()) {
                 Map<String, Object> row = result.next();
                 Relationship rel = (Relationship) row.get("n");
@@ -187,7 +190,7 @@ public class UuidProcedureTestCausalCluster extends CausalClusterDatabasesintegr
     
 	private void testCallNode(GraphDatabaseService database) {
         try (Transaction tx = database.beginTx()) {
-            Result result = database.execute("CALL ga.uuid.findNode('" + aleUuid + "') YIELD node RETURN node as n");
+            Result result = database.execute("RETURN ga.uuid.findNode('" + aleUuid + "') as n");
             while (result.hasNext()) {
                 Map<String, Object> row = result.next();
                 Node node = (Node) row.get("n");
