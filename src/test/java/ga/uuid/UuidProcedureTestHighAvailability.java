@@ -86,7 +86,7 @@ public class UuidProcedureTestHighAvailability extends HighAvailabilityClusterDa
         String relUuid = getUuidForRelation(db, idRel);
         
         try (Transaction tx = db.beginTx()) {
-        	Result result = db.execute("REUTNR ga.uuid.findRelationship('" + relUuid + "') as n");
+        	Result result = db.execute("RETURN ga.uuid.findRelationship('" + relUuid + "') as n");
             while (result.hasNext()) {
                 Map<String, Object> row = result.next();
                 Relationship rel = (Relationship) row.get("n");
