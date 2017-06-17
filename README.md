@@ -94,9 +94,19 @@ UUID property to every node which isn't internal to the framework.
 or a Spring Expression Language expression determining, which relationships to assign a UUID to. The default is **not** to assign the
 UUID property to any relationship. If you want to assign UUID to all relationship, please use `com.graphaware.module.UIDM.relationship=com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships`
 
-`com.graphaware.module.UIDM.uuidIndex` is the index name that will be used to index nodes based on their UUID. The default is "uuidIndex".
+`com.graphaware.module.UIDM.uuidIndex` is the [legacy](http://nigelsmall.com/neo4j/index-confusion.php) index name that will be used to index nodes based on their UUID. The default is "uuidIndex".
 
-`com.graphaware.module.UIDM.uuidRelationshipIndex` is the index name that will be used to index relationships based on their UUID. The default is "uuidRelIndex".
+`com.graphaware.module.UIDM.uuidRelationshipIndex` is the legacy index name that will be used to index relationships based on their UUID. The default is "uuidRelIndex". 
+
+Note legacy indexes (which differ from schema indexes) are used as they are label agnostic. You can check the existence of these legacy indexes via the `neo4j-shell`:
+```
+> neo4j-shell
+neo4j-sh (?)$ index --indexes
+Node indexes:
+  uuidIndex
+Relationship indexes:
+  uuidRelIndex
+```
 
 ### Embedded Mode / Java Development
 
