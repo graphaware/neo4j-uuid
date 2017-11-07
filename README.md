@@ -1,7 +1,7 @@
 GraphAware Neo4j UUID
 =====================
 
-[![Build Status](https://travis-ci.org/graphaware/neo4j-uuid.png)](https://travis-ci.org/graphaware/neo4j-uuid) | <a href="http://graphaware.com/downloads/" target="_blank">Downloads</a> | <a href="http://graphaware.com/site/uuid/latest/apidocs/" target="_blank">Javadoc</a> | Latest Release: 3.2.6.51.14
+[![Build Status](https://travis-ci.org/graphaware/neo4j-uuid.png)](https://travis-ci.org/graphaware/neo4j-uuid) | <a href="http://graphaware.com/downloads/" target="_blank">Downloads</a> | <a href="http://graphaware.com/site/uuid/latest/apidocs/" target="_blank">Javadoc</a> | Latest Release: 3.3.0.51.14
 
 GraphAware UUID is a simple library that transparently assigns a UUID to newly created nodes and relationships in the graph and makes sure nobody
 can (accidentally or intentionally) change or delete them.
@@ -31,7 +31,7 @@ Releases are synced to <a href="http://search.maven.org/#search%7Cga%7C1%7Ca%3A%
         <dependency>
             <groupId>com.graphaware.neo4j</groupId>
             <artifactId>uuid</artifactId>
-            <version>3.2.6.51.14</version>
+            <version>3.3.0.51.14</version>
         </dependency>
         ...
     </dependencies>
@@ -39,7 +39,7 @@ Releases are synced to <a href="http://search.maven.org/#search%7Cga%7C1%7Ca%3A%
 #### Snapshots
 
 To use the latest development version, just clone this repository, run `mvn clean install` and change the version in the
-dependency above to 3.2.6.51.15-SNAPSHOT.
+dependency above to 3.3.0.51.15-SNAPSHOT.
 
 #### Note on Versioning Scheme
 
@@ -94,11 +94,11 @@ UUID property to every node which isn't internal to the framework.
 or a Spring Expression Language expression determining, which relationships to assign a UUID to. The default is **not** to assign the
 UUID property to any relationship. If you want to assign UUID to all relationship, please use `com.graphaware.module.UIDM.relationship=com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships`
 
-`com.graphaware.module.UIDM.uuidIndex` is the [legacy](http://nigelsmall.com/neo4j/index-confusion.php) index name that will be used to index nodes based on their UUID. The default is "uuidIndex".
+`com.graphaware.module.UIDM.uuidIndex` is the [explicit](http://nigelsmall.com/neo4j/index-confusion.php) index name that will be used to index nodes based on their UUID. The default is "uuidIndex".
 
-`com.graphaware.module.UIDM.uuidRelationshipIndex` is the legacy index name that will be used to index relationships based on their UUID. The default is "uuidRelIndex". 
+`com.graphaware.module.UIDM.uuidRelationshipIndex` is the explicit index name that will be used to index relationships based on their UUID. The default is "uuidRelIndex".
 
-Note legacy indexes (which differ from schema indexes) are used as they are label agnostic. You can check the existence of these legacy indexes via the `neo4j-shell`:
+Note explicit indexes (which differ from schema indexes) are used as they are label agnostic. You can check the existence of these explicit indexes via the `neo4j-shell`:
 ```
 > neo4j-shell
 neo4j-sh (?)$ index --indexes

@@ -17,7 +17,7 @@ package com.graphaware.module.uuid;
 
 import com.graphaware.common.util.Change;
 import com.graphaware.common.uuid.UuidGenerator;
-import com.graphaware.module.uuid.index.LegacyIndexer;
+import com.graphaware.module.uuid.index.ExplicitIndexer;
 import com.graphaware.module.uuid.index.UuidIndexer;
 import com.graphaware.runtime.module.BaseTxDrivenModule;
 import com.graphaware.runtime.module.DeliberateTransactionRollbackException;
@@ -54,7 +54,7 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
         super(moduleId);
         this.uuidConfiguration = configuration;
         this.uuidGenerator = instantiateUuidGenerator(configuration, database);
-        this.uuidIndexer = new LegacyIndexer(database, configuration);
+        this.uuidIndexer = new ExplicitIndexer(database, configuration);
     }
 
     protected UuidGenerator instantiateUuidGenerator(UuidConfiguration uuidConfiguration, GraphDatabaseService database) {

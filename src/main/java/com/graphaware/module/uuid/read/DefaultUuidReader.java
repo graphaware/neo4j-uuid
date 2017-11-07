@@ -18,7 +18,7 @@ package com.graphaware.module.uuid.read;
 
 
 import com.graphaware.module.uuid.UuidConfiguration;
-import com.graphaware.module.uuid.index.LegacyIndexer;
+import com.graphaware.module.uuid.index.ExplicitIndexer;
 import com.graphaware.module.uuid.index.UuidIndexer;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -30,7 +30,7 @@ public class DefaultUuidReader implements UuidReader {
     private final UuidIndexer indexer;
 
     public DefaultUuidReader(UuidConfiguration configuration, GraphDatabaseService database) {
-        this.indexer = new LegacyIndexer(database, configuration);
+        this.indexer = new ExplicitIndexer(database, configuration);
     }
 
     /**

@@ -37,8 +37,18 @@ public class UuidModuleMultipleModulesTest extends GraphAwareIntegrationTest {
     @Test
     public void testWorkflow() {
         //Create & Assign
-        httpClient.executeCypher(baseNeoUrl(), "CREATE (:Customer {name:'c1'})");
-        httpClient.executeCypher(baseNeoUrl(), "CREATE (:User {name:'u1'})");
+        Pattern pattern = Pattern.compile("\\\"row\\\":\\[([0-9]*)\\]");
+
+        Matcher cidMatcher = pattern.matcher(
+                httpClient.executeCypher(baseNeoUrl(), "CREATE (c:Customer {name:'c1'}) RETURN id(c)"));
+        assertTrue(cidMatcher.find());
+        String cid = cidMatcher.group(1);
+
+        Matcher uidMatcher = pattern.matcher(
+                httpClient.executeCypher(baseNeoUrl(), "CREATE (u:User {name:'u1'}) RETURN id(u)"));
+        assertTrue(uidMatcher.find());
+        String uid = uidMatcher.group(1);
+
         httpClient.executeCypher(baseNeoUrl(), "CREATE (:SomethingElse {name:'s1'})");
 
         String response = httpClient.executeCypher(baseNeoUrl(), "MATCH (c:Customer) RETURN c");
@@ -48,7 +58,7 @@ public class UuidModuleMultipleModulesTest extends GraphAwareIntegrationTest {
         String uuid = matcher.group(1);
 
         //Retrieve
-        assertEquals("0", httpClient.get(baseUrl() + "/uuid/UID1/node/" + uuid, SC_OK));
+        assertEquals(cid, httpClient.get(baseUrl() + "/uuid/UID1/node/" + uuid, SC_OK));
 
         response = httpClient.executeCypher(baseNeoUrl(), "MATCH (u:User) RETURN u");
 
@@ -57,14 +67,24 @@ public class UuidModuleMultipleModulesTest extends GraphAwareIntegrationTest {
         uuid = matcher.group(1);
 
         //Retrieve
-        assertEquals("1", httpClient.get(baseUrl() + "/uuid/UID2/node/" + uuid, SC_OK));
+        assertEquals(uid, httpClient.get(baseUrl() + "/uuid/UID2/node/" + uuid, SC_OK));
     }
 
     @Test
     public void testProcedures() {
         //Create & Assign
-        httpClient.executeCypher(baseNeoUrl(), "CREATE (:Customer {name:'c1'})");
-        httpClient.executeCypher(baseNeoUrl(), "CREATE (:User {name:'u1'})");
+        Pattern pattern = Pattern.compile("\\\"row\\\":\\[([0-9]*)\\]");
+
+        Matcher cidMatcher = pattern.matcher(
+                httpClient.executeCypher(baseNeoUrl(), "CREATE (c:Customer {name:'c1'}) RETURN id(c)"));
+        assertTrue(cidMatcher.find());
+        String cid = cidMatcher.group(1);
+
+        Matcher uidMatcher = pattern.matcher(
+                httpClient.executeCypher(baseNeoUrl(), "CREATE (u:User {name:'u1'}) RETURN id(u)"));
+        assertTrue(uidMatcher.find());
+        String uid = uidMatcher.group(1);
+
         httpClient.executeCypher(baseNeoUrl(), "CREATE (:SomethingElse {name:'s1'})");
 
         String response = httpClient.executeCypher(baseNeoUrl(), "MATCH (c:Customer) RETURN c");
@@ -74,7 +94,7 @@ public class UuidModuleMultipleModulesTest extends GraphAwareIntegrationTest {
         String uuid = matcher.group(1);
 
         //Retrieve
-        assertEquals("{\"results\":[{\"columns\":[\"id\"],\"data\":[{\"row\":[0],\"meta\":[null]}]}],\"errors\":[]}", findNodeByUuid("UID1", uuid));
+        assertEquals("{\"results\":[{\"columns\":[\"id\"],\"data\":[{\"row\":[" + cid + "],\"meta\":[null]}]}],\"errors\":[]}", findNodeByUuid("UID1", uuid));
 
         response = httpClient.executeCypher(baseNeoUrl(), "MATCH (u:User) RETURN u");
 
@@ -83,9 +103,9 @@ public class UuidModuleMultipleModulesTest extends GraphAwareIntegrationTest {
         uuid = matcher.group(1);
 
         //Retrieve
-        assertEquals("{\"results\":[{\"columns\":[\"id\"],\"data\":[{\"row\":[1],\"meta\":[null]}]}],\"errors\":[]}", findNodeByUuid("UID2", uuid));
+        assertEquals("{\"results\":[{\"columns\":[\"id\"],\"data\":[{\"row\":[" + uid + "],\"meta\":[null]}]}],\"errors\":[]}", findNodeByUuid("UID2", uuid));
     }
-    
+
     private String findNodeByUuid(String moduleId, String uuid) {
         return httpClient.executeCypher(baseNeoUrl(), "RETURN id(ga.uuid.nd.findNode('" + moduleId + "','" + uuid + "')) as id");
     }
