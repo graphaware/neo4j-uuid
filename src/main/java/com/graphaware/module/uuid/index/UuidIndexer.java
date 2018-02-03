@@ -16,8 +16,8 @@
 
 package com.graphaware.module.uuid.index;
 
+import org.neo4j.graphdb.Entity;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.PropertyContainer;
 import org.neo4j.graphdb.Relationship;
 
 /**
@@ -26,15 +26,15 @@ import org.neo4j.graphdb.Relationship;
 public interface UuidIndexer {
 
     /**
-     * Index a property container based on the UUID property.
+     * Index a entity based on the UUID property.
      *
-     * @param propertyContainer the property container to index.
+     * @param entity the entity to index.
      */
-    default void index(PropertyContainer propertyContainer) {
-        if (propertyContainer instanceof Node) {
-            indexNode((Node) propertyContainer);
+    default void index(Entity entity) {
+        if (entity instanceof Node) {
+            indexNode((Node) entity);
         } else {
-            indexRelationship((Relationship) propertyContainer);
+            indexRelationship((Relationship) entity);
         }
     }
 

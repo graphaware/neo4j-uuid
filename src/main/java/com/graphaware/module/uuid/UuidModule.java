@@ -25,13 +25,8 @@ import com.graphaware.tx.event.improved.api.ImprovedTransactionData;
 import com.graphaware.tx.executor.batch.IterableInputBatchTransactionExecutor;
 import com.graphaware.tx.executor.input.AllNodes;
 import com.graphaware.tx.executor.input.AllRelationships;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.PropertyContainer;
-import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.*;
 import org.springframework.util.ClassUtils;
-
-import static com.graphaware.common.util.PropertyContainerUtils.id;
 
 /**
  * {@link com.graphaware.runtime.module.TxDrivenModule} that assigns UUID's to nodes in the graph.
@@ -170,39 +165,39 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
         return null;
     }
 
-    protected void assignUuid(PropertyContainer propertyContainer) {
+    protected void assignUuid(Entity entity) {
         String uuidProperty = uuidConfiguration.getUuidProperty();
 
-        if (!propertyContainer.hasProperty(uuidProperty)) {
-            assignNewUuid(propertyContainer, uuidProperty);
+        if (!entity.hasProperty(uuidProperty)) {
+            assignNewUuid(entity, uuidProperty);
         } else {
-            handleExistingUuid(propertyContainer, uuidProperty);
+            handleExistingUuid(entity, uuidProperty);
         }
 
-        uuidIndexer.index(propertyContainer);
+        uuidIndexer.index(entity);
     }
 
-    private void assignNewUuid(PropertyContainer propertyContainer, String uuidProperty) {
+    private void assignNewUuid(Entity entity, String uuidProperty) {
         String uuid = uuidGenerator.generateUuid();
 
         if (uuidConfiguration.shouldStripHyphens()) {
             uuid = uuid.replaceAll("-", "");
         }
 
-        propertyContainer.setProperty(uuidProperty, uuid);
+        entity.setProperty(uuidProperty, uuid);
     }
 
-    private void handleExistingUuid(PropertyContainer propertyContainer, String uuidProperty) {
-        PropertyContainer existingPc;
+    private void handleExistingUuid(Entity entity, String uuidProperty) {
+        Entity existingEntity;
 
-        if (propertyContainer instanceof Node) {
-            existingPc = uuidIndexer.getNodeByUuid(propertyContainer.getProperty(uuidProperty).toString());
+        if (entity instanceof Node) {
+            existingEntity = uuidIndexer.getNodeByUuid(entity.getProperty(uuidProperty).toString());
         } else {
-            existingPc = uuidIndexer.getRelationshipByUuid(propertyContainer.getProperty(uuidProperty).toString());
+            existingEntity = uuidIndexer.getRelationshipByUuid(entity.getProperty(uuidProperty).toString());
         }
 
-        if (existingPc != null && (id(existingPc) != id(propertyContainer))) {
-            throw new DeliberateTransactionRollbackException("Another " + existingPc.getClass().getName() + " with UUID " + propertyContainer.getProperty(uuidProperty).toString() + " already exists (#" + id(existingPc) + ")!");
+        if (existingEntity != null && (existingEntity.getId() != entity.getId())) {
+            throw new DeliberateTransactionRollbackException("Another " + existingEntity.getClass().getName() + " with UUID " + entity.getProperty(uuidProperty).toString() + " already exists (#" + existingEntity.getId() + ")!");
         }
     }
 
