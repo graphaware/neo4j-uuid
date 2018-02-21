@@ -65,10 +65,10 @@ public class UuidModuleEndToEndProcTest extends GraphAwareIntegrationTest {
 
         //Delete
         httpClient.executeCypher(baseNeoUrl(), "MATCH (p:Person {name:'Luanne'}) DETACH DELETE p");
-        assertEquals("{\"results\":[{\"columns\":[\"id\"],\"data\":[]}],\"errors\":[{\"code\":\"Neo.ClientError.Procedure.ProcedureCallFailed\",\"message\":\"Failed to invoke function `ga.uuid.findNode`: Caused by: org.neo4j.graphdb.NotFoundException: Node with UUID " + personUuid + " does not exist\"}]}", findNodeByUuid(personUuid));
-        assertEquals("{\"results\":[],\"errors\":[{\"code\":\"Neo.ClientError.Procedure.ProcedureCallFailed\",\"message\":\"Failed to invoke function `ga.uuid.findNodes`: Caused by: org.neo4j.graphdb.NotFoundException: Node with UUID " + personUuid + " does not exist\"}]}", findNodesByUuids(personUuid, "something"));
-        assertEquals("{\"results\":[{\"columns\":[\"id\"],\"data\":[]}],\"errors\":[{\"code\":\"Neo.ClientError.Procedure.ProcedureCallFailed\",\"message\":\"Failed to invoke function `ga.uuid.nd.findNode`: Caused by: org.neo4j.graphdb.NotFoundException: Node with UUID " + personUuid + " does not exist\"}]}", findNodeByUuid("UIDM", personUuid));
-        assertEquals("{\"results\":[],\"errors\":[{\"code\":\"Neo.ClientError.Procedure.ProcedureCallFailed\",\"message\":\"Failed to invoke function `ga.uuid.nd.findNodes`: Caused by: org.neo4j.graphdb.NotFoundException: Node with UUID " + personUuid + " does not exist\"}]}", findNodesByUuidsWithModule("UIDM", personUuid, "something"));
+        assertEquals("{\"results\":[{\"columns\":[\"id\"],\"data\":[{\"row\":[null],\"meta\":[null]}]}],\"errors\":[]}", findNodeByUuid(personUuid));
+        assertEquals("{\"results\":[{\"columns\":[\"ids\"],\"data\":[{\"row\":[[]],\"meta\":[]}]}],\"errors\":[]}", findNodesByUuids(personUuid, "something"));
+        assertEquals("{\"results\":[{\"columns\":[\"id\"],\"data\":[{\"row\":[null],\"meta\":[null]}]}],\"errors\":[]}", findNodeByUuid("UIDM", personUuid));
+        assertEquals("{\"results\":[{\"columns\":[\"ids\"],\"data\":[{\"row\":[[]],\"meta\":[]}]}],\"errors\":[]}", findNodesByUuidsWithModule("UIDM", personUuid, "something"));
     }
 
     @Test
@@ -87,14 +87,14 @@ public class UuidModuleEndToEndProcTest extends GraphAwareIntegrationTest {
 
         //Delete
         httpClient.executeCypher(baseNeoUrl(), "MATCH (p:Person {name:'Luanne'}) DETACH DELETE p");
-        assertEquals("{\"results\":[{\"columns\":[\"id\"],\"data\":[]}],\"errors\":[{\"code\":\"Neo.ClientError.Procedure.ProcedureCallFailed\",\"message\":\"Failed to invoke function `ga.uuid.findNode`: Caused by: org.neo4j.graphdb.NotFoundException: Node with UUID 123 does not exist\"}]}", findNodeByUuid("123"));
-        assertEquals("{\"results\":[{\"columns\":[\"id\"],\"data\":[]}],\"errors\":[{\"code\":\"Neo.ClientError.Procedure.ProcedureCallFailed\",\"message\":\"Failed to invoke function `ga.uuid.nd.findNode`: Caused by: org.neo4j.graphdb.NotFoundException: Node with UUID 123 does not exist\"}]}", findNodeByUuid("UIDM", "123"));
+        assertEquals("{\"results\":[{\"columns\":[\"id\"],\"data\":[{\"row\":[null],\"meta\":[null]}]}],\"errors\":[]}", findNodeByUuid("123"));
+        assertEquals("{\"results\":[{\"columns\":[\"id\"],\"data\":[{\"row\":[null],\"meta\":[null]}]}],\"errors\":[]}", findNodeByUuid("UIDM", "123"));
     }
 
     @Test
-    public void shouldReturnErrorsWhenUuidNotExists() {
-        assertEquals("{\"results\":[{\"columns\":[\"id\"],\"data\":[]}],\"errors\":[{\"code\":\"Neo.ClientError.Procedure.ProcedureCallFailed\",\"message\":\"Failed to invoke function `ga.uuid.findNode`: Caused by: org.neo4j.graphdb.NotFoundException: Node with UUID not-exists does not exist\"}]}", findNodeByUuid("not-exists"));
-        assertEquals("{\"results\":[{\"columns\":[\"id\"],\"data\":[]}],\"errors\":[{\"code\":\"Neo.ClientError.Procedure.ProcedureCallFailed\",\"message\":\"Failed to invoke function `ga.uuid.nd.findNode`: Caused by: org.neo4j.graphdb.NotFoundException: Node with UUID not-exists does not exist\"}]}", findNodeByUuid("UIDM", "not-exists"));
+    public void shouldReturnNullWhenUuidNotExists() {
+        assertEquals("{\"results\":[{\"columns\":[\"id\"],\"data\":[{\"row\":[null],\"meta\":[null]}]}],\"errors\":[]}", findNodeByUuid("not-exists"));
+        assertEquals("{\"results\":[{\"columns\":[\"id\"],\"data\":[{\"row\":[null],\"meta\":[null]}]}],\"errors\":[]}", findNodeByUuid("UIDM", "not-exists"));
     }
 
     @Test

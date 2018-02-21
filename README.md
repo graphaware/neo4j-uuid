@@ -152,6 +152,8 @@ you will have to use slightly different syntax that allows you to pass in the mo
 * `ga.uuid.nd.findNodes('<module ID>',['<UUID1>,<UUID2>,...'])`
 * `ga.uuid.nd.findRelationships('<module ID>',['<UUID1>,<UUID2>,...'])`
 
+When a node or relationship isn't found, `null` is returned. A non-existing UUID module ID will result in a `NotFoundException`.
+
 ### REST API
 
 In Server Mode, a node/relationship can be retrieved by its UUID via the REST API.

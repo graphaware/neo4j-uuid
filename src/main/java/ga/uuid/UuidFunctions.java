@@ -21,6 +21,7 @@ import com.graphaware.module.uuid.read.DefaultUuidReader;
 import com.graphaware.module.uuid.read.UuidReader;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.NotFoundException;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.procedure.Context;
 
@@ -37,10 +38,22 @@ public abstract class UuidFunctions {
     }
 
     protected Node findNodeByUuid(String moduleId, String uuid) {
-        return database.getNodeById(reader(moduleId).getNodeIdByUuid(uuid));
+        UuidReader reader = reader(moduleId);
+
+        try {
+            return database.getNodeById(reader.getNodeIdByUuid(uuid));
+        } catch (NotFoundException e) {
+            return null;
+        }
     }
 
     protected Relationship findRelationshipByUuid(String moduleId, String uuid) {
-        return database.getRelationshipById(reader(moduleId).getRelationshipIdByUuid(uuid));
+        UuidReader reader = reader(moduleId);
+
+        try {
+            return database.getRelationshipById(reader.getRelationshipIdByUuid(uuid));
+        } catch (NotFoundException e) {
+            return null;
+        }
     }
 }
