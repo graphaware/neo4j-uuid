@@ -91,9 +91,14 @@ public class UuidBootstrapper extends BaseRuntimeModuleBootstrapper<UuidConfigur
             boolean immutable = Boolean.valueOf(immutableString);
             configuration = configuration.withImmutability(immutable);
             LOG.info("Setting immutability to %s", immutableString);
+            logImmutabilityWarning();
         }
         
 
         return new UuidModule(moduleId, configuration, database);
+    }
+
+    private void logImmutabilityWarning() {
+        LOG.warn("Immutability has been disabled by the configuration. Such setting might have a negative impact your data integration systems.");
     }
 }
