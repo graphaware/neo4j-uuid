@@ -150,6 +150,12 @@ public class UuidConfiguration extends BaseTxDrivenModuleConfiguration<UuidConfi
         return new UuidConfiguration(getInclusionPolicies(), initializeUntil(), getUuidGenerator(), getUuidProperty(), stripHyphens, getUuidIndex(), getUuidRelationshipIndex(), getImmutable());
     }
 
+    /**
+     * Create a new instance of this {@link UuidConfiguration} with a custom immutability setting.
+     *
+     * @param immutability property of new instance.
+     * @return new instance.
+     */
     public UuidConfiguration withImmutability(boolean immutability) {
         return new UuidConfiguration(getInclusionPolicies(), initializeUntil(), getUuidGenerator(), getUuidProperty(), stripHyphens, getUuidIndex(), getUuidRelationshipIndex(), immutability);
     }
