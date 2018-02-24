@@ -43,6 +43,9 @@ import com.graphaware.module.uuid.generator.SequenceIdGenerator;
 import com.graphaware.runtime.policy.all.IncludeAllBusinessNodes;
 import com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships;
 
+import java.util.HashMap;
+import java.util.Map;
+
 
 public class UuidModuleDeclarativeIntegrationTest {
 
@@ -112,6 +115,52 @@ public class UuidModuleDeclarativeIntegrationTest {
                 assertTrue(node.hasProperty(UUID));
                 assertFalse(node.getProperty(UUID).toString().contains("-"));
                 assertEquals(Long.valueOf(node.getId()), api.getNodeIdByUuid((String) node.getProperty(UUID)));
+            }
+            tx.success();
+        }
+    }
+
+    @Test
+    public void testUuidCanBeChangedWhenImmutableIsFalse() throws InterruptedException {
+        database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
+                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid-immutable-false.conf").getPath())
+                .newGraphDatabase();
+
+        getRuntime(database).waitUntilStarted();
+        UuidApi api = new UuidApi(database);
+        //When
+        try (Transaction tx = database.beginTx()) {
+            Node node = database.createNode();
+            node.addLabel(personLabel);
+            node.setProperty("name", "aNode");
+            tx.success();
+        }
+
+        //Then
+        //Retrieve the node and check that it has a uuid property
+        try (Transaction tx = database.beginTx()) {
+            for (Node node : asIterable(database.findNodes(personLabel))) {
+                assertTrue(node.hasProperty(UUID));
+                assertFalse(node.getProperty(UUID).toString().contains("-"));
+                assertEquals(Long.valueOf(node.getId()), api.getNodeIdByUuid((String) node.getProperty(UUID)));
+            }
+            tx.success();
+        }
+
+        //Then
+        //Change the node uuid property
+        try (Transaction tx = database.beginTx()) {
+            for (Node node : asIterable(database.findNodes(personLabel))) {
+                node.setProperty(UUID, "123-" + String.valueOf(node.getId()));
+            }
+            tx.success();
+        }
+
+        //Then
+        // Check nodes have uuid changed
+        try (Transaction tx = database.beginTx()) {
+            for (Node node : asIterable(database.findNodes(personLabel))) {
+                assertEquals("123-" + String.valueOf(node.getId()), node.getProperty(UUID).toString());
             }
             tx.success();
         }
