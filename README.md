@@ -205,6 +205,16 @@ com.graphaware.module.UUID.uuidGeneratorClass=com.graphaware.module.uuid.generat
 Please see the `com.graphaware.common.uuid.UuidGenerator` interface and the `com.graphaware.module.uuid.generator` package for more information 
 and examples of how to implement your own generator. 
 
+### Immutability
+
+This module ensures that all assigned UUIDs on nodes and relationships are immutable, meaning they cannot be deleted nor changed.
+In some scenarios, developers might want to disable the immutability with the following configuration setting :
+
+```
+com.graphaware.module.UUID.immutable=false
+```
+
+We only allow this setting for development purposes or developers having an specific need and we **fully discourage** the use of this setting.
 
 License
 -------

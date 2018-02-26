@@ -39,6 +39,7 @@ public class UuidBootstrapper extends BaseRuntimeModuleBootstrapper<UuidConfigur
     private static final String UUID_RELATIONSHIP_INDEX = "uuidRelationshipIndex";
     private static final String STRIP_HYPHENS = "stripHyphens";
     private static final String UUID_GENERATOR_CLASS = "uuidGeneratorClass";
+    private static final String IMMUTABLE = "immutable";
 
     /**
      * {@inheritDoc}
@@ -84,8 +85,20 @@ public class UuidBootstrapper extends BaseRuntimeModuleBootstrapper<UuidConfigur
             configuration = configuration.withUuidGenerator(uuidGeneratorClassString);
             LOG.info("uuidGenerator set to %s", configuration.getUuidGenerator());
         }
+
+        String immutableString = config.get(IMMUTABLE);
+        if (StringUtils.isNotBlank(immutableString)) {
+            boolean immutable = Boolean.valueOf(immutableString);
+            configuration = configuration.withImmutability(immutable);
+            LOG.info("Setting immutability to %s", immutableString);
+            logImmutabilityWarning();
+        }
         
 
         return new UuidModule(moduleId, configuration, database);
+    }
+
+    private void logImmutabilityWarning() {
+        LOG.warn("Immutability has been disabled by the configuration. Such setting might have a negative impact your data integration systems.");
     }
 }
