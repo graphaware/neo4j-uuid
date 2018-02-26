@@ -99,6 +99,6 @@ public class UuidBootstrapper extends BaseRuntimeModuleBootstrapper<UuidConfigur
     }
 
     private void logImmutabilityWarning() {
-        LOG.warn("Immutability has been disabled by the configuration. Such setting might have a negative impact your data integration systems.");
+        LOG.warn("Immutability has been disabled by the configuration. Such setting might have a negative impact on the consistency of your data.");
     }
 }
