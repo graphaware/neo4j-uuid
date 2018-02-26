@@ -16,10 +16,7 @@
 package com.graphaware.module.uuid;
 
 import static com.graphaware.runtime.RuntimeRegistry.getRuntime;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.neo4j.helpers.collection.Iterators.asIterable;
 
 import org.junit.After;
@@ -128,6 +125,7 @@ public class UuidModuleDeclarativeIntegrationTest {
 
         getRuntime(database).waitUntilStarted();
         UuidApi api = new UuidApi(database);
+
         //When
         try (Transaction tx = database.beginTx()) {
             Node node = database.createNode();
@@ -138,11 +136,18 @@ public class UuidModuleDeclarativeIntegrationTest {
 
         //Then
         //Retrieve the node and check that it has a uuid property
+
+        Long nodeId = null;
+        String oldUuid = null;
+        String newUuid = null;
+
         try (Transaction tx = database.beginTx()) {
             for (Node node : asIterable(database.findNodes(personLabel))) {
                 assertTrue(node.hasProperty(UUID));
-                assertFalse(node.getProperty(UUID).toString().contains("-"));
-                assertEquals(Long.valueOf(node.getId()), api.getNodeIdByUuid((String) node.getProperty(UUID)));
+
+                nodeId = node.getId();
+                oldUuid = (String) node.getProperty(UUID);
+                assertEquals(nodeId, api.getNodeIdByUuid(oldUuid));
             }
             tx.success();
         }
@@ -151,7 +156,8 @@ public class UuidModuleDeclarativeIntegrationTest {
         //Change the node uuid property
         try (Transaction tx = database.beginTx()) {
             for (Node node : asIterable(database.findNodes(personLabel))) {
-                node.setProperty(UUID, "123-" + String.valueOf(node.getId()));
+                newUuid = "123-" + nodeId;
+                node.setProperty(UUID, newUuid);
             }
             tx.success();
         }
@@ -160,9 +166,89 @@ public class UuidModuleDeclarativeIntegrationTest {
         // Check nodes have uuid changed
         try (Transaction tx = database.beginTx()) {
             for (Node node : asIterable(database.findNodes(personLabel))) {
-                assertEquals("123-" + String.valueOf(node.getId()), node.getProperty(UUID).toString());
+                assertEquals(newUuid, node.getProperty(UUID).toString());
             }
             tx.success();
+        }
+
+        //Then
+        //Check the node can be found by new UUID
+        try (Transaction tx = database.beginTx()) {
+            assertEquals(nodeId, api.getNodeIdByUuid(newUuid));
+            tx.success();
+        }
+
+        //Then
+        //Check that old UUID can no longer be used to lookup the node
+        try (Transaction tx = database.beginTx()) {
+            try {
+                api.getNodeIdByUuid(oldUuid);
+                fail();
+            } catch (NotFoundException e) {
+                //good
+            }
+        }
+    }
+
+    @Test
+    public void testUuidCanBeRemovedWhenImmutableIsFalse() throws InterruptedException {
+        database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
+                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid-immutable-false.conf").getPath())
+                .newGraphDatabase();
+
+        getRuntime(database).waitUntilStarted();
+        UuidApi api = new UuidApi(database);
+
+        //When
+        try (Transaction tx = database.beginTx()) {
+            Node node = database.createNode();
+            node.addLabel(personLabel);
+            node.setProperty("name", "aNode");
+            tx.success();
+        }
+
+        //Then
+        //Retrieve the node and check that it has a uuid property
+
+        String oldUuid = null;
+
+        try (Transaction tx = database.beginTx()) {
+            for (Node node : asIterable(database.findNodes(personLabel))) {
+                assertTrue(node.hasProperty(UUID));
+
+                oldUuid = (String) node.getProperty(UUID);
+                assertEquals((Long) node.getId(), api.getNodeIdByUuid(oldUuid));
+            }
+            tx.success();
+        }
+
+        //Then
+        //Remove the node uuid property
+        try (Transaction tx = database.beginTx()) {
+            for (Node node : asIterable(database.findNodes(personLabel))) {
+                node.removeProperty(UUID);
+            }
+            tx.success();
+        }
+
+        //Then
+        // Check nodes have uuid removed
+        try (Transaction tx = database.beginTx()) {
+            for (Node node : asIterable(database.findNodes(personLabel))) {
+                assertFalse(node.hasProperty(UUID));
+            }
+            tx.success();
+        }
+
+        //Then
+        //Check that old UUID can no longer be used to lookup the node
+        try (Transaction tx = database.beginTx()) {
+            try {
+                api.getNodeIdByUuid(oldUuid);
+                fail();
+            } catch (NotFoundException e) {
+                //good
+            }
         }
     }
 

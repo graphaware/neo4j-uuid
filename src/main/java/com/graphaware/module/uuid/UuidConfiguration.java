@@ -38,8 +38,8 @@ public class UuidConfiguration extends BaseTxDrivenModuleConfiguration<UuidConfi
     private final String uuidProperty;
     private final String uuidIndex;
     private final String uuidRelationshipIndex;
-    private final Boolean stripHyphens;
-    private final Boolean immutable;
+    private final boolean stripHyphens;
+    private final boolean immutable;
 
 
     private UuidConfiguration(InclusionPolicies inclusionPolicies, long initializeUntil, String uuidGenerator, String uuidProperty, boolean stripHyphens, String uuidIndex, String uuidRelationshipIndex, boolean immutable) {
@@ -96,7 +96,7 @@ public class UuidConfiguration extends BaseTxDrivenModuleConfiguration<UuidConfi
         return stripHyphens;
     }
 
-    public Boolean getImmutable() {
+    public boolean getImmutable() {
         return immutable;
     }
 
@@ -157,7 +157,7 @@ public class UuidConfiguration extends BaseTxDrivenModuleConfiguration<UuidConfi
      * @return new instance.
      */
     public UuidConfiguration withImmutability(boolean immutability) {
-        return new UuidConfiguration(getInclusionPolicies(), initializeUntil(), getUuidGenerator(), getUuidProperty(), stripHyphens, getUuidIndex(), getUuidRelationshipIndex(), immutability);
+        return new UuidConfiguration(getInclusionPolicies(), initializeUntil(), getUuidGenerator(), getUuidProperty(), shouldStripHyphens(), getUuidIndex(), getUuidRelationshipIndex(), immutability);
     }
 
     /**
@@ -199,9 +199,6 @@ public class UuidConfiguration extends BaseTxDrivenModuleConfiguration<UuidConfi
         return true;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public int hashCode() {
         int result = super.hashCode();
@@ -209,8 +206,8 @@ public class UuidConfiguration extends BaseTxDrivenModuleConfiguration<UuidConfi
         result = 31 * result + uuidProperty.hashCode();
         result = 31 * result + uuidIndex.hashCode();
         result = 31 * result + uuidRelationshipIndex.hashCode();
-        result = 31 * result + stripHyphens.hashCode();
-        result = 31 * result + immutable.hashCode();
+        result = 31 * result + (stripHyphens ? 1 : 0);
+        result = 31 * result + (immutable ? 1 : 0);
         return result;
     }
 }

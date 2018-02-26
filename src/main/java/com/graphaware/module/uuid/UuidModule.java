@@ -138,6 +138,7 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
                     throw new DeliberateTransactionRollbackException("You are not allowed to remove the " + uuidConfiguration.getUuidProperty() + " property");
                 } else {
                     uuidIndexer.deleteNodeFromIndex(change.getCurrent());
+                    continue;
                 }
             }
 
@@ -167,6 +168,7 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
                     throw new DeliberateTransactionRollbackException("You are not allowed to remove the " + uuidConfiguration.getUuidProperty() + " property");
                 } else {
                     uuidIndexer.deleteRelationshipFromIndex(change.getCurrent());
+                    continue;
                 }
             }
 
