@@ -135,7 +135,7 @@ Apart from the configuration described above, the GraphAware UUID module require
 and will prevent modifications to the UUID or deletion of the UUID property from these nodes/relationships by not allowing the transaction to commit.
 You can also retrieve a node/relationship by UUID.
 
-Note: If you create a node a return it immediately, its contents will not reflect changes performed by transaction event handlers such as this one -- thus the UUID will not be available. A separate call must be made to get the UUID, for example:
+Note: If you create a node and return it immediately, its contents will not reflect changes performed by transaction event handlers such as this one -- thus the UUID will not be available. A separate call must be made to get the UUID, for example:
 
 ```cypher
 CREATE (n:User {name: "Alice"}) RETURN id(n)
