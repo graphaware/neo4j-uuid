@@ -15,6 +15,7 @@
  */
 package com.graphaware.module.uuid;
 
+import com.graphaware.common.log.LoggerFactory;
 import com.graphaware.common.util.Change;
 import com.graphaware.common.uuid.UuidGenerator;
 import com.graphaware.module.uuid.index.ExplicitIndexer;
@@ -26,6 +27,7 @@ import com.graphaware.tx.executor.batch.IterableInputBatchTransactionExecutor;
 import com.graphaware.tx.executor.input.AllNodes;
 import com.graphaware.tx.executor.input.AllRelationships;
 import org.neo4j.graphdb.*;
+import org.neo4j.logging.Log;
 import org.springframework.util.ClassUtils;
 
 /**
@@ -35,6 +37,7 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
 
     public static final String DEFAULT_MODULE_ID = "UIDM";
     private static final int BATCH_SIZE = 1000;
+    private static final Log LOG = LoggerFactory.getLogger(UuidModule.class);
 
     private final UuidGenerator uuidGenerator;
     private final UuidConfiguration uuidConfiguration;
@@ -133,7 +136,7 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
 
         //Check if the UUID has been modified or removed from the node and throw an error if immutability is true
         for (Change<Node> change : transactionData.getAllChangedNodes()) {
-            if (!change.getCurrent().hasProperty(uuidConfiguration.getUuidProperty())) {
+            if (uuidPropertyHasBeenRemovedOnNode(change)) {
                 if (isImmutable()) {
                     throw new DeliberateTransactionRollbackException("You are not allowed to remove the " + uuidConfiguration.getUuidProperty() + " property");
                 } else {
@@ -142,13 +145,18 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
                 }
             }
 
-            if (!change.getPrevious().getProperty(uuidConfiguration.getUuidProperty()).equals(change.getCurrent().getProperty(uuidConfiguration.getUuidProperty()))) {
+            if (change.getPrevious().hasProperty(uuidConfiguration.getUuidProperty()) && (!change.getPrevious().getProperty(uuidConfiguration.getUuidProperty()).equals(change.getCurrent().getProperty(uuidConfiguration.getUuidProperty())))) {
                 if (isImmutable()) {
                     throw new DeliberateTransactionRollbackException("You are not allowed to modify the " + uuidConfiguration.getUuidProperty() + " property");
                 } else {
                     uuidIndexer.deleteNodeFromIndex(change.getCurrent());
                     assignUuid(change.getCurrent());
+                    continue;
                 }
+            }
+
+            if (!change.getPrevious().hasProperty(uuidConfiguration.getUuidProperty()) && !change.getCurrent().hasProperty(uuidConfiguration.getUuidProperty())) {
+                assignUuid(change.getCurrent());
             }
         }
 
@@ -163,7 +171,7 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
 
         //Check if the UUID has been modified or removed from the relationship and throw an error if immutability is true
         for (Change<Relationship> change : transactionData.getAllChangedRelationships()) {
-            if (!change.getCurrent().hasProperty(uuidConfiguration.getUuidProperty())) {
+            if (uuidPropertyHasBeenRemovedOnRelationship(change)) {
                 if (isImmutable()) {
                     throw new DeliberateTransactionRollbackException("You are not allowed to remove the " + uuidConfiguration.getUuidProperty() + " property");
                 } else {
@@ -172,13 +180,18 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
                 }
             }
 
-            if (!change.getPrevious().getProperty(uuidConfiguration.getUuidProperty()).equals(change.getCurrent().getProperty(uuidConfiguration.getUuidProperty()))) {
+            if (change.getPrevious().hasProperty(uuidConfiguration.getUuidProperty()) && (!change.getPrevious().getProperty(uuidConfiguration.getUuidProperty()).equals(change.getCurrent().getProperty(uuidConfiguration.getUuidProperty())))) {
                 if (isImmutable()) {
                     throw new DeliberateTransactionRollbackException("You are not allowed to modify the " + uuidConfiguration.getUuidProperty() + " property");
                 } else {
                     uuidIndexer.deleteRelationshipFromIndex(change.getCurrent());
                     assignUuid(change.getCurrent());
+                    continue;
                 }
+            }
+
+            if (!change.getPrevious().hasProperty(uuidConfiguration.getUuidProperty()) && !change.getCurrent().hasProperty(uuidConfiguration.getUuidProperty())) {
+                assignUuid(change.getCurrent());
             }
         }
 
@@ -223,6 +236,14 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
 
     private boolean isImmutable() {
         return uuidConfiguration.getImmutable();
+    }
+
+    private boolean uuidPropertyHasBeenRemovedOnNode(Change<Node> changed) {
+        return !changed.getCurrent().hasProperty(uuidConfiguration.getUuidProperty()) && changed.getPrevious().hasProperty(uuidConfiguration.getUuidProperty());
+    }
+
+    private boolean uuidPropertyHasBeenRemovedOnRelationship(Change<Relationship> changed) {
+        return !changed.getCurrent().hasProperty(uuidConfiguration.getUuidProperty()) && changed.getPrevious().hasProperty(uuidConfiguration.getUuidProperty());
     }
 
 }

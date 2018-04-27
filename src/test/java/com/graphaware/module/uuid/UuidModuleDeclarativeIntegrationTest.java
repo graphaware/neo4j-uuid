@@ -253,6 +253,28 @@ public class UuidModuleDeclarativeIntegrationTest {
     }
 
     @Test
+    public void testUuidsAreAssignedToNodesWithNewIncludedLabel() {
+        database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
+                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid.conf").getPath())
+                .newGraphDatabase();
+
+        // Create a node with a label that is not in the inclusion policies
+        try (Transaction tx = database.beginTx()) {
+            database.execute("CREATE (n:ns7Person) SET n.name = 'John'");
+            tx.success();
+        }
+        checkNoNodesWithLabelHaveUuid("ns7Person");
+
+        // Modify this node and add a label set in Inclusion Policies
+        try (Transaction tx = database.beginTx()) {
+            database.execute("MATCH (n:ns7Person) SET n:Person");
+            tx.success();
+        }
+        checkAllNodesWithLabelHaveUuid("Person");
+
+    }
+
+    @Test
     public void testDefaultGenerator() {
         database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
                 .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid.conf").getPath())
@@ -999,6 +1021,26 @@ public class UuidModuleDeclarativeIntegrationTest {
                     assertTrue(r.hasProperty("uuid"));
                 }
             }
+            tx.success();
+        }
+    }
+
+    private void checkNoNodesWithLabelHaveUuid(String label) {
+        try (Transaction tx = database.beginTx()) {
+            Label label1 = Label.label(label);
+            database.findNodes(label1).forEachRemaining(node -> {
+                assertFalse(node.hasProperty("uuid"));
+            });
+            tx.success();
+        }
+    }
+
+    private void checkAllNodesWithLabelHaveUuid(String label) {
+        try (Transaction tx = database.beginTx()) {
+            Label label1 = Label.label(label);
+            database.findNodes(label1).forEachRemaining(node -> {
+                assertTrue(node.hasProperty("uuid"));
+            });
             tx.success();
         }
     }
