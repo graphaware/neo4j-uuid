@@ -15,7 +15,6 @@
  */
 package com.graphaware.module.uuid;
 
-import com.graphaware.common.log.LoggerFactory;
 import com.graphaware.common.util.Change;
 import com.graphaware.common.uuid.UuidGenerator;
 import com.graphaware.module.uuid.index.ExplicitIndexer;
@@ -26,9 +25,13 @@ import com.graphaware.tx.event.improved.api.ImprovedTransactionData;
 import com.graphaware.tx.executor.batch.IterableInputBatchTransactionExecutor;
 import com.graphaware.tx.executor.input.AllNodes;
 import com.graphaware.tx.executor.input.AllRelationships;
-import org.neo4j.graphdb.*;
-import org.neo4j.logging.Log;
+import org.neo4j.graphdb.Entity;
+import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
 import org.springframework.util.ClassUtils;
+
+import java.util.Collection;
 
 /**
  * {@link com.graphaware.runtime.module.TxDrivenModule} that assigns UUID's to nodes in the graph.
@@ -37,7 +40,6 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
 
     public static final String DEFAULT_MODULE_ID = "UIDM";
     private static final int BATCH_SIZE = 1000;
-    private static final Log LOG = LoggerFactory.getLogger(UuidModule.class);
 
     private final UuidGenerator uuidGenerator;
     private final UuidConfiguration uuidConfiguration;
@@ -124,81 +126,57 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
      */
     @Override
     public Void beforeCommit(ImprovedTransactionData transactionData) throws DeliberateTransactionRollbackException {
-
-        //Set the UUID on all created nodes
-        for (Node node : transactionData.getAllCreatedNodes()) {
-            assignUuid(node);
-        }
-
-        for (Node node : transactionData.getAllDeletedNodes()) {
-            uuidIndexer.deleteNodeFromIndex(node);
-        }
-
-        //Check if the UUID has been modified or removed from the node and throw an error if immutability is true
-        for (Change<Node> change : transactionData.getAllChangedNodes()) {
-            if (uuidPropertyHasBeenRemovedOnNode(change)) {
-                if (isImmutable()) {
-                    throw new DeliberateTransactionRollbackException("You are not allowed to remove the " + uuidConfiguration.getUuidProperty() + " property");
-                } else {
-                    uuidIndexer.deleteNodeFromIndex(change.getCurrent());
-                    continue;
-                }
-            }
-
-            if (change.getPrevious().hasProperty(uuidConfiguration.getUuidProperty()) && (!change.getPrevious().getProperty(uuidConfiguration.getUuidProperty()).equals(change.getCurrent().getProperty(uuidConfiguration.getUuidProperty())))) {
-                if (isImmutable()) {
-                    throw new DeliberateTransactionRollbackException("You are not allowed to modify the " + uuidConfiguration.getUuidProperty() + " property");
-                } else {
-                    uuidIndexer.deleteNodeFromIndex(change.getCurrent());
-                    assignUuid(change.getCurrent());
-                    continue;
-                }
-            }
-
-            if (!change.getPrevious().hasProperty(uuidConfiguration.getUuidProperty()) && !change.getCurrent().hasProperty(uuidConfiguration.getUuidProperty())) {
-                assignUuid(change.getCurrent());
-            }
-        }
-
-        //Set the UUID on all created relationships
-        for (Relationship relationship : transactionData.getAllCreatedRelationships()) {
-            assignUuid(relationship);
-        }
-
-        for (Relationship rel : transactionData.getAllDeletedRelationships()) {
-            uuidIndexer.deleteRelationshipFromIndex(rel);
-        }
-
-        //Check if the UUID has been modified or removed from the relationship and throw an error if immutability is true
-        for (Change<Relationship> change : transactionData.getAllChangedRelationships()) {
-            if (uuidPropertyHasBeenRemovedOnRelationship(change)) {
-                if (isImmutable()) {
-                    throw new DeliberateTransactionRollbackException("You are not allowed to remove the " + uuidConfiguration.getUuidProperty() + " property");
-                } else {
-                    uuidIndexer.deleteRelationshipFromIndex(change.getCurrent());
-                    continue;
-                }
-            }
-
-            if (change.getPrevious().hasProperty(uuidConfiguration.getUuidProperty()) && (!change.getPrevious().getProperty(uuidConfiguration.getUuidProperty()).equals(change.getCurrent().getProperty(uuidConfiguration.getUuidProperty())))) {
-                if (isImmutable()) {
-                    throw new DeliberateTransactionRollbackException("You are not allowed to modify the " + uuidConfiguration.getUuidProperty() + " property");
-                } else {
-                    uuidIndexer.deleteRelationshipFromIndex(change.getCurrent());
-                    assignUuid(change.getCurrent());
-                    continue;
-                }
-            }
-
-            if (!change.getPrevious().hasProperty(uuidConfiguration.getUuidProperty()) && !change.getCurrent().hasProperty(uuidConfiguration.getUuidProperty())) {
-                assignUuid(change.getCurrent());
-            }
-        }
+        processEntities(transactionData.getAllCreatedNodes(), transactionData.getAllDeletedNodes(), transactionData.getAllChangedNodes());
+        processEntities(transactionData.getAllCreatedRelationships(), transactionData.getAllDeletedRelationships(), transactionData.getAllChangedRelationships());
 
         return null;
     }
 
-    protected void assignUuid(Entity entity) {
+    private <E extends Entity> void processEntities(Collection<E> created, Collection<E> deleted, Collection<Change<E>> updated) {
+
+        for (E entity : created) {
+            assignUuid(entity);
+        }
+
+        for (E entity : deleted) {
+            removeUuid(entity);
+        }
+
+        for (Change<E> change : updated) {
+            if (uuidHasBeenRemoved(change)) {
+                if (isImmutable()) {
+                    throw new DeliberateTransactionRollbackException("You are not allowed to remove the " + uuidConfiguration.getUuidProperty() + " property");
+                } else {
+                    removeUuid(change.getCurrent());
+                    continue;
+                }
+            }
+
+            if (uuidHasChanged(change)) {
+                if (isImmutable()) {
+                    throw new DeliberateTransactionRollbackException("You are not allowed to modify the " + uuidConfiguration.getUuidProperty() + " property");
+                } else {
+                    removeUuid(change.getCurrent());
+                    assignUuid(change.getCurrent());
+                    continue;
+                }
+            }
+
+            if (!hadUuid(change) && hasNoUuid(change)) {
+                assignUuid(change.getCurrent());
+            }
+        }
+    }
+
+    private void removeUuid(Entity entity) {
+        if (entity instanceof Node) {
+            uuidIndexer.deleteNodeFromIndex((Node) entity);
+        } else {
+            uuidIndexer.deleteRelationshipFromIndex((Relationship) entity);
+        }
+    }
+
+    private void assignUuid(Entity entity) {
         String uuidProperty = uuidConfiguration.getUuidProperty();
 
         if (!entity.hasProperty(uuidProperty)) {
@@ -238,12 +216,23 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
         return uuidConfiguration.getImmutable();
     }
 
-    private boolean uuidPropertyHasBeenRemovedOnNode(Change<Node> changed) {
-        return !changed.getCurrent().hasProperty(uuidConfiguration.getUuidProperty()) && changed.getPrevious().hasProperty(uuidConfiguration.getUuidProperty());
+    private boolean uuidHasBeenRemoved(Change<? extends Entity> changed) {
+        return hadUuid(changed) && hasNoUuid(changed);
     }
 
-    private boolean uuidPropertyHasBeenRemovedOnRelationship(Change<Relationship> changed) {
-        return !changed.getCurrent().hasProperty(uuidConfiguration.getUuidProperty()) && changed.getPrevious().hasProperty(uuidConfiguration.getUuidProperty());
+    private boolean uuidHasChanged(Change<? extends Entity> change) {
+        return hadUuid(change) && (!change.getPrevious().getProperty(uuidConfiguration.getUuidProperty()).equals(change.getCurrent().getProperty(uuidConfiguration.getUuidProperty())));
     }
 
+    private boolean hasUuid(Entity entity) {
+        return entity.hasProperty(uuidConfiguration.getUuidProperty());
+    }
+
+    private boolean hasNoUuid(Change<? extends Entity> change) {
+        return !hasUuid(change.getCurrent());
+    }
+
+    private boolean hadUuid(Change<? extends Entity> change) {
+        return hasUuid(change.getPrevious());
+    }
 }

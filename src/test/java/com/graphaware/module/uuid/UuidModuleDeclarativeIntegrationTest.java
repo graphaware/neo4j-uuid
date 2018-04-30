@@ -494,6 +494,50 @@ public class UuidModuleDeclarativeIntegrationTest {
         }
     }
 
+    @Test
+    public void testCorrectChangeOfUuid() {
+        database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
+                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid-immutable-false.conf").getPath())
+                .newGraphDatabase();
+
+        getRuntime(database).waitUntilStarted();
+        UuidApi api = new UuidApi(database);
+
+        long id;
+        try (Transaction tx = database.beginTx()) {
+            Node node = database.createNode(Label.label("Person"));
+            node.setProperty("name", "Bob");
+            id = node.getId();
+            tx.success();
+        }
+
+        String uuid;
+        try (Transaction tx = database.beginTx()) {
+            uuid = database.getNodeById(id).getProperty("uuid").toString();
+            assertFalse(uuid.isEmpty());
+        }
+
+        try (Transaction tx = database.beginTx()) {
+            assertEquals(id, (long) api.getNodeIdByUuid(uuid));
+        }
+
+        try (Transaction tx = database.beginTx()) {
+            database.getNodeById(id).setProperty("uuid", "new-uuid");
+            tx.success();
+        }
+
+        try (Transaction tx = database.beginTx()) {
+            try {
+                api.getNodeIdByUuid(uuid);
+                fail();
+            } catch (NotFoundException e) {
+                //ok
+            }
+
+            assertEquals(id, (long) api.getNodeIdByUuid("new-uuid"));
+        }
+    }
+
 
     @Test
     public void longCypherCreateShouldResultInAllNodesAndRelsWithUuid() {
