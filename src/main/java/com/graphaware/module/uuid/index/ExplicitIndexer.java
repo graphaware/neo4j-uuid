@@ -16,18 +16,12 @@
 
 package com.graphaware.module.uuid.index;
 
+import com.graphaware.common.log.LoggerFactory;
+import com.graphaware.module.uuid.UuidConfiguration;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
-import org.neo4j.kernel.api.ExplicitIndexHits;
-import org.neo4j.kernel.api.ReadOperations;
-import org.neo4j.kernel.api.exceptions.explicitindex.ExplicitIndexNotFoundKernelException;
-import org.neo4j.kernel.impl.core.ThreadToStatementContextBridge;
-import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.logging.Log;
-
-import com.graphaware.common.log.LoggerFactory;
-import com.graphaware.module.uuid.UuidConfiguration;
 
 /**
  * Explicit Index implementation for indexing and finding nodes and relationships assigned a UUID.
@@ -38,12 +32,10 @@ public class ExplicitIndexer implements UuidIndexer {
 
     private final GraphDatabaseService database;
     private final UuidConfiguration configuration;
-    private ThreadToStatementContextBridge statementContext;
 
     public ExplicitIndexer(GraphDatabaseService database, UuidConfiguration configuration) {
         this.database = database;
         this.configuration = configuration;
-        statementContext = ((GraphDatabaseAPI) database).getDependencyResolver().resolveDependency(ThreadToStatementContextBridge.class);
     }
 
     /**
@@ -59,16 +51,12 @@ public class ExplicitIndexer implements UuidIndexer {
      */
     @Override
     public Node getNodeByUuid(String uuid) {
-        ReadOperations readOperations = statementContext.get().readOperations();
-        try (ExplicitIndexHits get = readOperations.nodeExplicitIndexGet(configuration.getUuidIndex(), configuration.getUuidProperty(), uuid)) {
-            if (get.hasNext()) {
-                long idNode = get.next();
-                return database.getNodeById(idNode);
-            }
-        } catch (ExplicitIndexNotFoundKernelException e) {
-            LOG.warn("Explicit node index " + configuration.getUuidIndex() + " does not yet exist.", e);
+        if (!database.index().existsForNodes(configuration.getUuidIndex())) {
+            LOG.warn("Explicit node index " + configuration.getUuidIndex() + " does not yet exist.");
+            return null;
         }
-        return null;
+
+        return database.index().forNodes(configuration.getUuidIndex()).get(configuration.getUuidProperty(), uuid).getSingle();
     }
 
     /**
@@ -100,16 +88,11 @@ public class ExplicitIndexer implements UuidIndexer {
      */
     @Override
     public Relationship getRelationshipByUuid(String uuid) {
-        ReadOperations readOperations = statementContext.get().readOperations();
-        try (ExplicitIndexHits get = readOperations.relationshipExplicitIndexGet(configuration.getUuidRelationshipIndex(), configuration.getUuidProperty(), uuid, -1L, -1L)) {
-            if (get.hasNext()) {
-                long idRel = get.next();
-                return database.getRelationshipById(idRel);
-            }
-        } catch (ExplicitIndexNotFoundKernelException e) {
-            LOG.warn("Explicit relationship index " + configuration.getUuidRelationshipIndex() + " does not yet exist.", e);
+        if (!database.index().existsForRelationships(configuration.getUuidRelationshipIndex())) {
+            LOG.warn("Explicit relationship index " + configuration.getUuidRelationshipIndex() + " does not yet exist.");
+            return null;
         }
-        return null;
-    }
 
+        return database.index().forRelationships(configuration.getUuidRelationshipIndex()).get(configuration.getUuidProperty(), uuid).getSingle();
+    }
 }
