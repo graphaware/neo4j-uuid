@@ -40,7 +40,9 @@ import com.graphaware.module.uuid.generator.SequenceIdGenerator;
 import com.graphaware.runtime.policy.all.IncludeAllBusinessNodes;
 import com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 
@@ -547,7 +549,7 @@ public class UuidModuleDeclarativeIntegrationTest {
 
         getRuntime(database).waitUntilStarted();
 
-        database.execute(
+        String cypher =
                 "CREATE (TheMatrix:Movie {title:'The Matrix', released:1999, tagline:'Welcome to the Real World'})\n" +
                         "CREATE (Keanu:Person {name:'Keanu Reeves', born:1964})\n" +
                         "CREATE (Carrie:Person {name:'Carrie-Anne Moss', born:1967})\n" +
@@ -1051,8 +1053,12 @@ public class UuidModuleDeclarativeIntegrationTest {
                         "  \n" +
                         "RETURN TheMatrix\n" +
                         "\n" +
-                        ";"
-        );
+                        ";";
+
+        try (Transaction tx = database.beginTx()) {
+            database.execute(cypher);
+            tx.success();
+        }
 
         try (Transaction tx = database.beginTx()) {
             for (Node node : Iterables.asResourceIterable(database.getAllNodes())) {
