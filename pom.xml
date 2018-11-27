@@ -19,7 +19,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>uuid</artifactId>
-    <version>3.5.0.53.18-SNAPSHOT</version>
+    <version>3.5.0.53.17-SNAPSHOT</version>
 
     <parent>
         <groupId>com.graphaware.neo4j</groupId>
