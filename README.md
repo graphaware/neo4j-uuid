@@ -26,15 +26,17 @@ GraphAware Runtime Modules, or Spring MVC Controllers can include use the UUID a
 
 Releases are synced to <a href="http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22uuid%22" target="_blank">Maven Central repository</a>. When using Maven for dependency management, include the following dependency in your pom.xml.
 
-    <dependencies>
-        ...
-        <dependency>
-            <groupId>com.graphaware.neo4j</groupId>
-            <artifactId>uuid</artifactId>
-            <version>3.5.4.53.17</version>
-        </dependency>
-        ...
-    </dependencies>
+```xml
+<dependencies>
+    ...
+    <dependency>
+        <groupId>com.graphaware.neo4j</groupId>
+        <artifactId>uuid</artifactId>
+        <version>3.5.4.53.17</version>
+    </dependency>
+    ...
+</dependencies>
+```
 
 #### Snapshots
 
@@ -55,7 +57,7 @@ Setup and Configuration
 
 Edit `conf/neo4j.conf` to register the UUID module:
 
-```
+```properties
 com.graphaware.runtime.enabled=true
 
 #UIDM becomes the module ID:
@@ -120,6 +122,7 @@ To use the UUID module programmatically, register the module like this
 ```
 
 Alternatively:
+
 ```java
  GraphDatabaseService database = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(pathToDb)
     .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j.properties").getPath())
@@ -178,7 +181,7 @@ If no node exists with the given UUID, a 404 status code will be returned.
 
 To use the Java API to find a node by its UUID, please instantiate `UuidReader` and use the method `getNodeIdByUuid` or `getRelationshipByUuid`
 
-```
+```java
  UuidConfiguration configuration = getStartedRuntime(database).getModule(moduleId, UuidModule.class).getConfiguration();
  UuidReader reader = UuidReader(configuration, database);
  Node node = getNodeIdByUuid(uuid);
@@ -192,7 +195,7 @@ Please refer to Javadoc for more detail.
 By default, the `com.graphaware.common.uuid.EaioUuidGenerator` is used to generate the underlying UUID. Any generator implementation can be used, be it 
 out of the box or your own custom code, by modifying the `conf/neo4j.conf`. The following example configures the UUID module to make use of the `JavaUtilUUIDGenerator`:
 
-```
+```properties
 com.graphaware.runtime.enabled=true
 
 com.graphaware.module.UUID.1=com.graphaware.module.uuid.UuidBootstrapper
@@ -202,7 +205,7 @@ com.graphaware.module.UUID.uuidGeneratorClass=com.graphaware.module.uuid.generat
 
 The following example configures the UUID module to make use of the `SequenceIdGenerator`:
 
-```
+```properties
 com.graphaware.runtime.enabled=true
 
 com.graphaware.module.UUID.1=com.graphaware.module.uuid.UuidBootstrapper
@@ -219,7 +222,7 @@ and examples of how to implement your own generator.
 This module ensures that all assigned UUIDs on nodes and relationships are immutable, meaning they cannot be deleted nor changed.
 In some scenarios, developers might want to disable the immutability with the following configuration setting :
 
-```
+```properties
 com.graphaware.module.UUID.immutable=false
 ```
 
