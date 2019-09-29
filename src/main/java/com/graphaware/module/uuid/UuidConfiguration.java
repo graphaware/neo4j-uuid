@@ -184,7 +184,7 @@ public class UuidConfiguration extends BaseTxDrivenModuleConfiguration<UuidConfi
             return false;
         }
 
-        if (uuidRelationshipIndex.equals(that.uuidRelationshipIndex)) {
+        if (!uuidRelationshipIndex.equals(that.uuidRelationshipIndex)) {
             return false;
         }
 
