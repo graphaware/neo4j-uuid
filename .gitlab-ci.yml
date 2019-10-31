@@ -1,0 +1,26 @@
+include:
+  - project: graphaware/devops/gitlab-ci-templates
+    file: gitlab-ci-templates.yml
+
+stages:
+  - deploy
+  - postDeploy
+
+
+bumpVersion:
+  extends: .frameworkVersionBump
+  stage: deploy
+
+uploadArtifact:
+  extends: .uploadToS3
+  stage: postDeploy
+  dependencies:
+    - bumpVersion
+  variables:
+    FROM: target/checkout/target/uuid-$VERSION.jar
+    TO: $AWS_PATH/uuid-$VERSION.jar
+  only:
+    refs:
+      - master
+    variables:
+      - $VERSION
