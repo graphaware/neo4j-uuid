@@ -17,8 +17,7 @@ uploadArtifact:
   dependencies:
     - bumpVersion
   variables:
-    FROM: target/uuid-$PARENT_VERSION.jar
-    TO: $AWS_PATH/uuid-$PARENT_VERSION.jar
+    JAR_NAME: uuid
   only:
     refs:
       - master

@@ -1,7 +1,7 @@
 GraphAware Neo4j UUID
 =====================
 
-[![Build Status](https://travis-ci.org/graphaware/neo4j-uuid.png)](https://travis-ci.org/graphaware/neo4j-uuid) | <a href="http://graphaware.com/downloads/" target="_blank">Downloads</a> | <a href="http://graphaware.com/site/uuid/latest/apidocs/" target="_blank">Javadoc</a> | Latest Release: 3.5.11.54.19
+[![Build Status](https://travis-ci.org/graphaware/neo4j-uuid.png)](https://travis-ci.org/graphaware/neo4j-uuid) | <a href="http://graphaware.com/downloads/" target="_blank">Downloads</a> | <a href="http://graphaware.com/site/uuid/latest/apidocs/" target="_blank">Javadoc</a>
 
 GraphAware UUID is a simple library that transparently assigns a UUID to newly created nodes and relationships in the graph and makes sure nobody
 can (accidentally or intentionally) change or delete them.
@@ -24,7 +24,7 @@ GraphAware Runtime Modules, or Spring MVC Controllers can include use the UUID a
 
 #### Releases
 
-Releases are synced to <a href="http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22uuid%22" target="_blank">Maven Central repository</a>. When using Maven for dependency management, include the following dependency in your pom.xml.
+Releases are synced to <a href="http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22uuid%22" target="_blank">Maven Central repository</a>. When using Maven for dependency management, include the following dependency in your pom.xml and change version number to match the required version.
 
 ```xml
 <dependencies>
@@ -32,7 +32,7 @@ Releases are synced to <a href="http://search.maven.org/#search%7Cga%7C1%7Ca%3A%
     <dependency>
         <groupId>com.graphaware.neo4j</groupId>
         <artifactId>uuid</artifactId>
-        <version>3.5.11.54.19</version>
+        <version>A.B.C.D.E</version>
     </dependency>
     ...
 </dependencies>
@@ -41,7 +41,7 @@ Releases are synced to <a href="http://search.maven.org/#search%7Cga%7C1%7Ca%3A%
 #### Snapshots
 
 To use the latest development version, just clone this repository, run `mvn clean install` and change the version in the
-dependency above to 3.5.11.54.20-SNAPSHOT.
+dependency above to A.B.C.D.E-SNAPSHOT.
 
 #### Note on Versioning Scheme
 
