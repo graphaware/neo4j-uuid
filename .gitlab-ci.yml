@@ -23,3 +23,14 @@ uploadArtifact:
       - master
     variables:
       - $PARENT_VERSION
+
+trigger:
+  stage: postDeploy
+  trigger: GraphAware/neo4j-plugins/neo4j-to-elasticsearch
+  variables:
+    PARENT_VERSION: $PARENT_VERSION
+  only:
+    refs:
+      - master
+    variables:
+      - $PARENT_VERSION
