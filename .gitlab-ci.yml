@@ -20,7 +20,9 @@ delay30mins:
 
 trigger:
   stage: trigger
-  trigger: GraphAware/neo4j-plugins/neo4j-to-elasticsearch
+  trigger:
+    project: GraphAware/neo4j-plugins/neo4j-to-elasticsearch
+    strategy: depend
   variables:
     PARENT_VERSION: $PARENT_VERSION
   only:
