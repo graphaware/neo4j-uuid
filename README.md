@@ -153,16 +153,16 @@ Once deployed, you can use the following Cypher functions:
 
 * `ga.uuid.findNode('<your UUID>')` (then do something with the result, e.g. `RETURN id(ga.uuid.findNode('<your UUID>')) as nodeId`
 * `ga.uuid.findRelationship('<your UUID>')`
-* `ga.uuid.findNodes(['<UUID1>,<UUID2>,...'])`
-* `ga.uuid.findRelationships(['<UUID1>,<UUID2>,...'])`
+* `ga.uuid.findNodes(['<UUID1>','<UUID2>',...])`
+* `ga.uuid.findRelationships(['<UUID1>','<UUID2>',...])`
 
 In case you did not use `UIDM` (the default) as the module ID in your configuration, or if you registered multiple UUID modules,
 you will have to use slightly different syntax that allows you to pass in the module ID. 'nd' stands for "non-default":
 
 * `ga.uuid.nd.findNode('<module ID>','<your UUID>')`
 * `ga.uuid.nd.findRelationship('<module ID>','<your UUID>')`
-* `ga.uuid.nd.findNodes('<module ID>',['<UUID1>,<UUID2>,...'])`
-* `ga.uuid.nd.findRelationships('<module ID>',['<UUID1>,<UUID2>,...'])`
+* `ga.uuid.nd.findNodes('<module ID>',['<UUID1>','<UUID2>',...])`
+* `ga.uuid.nd.findRelationships('<module ID>',['<UUID1>','<UUID2>',...])`
 
 When a node or relationship isn't found, `null` is returned. A non-existing UUID module ID will result in a `NotFoundException`.
 
