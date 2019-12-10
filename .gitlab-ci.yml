@@ -2,9 +2,6 @@ include:
   - project: graphaware/devops/gitlab-ci-templates
     file: neo4j-framework-template.yml
 
-variables:
-  JAR_NAME: uuid
-
 stages:
   - install
   - test
@@ -19,6 +16,11 @@ delay30mins:
       - master
     variables:
       - $PARENT_VERSION
+
+uploadToS3VarDef: #Need to define variable in job, as the global definition is ingerited to the triggered jobs
+  extends: uploadToS3
+  variables:
+    JAR_NAME: uuid
 
 trigger:
   stage: trigger
