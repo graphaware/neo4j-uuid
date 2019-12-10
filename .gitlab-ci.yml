@@ -31,4 +31,4 @@ trigger:
     refs:
       - master
     variables:
-      - $PARENT_VERSION =~ /*.\.*./
+      - $PARENT_VERSION =~ /.*\..*/
