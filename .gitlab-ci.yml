@@ -6,6 +6,8 @@ variables:
   JAR_NAME: uuid
 
 stages:
+  - install
+  - test
   - deploy
   - postDeploy
   - trigger
