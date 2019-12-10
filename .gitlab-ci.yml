@@ -32,3 +32,4 @@ trigger:
       - master
     variables:
       - $PARENT_VERSION
+      - $CI_COMMIT_MESSAGE =~ /\[maven-release-plugin\]/
