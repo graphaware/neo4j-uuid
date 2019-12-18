@@ -35,3 +35,16 @@ trigger:
       - master
     variables:
       - $PARENT_VERSION =~ /.*\..*/
+
+triggerGAtrigger:
+  stage: trigger
+  trigger:
+    project: GraphAware/neo4j-plugins/neo4j-triggers
+    strategy: depend
+  variables:
+    PARENT_VERSION: $PARENT_VERSION
+  only:
+    refs:
+      - master
+    variables:
+      - $PARENT_VERSION =~ /.*\..*/
