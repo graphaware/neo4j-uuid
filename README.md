@@ -6,6 +6,15 @@ GraphAware Neo4j UUID
 GraphAware UUID is a simple library that transparently assigns a UUID to newly created nodes and relationships in the graph and makes sure nobody
 can (accidentally or intentionally) change or delete them.
 
+## Community vs Enterprise
+
+This open-source (GPL) version of the module is compatible with GraphAware Framework Community (GPL), which in turn 
+is compatible with Neo4j Community Edition (GPL) only. It *will not work* with Neo4j Enterprise Edition, which is a 
+proprietary and commercial software product of Neo4j, Inc..
+
+GraphAware offers an Enterprise version of the GraphAware Framework to licensed users of Neo4j Enterprise Edition.
+Please [get in touch](mailto:info@graphaware.com) to receive access.
+
 Getting the Software
 --------------------
 
