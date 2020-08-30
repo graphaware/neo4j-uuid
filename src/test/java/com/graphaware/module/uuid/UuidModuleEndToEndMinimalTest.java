@@ -16,17 +16,17 @@
 
 package com.graphaware.module.uuid;
 
-import com.graphaware.test.integration.GraphAwareIntegrationTest;
-import org.junit.Test;
+import com.graphaware.test.integration.DatabaseIntegrationTest;
+import org.junit.jupiter.api.Test;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.helpers.collection.Iterables;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class UuidModuleEndToEndMinimalTest extends GraphAwareIntegrationTest {
+public class UuidModuleEndToEndMinimalTest extends DatabaseIntegrationTest {
 
     @Override
     protected String configFile() {

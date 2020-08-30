@@ -15,36 +15,25 @@
  */
 package com.graphaware.module.uuid;
 
-import static com.graphaware.runtime.RuntimeRegistry.getRuntime;
-import static org.junit.Assert.*;
-import static org.neo4j.helpers.collection.Iterators.asIterable;
-
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Test;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Label;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.NotFoundException;
-import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.RelationshipType;
-import org.neo4j.graphdb.Transaction;
-import org.neo4j.helpers.collection.Iterables;
-import org.neo4j.test.TestGraphDatabaseFactory;
-
 import com.graphaware.common.uuid.EaioUuidGenerator;
 import com.graphaware.common.uuid.UuidGenerator;
-import com.graphaware.module.uuid.api.UuidApi;
 import com.graphaware.module.uuid.generator.JavaUtilUUIDGenerator;
 import com.graphaware.module.uuid.generator.SequenceIdGenerator;
+import com.graphaware.module.uuid.read.DefaultUuidReader;
+import com.graphaware.module.uuid.read.UuidReader;
 import com.graphaware.runtime.policy.all.IncludeAllBusinessNodes;
 import com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.neo4j.graphdb.*;
+import org.neo4j.harness.TestServerBuilders;
+import org.neo4j.helpers.collection.Iterables;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
+import static com.graphaware.runtime.RuntimeRegistry.getRuntime;
+import static com.graphaware.runtime.RuntimeRegistry.getStartedRuntime;
+import static com.graphaware.test.integration.IntegrationTestUtils.applyConfig;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.neo4j.helpers.collection.Iterators.asIterable;
 
 public class UuidModuleDeclarativeIntegrationTest {
 
@@ -57,7 +46,7 @@ public class UuidModuleDeclarativeIntegrationTest {
     
     private GraphDatabaseService database;
 
-    @After
+    @AfterEach
     public void shutdownDatabase() {
         if (database != null) {
             database.shutdown();
@@ -65,13 +54,12 @@ public class UuidModuleDeclarativeIntegrationTest {
     }
 
     @Test
-    public void testUuidAssigned() throws InterruptedException {
-        database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
-                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid.conf").getPath())
-                .newGraphDatabase();
+    public void testUuidAssigned() {
+        database = applyConfig(TestServerBuilders.newInProcessBuilder(), "neo4j-uuid.conf").newServer().graph();
 
         getRuntime(database).waitUntilStarted();
-        UuidApi api = new UuidApi(database);
+        UuidReader reader = getReader();
+
         //When
         try (Transaction tx = database.beginTx()) {
             Node node = database.createNode();
@@ -85,20 +73,19 @@ public class UuidModuleDeclarativeIntegrationTest {
         try (Transaction tx = database.beginTx()) {
             for (Node node : asIterable(database.findNodes(personLabel))) {
                 assertTrue(node.hasProperty(UUID));
-                assertEquals(Long.valueOf(node.getId()), api.getNodeIdByUuid((String) node.getProperty(UUID)));
+                assertEquals(node.getId(), reader.getNodeIdByUuid((String) node.getProperty(UUID)));
             }
             tx.success();
         }
     }
 
     @Test
-    public void testUuidAssignedWithoutHyphens() throws InterruptedException {
-        database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
-                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid-strip-hyphens.conf").getPath())
-                .newGraphDatabase();
+    public void testUuidAssignedWithoutHyphens() {
+        database = applyConfig(TestServerBuilders.newInProcessBuilder(), "neo4j-uuid-strip-hyphens.conf").newServer().graph();
 
         getRuntime(database).waitUntilStarted();
-        UuidApi api = new UuidApi(database);
+        UuidReader reader = getReader();
+
         //When
         try (Transaction tx = database.beginTx()) {
             Node node = database.createNode();
@@ -113,7 +100,7 @@ public class UuidModuleDeclarativeIntegrationTest {
             for (Node node : asIterable(database.findNodes(personLabel))) {
                 assertTrue(node.hasProperty(UUID));
                 assertFalse(node.getProperty(UUID).toString().contains("-"));
-                assertEquals(Long.valueOf(node.getId()), api.getNodeIdByUuid((String) node.getProperty(UUID)));
+                assertEquals(node.getId(), reader.getNodeIdByUuid((String) node.getProperty(UUID)));
             }
             tx.success();
         }
@@ -121,12 +108,10 @@ public class UuidModuleDeclarativeIntegrationTest {
 
     @Test
     public void testUuidCanBeChangedWhenImmutableIsFalse() throws InterruptedException {
-        database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
-                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid-immutable-false.conf").getPath())
-                .newGraphDatabase();
+        database = applyConfig(TestServerBuilders.newInProcessBuilder(), "neo4j-uuid-immutable-false.conf").newServer().graph();
 
         getRuntime(database).waitUntilStarted();
-        UuidApi api = new UuidApi(database);
+        UuidReader reader = getReader();
 
         //When
         try (Transaction tx = database.beginTx()) {
@@ -149,7 +134,7 @@ public class UuidModuleDeclarativeIntegrationTest {
 
                 nodeId = node.getId();
                 oldUuid = (String) node.getProperty(UUID);
-                assertEquals(nodeId, api.getNodeIdByUuid(oldUuid));
+                assertEquals(nodeId.longValue(), reader.getNodeIdByUuid(oldUuid));
             }
             tx.success();
         }
@@ -176,7 +161,7 @@ public class UuidModuleDeclarativeIntegrationTest {
         //Then
         //Check the node can be found by new UUID
         try (Transaction tx = database.beginTx()) {
-            assertEquals(nodeId, api.getNodeIdByUuid(newUuid));
+            assertEquals(nodeId.longValue(), reader.getNodeIdByUuid(newUuid));
             tx.success();
         }
 
@@ -184,7 +169,7 @@ public class UuidModuleDeclarativeIntegrationTest {
         //Check that old UUID can no longer be used to lookup the node
         try (Transaction tx = database.beginTx()) {
             try {
-                api.getNodeIdByUuid(oldUuid);
+                reader.getNodeIdByUuid(oldUuid);
                 fail();
             } catch (NotFoundException e) {
                 //good
@@ -194,12 +179,10 @@ public class UuidModuleDeclarativeIntegrationTest {
 
     @Test
     public void testUuidCanBeRemovedWhenImmutableIsFalse() throws InterruptedException {
-        database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
-                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid-immutable-false.conf").getPath())
-                .newGraphDatabase();
+        database = applyConfig(TestServerBuilders.newInProcessBuilder(), "neo4j-uuid-immutable-false.conf").newServer().graph();
 
         getRuntime(database).waitUntilStarted();
-        UuidApi api = new UuidApi(database);
+        UuidReader reader = getReader();
 
         //When
         try (Transaction tx = database.beginTx()) {
@@ -219,7 +202,7 @@ public class UuidModuleDeclarativeIntegrationTest {
                 assertTrue(node.hasProperty(UUID));
 
                 oldUuid = (String) node.getProperty(UUID);
-                assertEquals((Long) node.getId(), api.getNodeIdByUuid(oldUuid));
+                assertEquals(node.getId(), reader.getNodeIdByUuid(oldUuid));
             }
             tx.success();
         }
@@ -246,7 +229,7 @@ public class UuidModuleDeclarativeIntegrationTest {
         //Check that old UUID can no longer be used to lookup the node
         try (Transaction tx = database.beginTx()) {
             try {
-                api.getNodeIdByUuid(oldUuid);
+                reader.getNodeIdByUuid(oldUuid);
                 fail();
             } catch (NotFoundException e) {
                 //good
@@ -256,9 +239,7 @@ public class UuidModuleDeclarativeIntegrationTest {
 
     @Test
     public void testUuidsAreAssignedToNodesWithNewIncludedLabel() {
-        database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
-                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid.conf").getPath())
-                .newGraphDatabase();
+        database = applyConfig(TestServerBuilders.newInProcessBuilder(), "neo4j-uuid.conf").newServer().graph();
 
         // Create a node with a label that is not in the inclusion policies
         try (Transaction tx = database.beginTx()) {
@@ -278,31 +259,27 @@ public class UuidModuleDeclarativeIntegrationTest {
 
     @Test
     public void testDefaultGenerator() {
-        database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
-                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid.conf").getPath())
-                .newGraphDatabase();
+        database = applyConfig(TestServerBuilders.newInProcessBuilder(), "neo4j-uuid.conf").newServer().graph();
 
         // Verify the generator instantiated is as expected (the default)
         UuidModule uuidModule = getRuntime(database).getModule(UuidModule.class);
         UuidGenerator uuidGenerator = uuidModule.getUuidGenerator();
-        Assert.assertEquals(EaioUuidGenerator.class, uuidGenerator.getClass());
+        assertEquals(EaioUuidGenerator.class, uuidGenerator.getClass());
 
     }
     
     @Test
     public void testUuidGeneratorJavaUtilUUID() throws InterruptedException {
-        database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
-                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid-generator-java-util.conf").getPath())
-                .newGraphDatabase();
+        database = applyConfig(TestServerBuilders.newInProcessBuilder(), "neo4j-uuid-generator-java-util.conf").newServer().graph();
 
         // Verify the generator instantiated is as expected
         UuidModule uuidModule = getRuntime(database).getModule(UuidModule.class);
         UuidGenerator uuidGenerator = uuidModule.getUuidGenerator();
-        Assert.assertEquals(JavaUtilUUIDGenerator.class, uuidGenerator.getClass());
+        assertEquals(JavaUtilUUIDGenerator.class, uuidGenerator.getClass());
         
         getRuntime(database).waitUntilStarted();
-        
-        UuidApi api = new UuidApi(database);
+        UuidReader reader = getReader();
+
         //When
         try (Transaction tx = database.beginTx()) {
             Node node = database.createNode();
@@ -317,7 +294,7 @@ public class UuidModuleDeclarativeIntegrationTest {
             for (Node node : asIterable(database.findNodes(personLabel))) {
                 assertTrue(node.hasProperty(UUID));
                 assertFalse(node.getProperty(UUID).toString().contains("-"));
-                assertEquals(Long.valueOf(node.getId()), api.getNodeIdByUuid((String) node.getProperty(UUID)));
+                assertEquals(node.getId(), reader.getNodeIdByUuid((String) node.getProperty(UUID)));
             }
             tx.success();
         }
@@ -325,18 +302,16 @@ public class UuidModuleDeclarativeIntegrationTest {
     
     @Test
     public void testUuidGeneratorSequenceIdGenerator() throws InterruptedException {
-        database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
-                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid-generator-sequenceid.conf").getPath())
-                .newGraphDatabase();
+        database = applyConfig(TestServerBuilders.newInProcessBuilder(), "neo4j-uuid-generator-sequenceid.conf").newServer().graph();
 
         // Verify the generator instantiated is as expected
         UuidModule uuidModule = getRuntime(database).getModule(UuidModule.class);
         UuidGenerator uuidGenerator = uuidModule.getUuidGenerator();
-        Assert.assertEquals(SequenceIdGenerator.class, uuidGenerator.getClass());
+        assertEquals(SequenceIdGenerator.class, uuidGenerator.getClass());
         
         getRuntime(database).waitUntilStarted();
-        
-        UuidApi api = new UuidApi(database);
+        UuidReader reader = getReader();
+
         //When
         try (Transaction tx = database.beginTx()) {
             Node node = database.createNode();
@@ -351,28 +326,26 @@ public class UuidModuleDeclarativeIntegrationTest {
             for (Node node : asIterable(database.findNodes(personLabel))) {
                 assertTrue(node.hasProperty(SEQUENCE));
                 assertFalse(node.getProperty(SEQUENCE).toString().contains("-"));
-                assertEquals(Long.valueOf(node.getId()), api.getNodeIdByUuid((String) node.getProperty(SEQUENCE)));
+                assertEquals(node.getId(), reader.getNodeIdByUuid((String) node.getProperty(SEQUENCE)));
             }
             tx.success();
         }
     }
     
-    @Test(expected = NotFoundException.class)
+    @Test
     public void testUuidGeneratorInvalidGenerator()  {
-        database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
-                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid-generator-invalid.conf").getPath())
-                .newGraphDatabase();
+        database = applyConfig(TestServerBuilders.newInProcessBuilder(), "neo4j-uuid-generator-invalid.conf").newServer().graph();
 
-        // This should cause the expected exception due to an invalid generator being configured
-        getRuntime(database).getModule(UuidModule.class);
-        
+        assertThrows(NotFoundException.class, () -> {
+            // This should cause the expected exception due to an invalid generator being configured
+            getRuntime(database).getModule(UuidModule.class);
+        });
+
     }
     
     @Test
-    public void testUuidNotAssigned() throws InterruptedException {
-        database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
-                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid.conf").getPath())
-                .newGraphDatabase();
+    public void testUuidNotAssigned() {
+        database = applyConfig(TestServerBuilders.newInProcessBuilder(), "neo4j-uuid.conf").newServer().graph();
 
         getRuntime(database).waitUntilStarted();
 
@@ -393,29 +366,28 @@ public class UuidModuleDeclarativeIntegrationTest {
         }
     }
 
-    @Test(expected = NotFoundException.class)
-    public void testGetNodeThrowsExceptionForInvalidUuid() throws InterruptedException {
-        database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
-                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid.conf").getPath())
-                .newGraphDatabase();
+    @Test
+    public void testGetNodeThrowsExceptionForInvalidUuid() {
+        database = applyConfig(TestServerBuilders.newInProcessBuilder(), "neo4j-uuid.conf").newServer().graph();
 
         getRuntime(database).waitUntilStarted();
-        UuidApi api = new UuidApi(database);
+        UuidReader reader = getReader();
 
-        try (Transaction tx = database.beginTx()) {
-            assertNull(api.getNodeIdByUuid("xyz"));
-            tx.success();
-        }
+        assertThrows(NotFoundException.class, () -> {
+            try (Transaction tx = database.beginTx()) {
+                assertNull(reader.getNodeIdByUuid("xyz"));
+                tx.success();
+            }
+        });
     }
 
     @Test
     public void testUuidAssignedToRelationship() throws InterruptedException {
-        database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
-                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid.conf").getPath())
-                .newGraphDatabase();
+        database = applyConfig(TestServerBuilders.newInProcessBuilder(), "neo4j-uuid.conf").newServer().graph();
 
         getRuntime(database).waitUntilStarted();
-        UuidApi api = new UuidApi(database);
+        UuidReader reader = getReader();
+
         //When
         try (Transaction tx = database.beginTx()) {
             Node node = database.createNode();
@@ -435,11 +407,11 @@ public class UuidModuleDeclarativeIntegrationTest {
         try (Transaction tx = database.beginTx()) {
             for (Node node : asIterable(database.findNodes(personLabel))) {
                 assertTrue(node.hasProperty(UUID));
-                assertEquals(Long.valueOf(node.getId()), api.getNodeIdByUuid((String) node.getProperty(UUID)));
+                assertEquals(node.getId(), reader.getNodeIdByUuid((String) node.getProperty(UUID)));
             }
             for (Relationship rel : database.getAllRelationships()) {
                 assertTrue(rel.hasProperty(UUID));
-                assertEquals(Long.valueOf(rel.getId()), api.getRelationshipIdByUuid((String) rel.getProperty(UUID)));
+                assertEquals(rel.getId(), reader.getRelationshipIdByUuid((String) rel.getProperty(UUID)));
             }
             tx.success();
         }
@@ -447,9 +419,7 @@ public class UuidModuleDeclarativeIntegrationTest {
 
     @Test
     public void testUuidNotAssignedToRelationship() throws InterruptedException {
-        database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
-                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid.conf").getPath())
-                .newGraphDatabase();
+        database = applyConfig(TestServerBuilders.newInProcessBuilder(), "neo4j-uuid.conf").newServer().graph();
 
         getRuntime(database).waitUntilStarted();
 
@@ -482,28 +452,27 @@ public class UuidModuleDeclarativeIntegrationTest {
         }
     }
 
-    @Test(expected = NotFoundException.class)
+    @Test
     public void testGetRelationshipThrowsExceptionForInvalidUuid() throws InterruptedException {
-        database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
-                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid.conf").getPath())
-                .newGraphDatabase();
+        database = applyConfig(TestServerBuilders.newInProcessBuilder(), "neo4j-uuid.conf").newServer().graph();
 
         getRuntime(database).waitUntilStarted();
-        UuidApi api = new UuidApi(database);
-        try (Transaction tx = database.beginTx()) {
-            assertNull(api.getRelationshipIdByUuid("xyz"));
-            tx.success();
-        }
+        UuidReader reader = getReader();
+
+        assertThrows(NotFoundException.class, () -> {
+            try (Transaction tx = database.beginTx()) {
+                assertNull(reader.getRelationshipIdByUuid("xyz"));
+                tx.success();
+            }
+        });
     }
 
     @Test
     public void testCorrectChangeOfUuid() {
-        database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
-                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid-immutable-false.conf").getPath())
-                .newGraphDatabase();
+        database = applyConfig(TestServerBuilders.newInProcessBuilder(), "neo4j-uuid-immutable-false.conf").newServer().graph();
 
         getRuntime(database).waitUntilStarted();
-        UuidApi api = new UuidApi(database);
+        UuidReader reader = getReader();
 
         long id;
         try (Transaction tx = database.beginTx()) {
@@ -520,7 +489,7 @@ public class UuidModuleDeclarativeIntegrationTest {
         }
 
         try (Transaction tx = database.beginTx()) {
-            assertEquals(id, (long) api.getNodeIdByUuid(uuid));
+            assertEquals(id, (long) reader.getNodeIdByUuid(uuid));
         }
 
         try (Transaction tx = database.beginTx()) {
@@ -530,22 +499,20 @@ public class UuidModuleDeclarativeIntegrationTest {
 
         try (Transaction tx = database.beginTx()) {
             try {
-                api.getNodeIdByUuid(uuid);
+                reader.getNodeIdByUuid(uuid);
                 fail();
             } catch (NotFoundException e) {
                 //ok
             }
 
-            assertEquals(id, (long) api.getNodeIdByUuid("new-uuid"));
+            assertEquals(id, (long) reader.getNodeIdByUuid("new-uuid"));
         }
     }
 
 
     @Test
     public void longCypherCreateShouldResultInAllNodesAndRelsWithUuid() {
-        database = new TestGraphDatabaseFactory().newImpermanentDatabaseBuilder()
-                .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j-uuid-all.conf").getPath())
-                .newGraphDatabase();
+        database = applyConfig(TestServerBuilders.newInProcessBuilder(), "neo4j-uuid-all.conf").newServer().graph();
 
         getRuntime(database).waitUntilStarted();
 
@@ -1093,5 +1060,9 @@ public class UuidModuleDeclarativeIntegrationTest {
             });
             tx.success();
         }
+    }
+
+    private UuidReader getReader() {
+        return new DefaultUuidReader(getStartedRuntime(database).getModule("UIDM", UuidModule.class).getConfiguration(), database);
     }
 }

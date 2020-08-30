@@ -19,12 +19,9 @@ import com.graphaware.common.util.Change;
 import com.graphaware.common.uuid.UuidGenerator;
 import com.graphaware.module.uuid.index.ExplicitIndexer;
 import com.graphaware.module.uuid.index.UuidIndexer;
-import com.graphaware.runtime.module.BaseTxDrivenModule;
+import com.graphaware.runtime.module.BaseModule;
 import com.graphaware.runtime.module.DeliberateTransactionRollbackException;
 import com.graphaware.tx.event.improved.api.ImprovedTransactionData;
-import com.graphaware.tx.executor.batch.IterableInputBatchTransactionExecutor;
-import com.graphaware.tx.executor.input.AllNodes;
-import com.graphaware.tx.executor.input.AllRelationships;
 import org.neo4j.graphdb.Entity;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -34,12 +31,11 @@ import org.springframework.util.ClassUtils;
 import java.util.Collection;
 
 /**
- * {@link com.graphaware.runtime.module.TxDrivenModule} that assigns UUID's to nodes in the graph.
+ * {@link com.graphaware.runtime.module.Module} that assigns UUID's to nodes in the graph.
  */
-public class UuidModule extends BaseTxDrivenModule<Void> {
+public class UuidModule extends BaseModule<Void> {
 
     public static final String DEFAULT_MODULE_ID = "UIDM";
-    private static final int BATCH_SIZE = 1000;
 
     private final UuidGenerator uuidGenerator;
     private final UuidConfiguration uuidConfiguration;
@@ -91,34 +87,6 @@ public class UuidModule extends BaseTxDrivenModule<Void> {
     @Override
     public UuidConfiguration getConfiguration() {
         return uuidConfiguration;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void initialize(GraphDatabaseService database) {
-        new IterableInputBatchTransactionExecutor<>(
-                database,
-                BATCH_SIZE,
-                new AllNodes(database, BATCH_SIZE),
-                (db, node, batchNumber, stepNumber) -> {
-                    if (getConfiguration().getInclusionPolicies().getNodeInclusionPolicy().include(node)) {
-                        assignUuid(node);
-                    }
-                }
-        ).execute();
-
-        new IterableInputBatchTransactionExecutor<>(
-                database,
-                BATCH_SIZE,
-                new AllRelationships(database, BATCH_SIZE),
-                (db, rel, batchNumber, stepNumber) -> {
-                    if (getConfiguration().getInclusionPolicies().getRelationshipInclusionPolicy().include(rel)) {
-                        assignUuid(rel);
-                    }
-                }
-        ).execute();
     }
 
     /**

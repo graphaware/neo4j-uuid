@@ -1,21 +1,21 @@
 package ga.uuid;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import com.graphaware.test.integration.DatabaseIntegrationTest;
+import org.junit.jupiter.api.Test;
+import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.Result;
+import org.neo4j.graphdb.Transaction;
+import org.neo4j.harness.TestServerBuilder;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.graphaware.test.integration.EmbeddedDatabaseIntegrationTest;
-import org.junit.Test;
-import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.Result;
-import org.neo4j.graphdb.Transaction;
-import org.neo4j.kernel.impl.proc.Procedures;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class RelationshipUuidFunctionsTest extends EmbeddedDatabaseIntegrationTest {
+public class RelationshipUuidFunctionsTest extends DatabaseIntegrationTest {
 
     @Override
     protected String configFile() {
@@ -23,11 +23,10 @@ public class RelationshipUuidFunctionsTest extends EmbeddedDatabaseIntegrationTe
     }
 
     @Override
-    protected void registerProceduresAndFunctions(Procedures procedures) throws Exception {
-        super.registerProceduresAndFunctions(procedures);
-
-        procedures.registerFunction(RelationshipUuidFunctions.class);
-        procedures.registerFunction(ga.uuid.nd.RelationshipUuidFunctions.class);
+    protected TestServerBuilder registerProceduresAndFunctions(TestServerBuilder testServerBuilder) throws Exception {
+        return super.registerProceduresAndFunctions(testServerBuilder)
+                .withFunction(RelationshipUuidFunctions.class)
+                .withFunction(ga.uuid.nd.RelationshipUuidFunctions.class);
     }
 
     @Test

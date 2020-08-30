@@ -1,20 +1,20 @@
 package ga.uuid;
 
-import com.graphaware.test.integration.EmbeddedDatabaseIntegrationTest;
-import org.junit.Test;
+import com.graphaware.test.integration.DatabaseIntegrationTest;
+import org.junit.jupiter.api.Test;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.kernel.impl.proc.Procedures;
+import org.neo4j.harness.TestServerBuilder;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class NodeUuidFunctionsTest extends EmbeddedDatabaseIntegrationTest {
+public class NodeUuidFunctionsTest extends DatabaseIntegrationTest {
 
     @Override
     protected String configFile() {
@@ -22,12 +22,10 @@ public class NodeUuidFunctionsTest extends EmbeddedDatabaseIntegrationTest {
     }
 
     @Override
-    protected void registerProceduresAndFunctions(Procedures procedures) throws Exception {
-        super.registerProceduresAndFunctions(procedures);
-
-        procedures.registerFunction(NodeUuidFunctions.class);
-        procedures.registerFunction(ga.uuid.nd.NodeUuidFunctions.class);
-
+    protected TestServerBuilder registerProceduresAndFunctions(TestServerBuilder testServerBuilder) throws Exception {
+        return super.registerProceduresAndFunctions(testServerBuilder)
+                .withFunction(NodeUuidFunctions.class)
+                .withFunction(ga.uuid.nd.NodeUuidFunctions.class);
     }
 
     @Test

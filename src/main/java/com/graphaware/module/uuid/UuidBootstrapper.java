@@ -16,21 +16,20 @@
 
 package com.graphaware.module.uuid;
 
-import java.util.Map;
-
 import com.graphaware.common.log.LoggerFactory;
-import com.graphaware.runtime.module.BaseRuntimeModuleBootstrapper;
-import com.graphaware.runtime.module.RuntimeModule;
-import com.graphaware.runtime.module.RuntimeModuleBootstrapper;
-
+import com.graphaware.runtime.module.BaseModuleBootstrapper;
+import com.graphaware.runtime.module.Module;
+import com.graphaware.runtime.module.ModuleBootstrapper;
 import org.apache.commons.lang3.StringUtils;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.logging.Log;
 
+import java.util.Map;
+
 /**
  * Bootstraps the {@link UuidModule} in server mode.
  */
-public class UuidBootstrapper extends BaseRuntimeModuleBootstrapper<UuidConfiguration> implements RuntimeModuleBootstrapper {
+public class UuidBootstrapper extends BaseModuleBootstrapper<UuidConfiguration> implements ModuleBootstrapper {
 
     private static final Log LOG = LoggerFactory.getLogger(UuidBootstrapper.class);
 
@@ -53,7 +52,7 @@ public class UuidBootstrapper extends BaseRuntimeModuleBootstrapper<UuidConfigur
      * {@inheritDoc}
      */
     @Override
-    protected RuntimeModule doBootstrapModule(String moduleId, Map<String, String> config, GraphDatabaseService database, UuidConfiguration configuration) {
+    protected Module doBootstrapModule(String moduleId, Map<String, String> config, GraphDatabaseService database, UuidConfiguration configuration) {
     	
     	String uuidProperty = config.get(UUID_PROPERTY);
         if (StringUtils.isNotBlank(uuidProperty)) {

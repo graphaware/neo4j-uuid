@@ -16,98 +16,55 @@
 
 package com.graphaware.module.uuid;
 
-import com.graphaware.test.integration.GraphAwareIntegrationTest;
-import org.junit.Test;
-import org.neo4j.kernel.impl.proc.Procedures;
+import com.graphaware.test.integration.DatabaseIntegrationTest;
+import ga.uuid.NodeUuidFunctions;
+import ga.uuid.RelationshipUuidFunctions;
+import org.junit.jupiter.api.Test;
+import org.neo4j.graphdb.Result;
+import org.neo4j.harness.TestServerBuilder;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import static org.apache.http.HttpStatus.SC_OK;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-public class UuidModuleMultipleModulesTest extends GraphAwareIntegrationTest {
+public class UuidModuleMultipleModulesTest extends DatabaseIntegrationTest {
 
     @Override
     protected String configFile() {
         return "neo4j-uuid-multiple.conf";
     }
 
-    @Test
-    public void testWorkflow() {
-        //Create & Assign
-        Pattern pattern = Pattern.compile("\\\"row\\\":\\[([0-9]*)\\]");
-
-        Matcher cidMatcher = pattern.matcher(
-                httpClient.executeCypher(baseNeoUrl(), "CREATE (c:Customer {name:'c1'}) RETURN id(c)"));
-        assertTrue(cidMatcher.find());
-        String cid = cidMatcher.group(1);
-
-        Matcher uidMatcher = pattern.matcher(
-                httpClient.executeCypher(baseNeoUrl(), "CREATE (u:User {name:'u1'}) RETURN id(u)"));
-        assertTrue(uidMatcher.find());
-        String uid = uidMatcher.group(1);
-
-        httpClient.executeCypher(baseNeoUrl(), "CREATE (:SomethingElse {name:'s1'})");
-
-        String response = httpClient.executeCypher(baseNeoUrl(), "MATCH (c:Customer) RETURN c");
-
-        Matcher matcher = Pattern.compile("\\\"customerId\\\":\\\"([a-zA-Z0-9-]*)\\\"").matcher(response);
-        assertTrue(matcher.find());
-        String uuid = matcher.group(1);
-
-        //Retrieve
-        assertEquals(cid, httpClient.get(baseUrl() + "/uuid/UID1/node/" + uuid, SC_OK));
-
-        response = httpClient.executeCypher(baseNeoUrl(), "MATCH (u:User) RETURN u");
-
-        matcher = Pattern.compile("\\\"userId\\\":\\\"([a-zA-Z0-9-]*)\\\"").matcher(response);
-        assertTrue(matcher.find());
-        uuid = matcher.group(1);
-
-        //Retrieve
-        assertEquals(uid, httpClient.get(baseUrl() + "/uuid/UID2/node/" + uuid, SC_OK));
+    @Override
+    protected TestServerBuilder registerProceduresAndFunctions(TestServerBuilder testServerBuilder) throws Exception {
+        return super.registerProceduresAndFunctions(testServerBuilder)
+                .withFunction(NodeUuidFunctions.class)
+                .withFunction(RelationshipUuidFunctions.class)
+                .withFunction(ga.uuid.nd.NodeUuidFunctions.class)
+                .withFunction(ga.uuid.nd.RelationshipUuidFunctions.class);
     }
 
     @Test
     public void testProcedures() {
         //Create & Assign
-        Pattern pattern = Pattern.compile("\\\"row\\\":\\[([0-9]*)\\]");
+        String cid = singleValue(getDatabase().execute("CREATE (c:Customer {name:'c1'}) RETURN id(c)"));
+        String uid = singleValue(getDatabase().execute("CREATE (u:User {name:'u1'}) RETURN id(u)"));
 
-        Matcher cidMatcher = pattern.matcher(
-                httpClient.executeCypher(baseNeoUrl(), "CREATE (c:Customer {name:'c1'}) RETURN id(c)"));
-        assertTrue(cidMatcher.find());
-        String cid = cidMatcher.group(1);
+        getDatabase().execute("CREATE (:SomethingElse {name:'s1'})");
 
-        Matcher uidMatcher = pattern.matcher(
-                httpClient.executeCypher(baseNeoUrl(), "CREATE (u:User {name:'u1'}) RETURN id(u)"));
-        assertTrue(uidMatcher.find());
-        String uid = uidMatcher.group(1);
-
-        httpClient.executeCypher(baseNeoUrl(), "CREATE (:SomethingElse {name:'s1'})");
-
-        String response = httpClient.executeCypher(baseNeoUrl(), "MATCH (c:Customer) RETURN c");
-
-        Matcher matcher = Pattern.compile("\\\"customerId\\\":\\\"([a-zA-Z0-9-]*)\\\"").matcher(response);
-        assertTrue(matcher.find());
-        String uuid = matcher.group(1);
+        String uuid = singleValue(getDatabase().execute("MATCH (c:Customer) RETURN c.customerId"));
 
         //Retrieve
-        assertEquals("{\"results\":[{\"columns\":[\"id\"],\"data\":[{\"row\":[" + cid + "],\"meta\":[null]}]}],\"errors\":[]}", findNodeByUuid("UID1", uuid));
+        assertEquals(cid, findNodeByUuid("UID1", uuid));
 
-        response = httpClient.executeCypher(baseNeoUrl(), "MATCH (u:User) RETURN u");
-
-        matcher = Pattern.compile("\\\"userId\\\":\\\"([a-zA-Z0-9-]*)\\\"").matcher(response);
-        assertTrue(matcher.find());
-        uuid = matcher.group(1);
+        uuid = singleValue(getDatabase().execute("MATCH (u:User) RETURN u.userId"));
 
         //Retrieve
-        assertEquals("{\"results\":[{\"columns\":[\"id\"],\"data\":[{\"row\":[" + uid + "],\"meta\":[null]}]}],\"errors\":[]}", findNodeByUuid("UID2", uuid));
+        assertEquals(uid, findNodeByUuid("UID2", uuid));
     }
 
     private String findNodeByUuid(String moduleId, String uuid) {
-        return httpClient.executeCypher(baseNeoUrl(), "RETURN id(ga.uuid.nd.findNode('" + moduleId + "','" + uuid + "')) as id");
+        return singleValue(getDatabase().execute("RETURN id(ga.uuid.nd.findNode('" + moduleId + "','" + uuid + "')) as id"));
     }
 
+    private String singleValue(Result result) {
+        return result.next().values().iterator().next().toString();
+    }
 }

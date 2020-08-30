@@ -15,43 +15,28 @@
  */
 package com.graphaware.module.uuid;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.neo4j.helpers.collection.Iterators.asIterable;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.stream.IntStream;
-
 import com.graphaware.common.policy.inclusion.BaseNodeInclusionPolicy;
 import com.graphaware.common.policy.inclusion.BaseRelationshipInclusionPolicy;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.neo4j.graphdb.Direction;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Label;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.NotFoundException;
-import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.RelationshipType;
-import org.neo4j.graphdb.Result;
-import org.neo4j.graphdb.Transaction;
-import org.neo4j.graphdb.TransactionFailureException;
-import org.neo4j.test.TestGraphDatabaseFactory;
-
-import com.graphaware.common.util.IterableUtils;
 import com.graphaware.module.uuid.read.DefaultUuidReader;
 import com.graphaware.runtime.GraphAwareRuntime;
 import com.graphaware.runtime.GraphAwareRuntimeFactory;
 import com.graphaware.runtime.policy.all.IncludeAllBusinessNodes;
 import com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.neo4j.graphdb.*;
+import org.neo4j.harness.TestServerBuilders;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.stream.IntStream;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.neo4j.helpers.collection.Iterators.asIterable;
 
 
 
@@ -65,62 +50,22 @@ public class UuidModuleEmbeddedProgrammaticTest {
     private UuidConfiguration uuidConfiguration;
     private DefaultUuidReader uuidReader;
 
-    @Before
+    @BeforeEach
     public void setUp() {
-        database = new TestGraphDatabaseFactory().newImpermanentDatabase();
+        database = TestServerBuilders.newInProcessBuilder().newServer().graph();
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         database.shutdown();
     }
 
     @Test
-    public void moduleShouldInitializeCorrectly() {
+    public void initializationShouldNotTouchAssignedUUIDs() {
         try (Transaction tx = database.beginTx()) {
-            Node node = database.createNode(personLabel);
-            Node another = database.createNode();
-            node.createRelationshipTo(another,knowsType);
-            tx.success();
-        }
-
-        try (Transaction tx = database.beginTx()) {
-            Node personNode = IterableUtils.getSingle(database.findNodes(personLabel));
-            assertFalse(personNode.hasProperty("uuid"));
-
-            Relationship relationship = IterableUtils.getSingle(personNode.getRelationships());
-            assertFalse(relationship.hasProperty("uuid"));
-            tx.success();
-        }
-
-        registerModuleWithLabelsAndTypes();
-
-        try (Transaction tx = database.beginTx()) {
-            assertTrue(database.index().existsForNodes("uuidIndex"));
-            assertTrue(database.index().existsForRelationships("uuidRelIndex"));
-            Node personNode = IterableUtils.getSingle(database.findNodes(personLabel));
-            assertTrue(personNode.hasProperty("uuid"));
-            String uuid = (String) personNode.getProperty("uuid");
-            assertEquals(personNode.getId(), uuidReader.getNodeIdByUuid(uuid));
-
-            Relationship relationship = personNode.getSingleRelationship(knowsType, Direction.OUTGOING);
-            assertTrue(relationship.hasProperty("uuid"));
-            String relUuid = (String) relationship.getProperty("uuid");
-            assertEquals(relationship.getId(), uuidReader.getRelationshipIdByUuid(relUuid));
-            tx.success();
-        }
-    }
-
-    @Test
-    public void initializationShouldNotTouchedAssignedUUIDs() {
-        try (Transaction tx = database.beginTx()) {
-            database.createNode(personLabel); //no UUID
-
             Node node = database.createNode(personLabel);
             node.setProperty("uuid", "test-uuid");
             database.index().forNodes("uuidIndex").add(node, "uuid", "test-uuid");
-
-            database.createNode(personLabel); //no UUID
             tx.success();
         }
 
@@ -161,6 +106,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
             tx.success();
         }
     }
+
     @Test
     public void newNodesWithLabelShouldBeAssignedUuidSequence() {
     	
@@ -258,11 +204,10 @@ public class UuidModuleEmbeddedProgrammaticTest {
         }
     }
 
-    @Test(expected = TransactionFailureException.class)
+    @Test
     public void shouldNotBeAbleToChangeTheUuidOfLabeledNode() {
         Node node;
 
-        //Given
         registerModuleWithNoLabels();
 
         try (Transaction tx = database.beginTx()) {
@@ -271,23 +216,20 @@ public class UuidModuleEmbeddedProgrammaticTest {
             tx.success();
         }
 
-        //When
-        try (Transaction tx = database.beginTx()) {
-            for (Node n : asIterable(database.findNodes(testLabel))) {
-                n.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
+        assertThrows(TransactionFailureException.class , () -> {
+            try (Transaction tx = database.beginTx()) {
+                for (Node n : asIterable(database.findNodes(testLabel))) {
+                    n.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
+                }
+                tx.success();
             }
-            tx.success();
-        }
-
-        //Then
-        //Exception should be thrown
+        });
     }
 
-    @Test(expected = TransactionFailureException.class)
+    @Test
      public void shouldNotBeAbleToChangeTheUuidOfUnlabeledNode() {
         Node node;
 
-        //Given
         registerModuleWithNoLabels();
 
         try (Transaction tx = database.beginTx()) {
@@ -296,23 +238,20 @@ public class UuidModuleEmbeddedProgrammaticTest {
             tx.success();
         }
 
-        //When
-        try (Transaction tx = database.beginTx()) {
-            for (Node n : database.getAllNodes()) {
-                n.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
+        assertThrows(TransactionFailureException.class , () -> {
+            try (Transaction tx = database.beginTx()) {
+                for (Node n : database.getAllNodes()) {
+                    n.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
+                }
+                tx.success();
             }
-            tx.success();
-        }
-
-        //Then
-        //Exception should be thrown
+        });
     }
 
-    @Test(expected = TransactionFailureException.class)
+    @Test
     public void shouldNotBeAbleToDeleteTheUuidOfLabeledNode() {
         Node node;
 
-        //Given
         registerModuleWithNoLabels();
 
         try (Transaction tx = database.beginTx()) {
@@ -321,23 +260,20 @@ public class UuidModuleEmbeddedProgrammaticTest {
             tx.success();
         }
 
-        //When
-        try (Transaction tx = database.beginTx()) {
-            for (Node n : asIterable(database.findNodes(testLabel))) {
-                n.removeProperty(uuidConfiguration.getUuidProperty());
+        assertThrows(TransactionFailureException.class , () -> {
+            try (Transaction tx = database.beginTx()) {
+                for (Node n : asIterable(database.findNodes(testLabel))) {
+                    n.removeProperty(uuidConfiguration.getUuidProperty());
+                }
+                tx.success();
             }
-            tx.success();
-        }
-
-        //Then
-        //Exception should be thrown
+        });
     }
 
-    @Test(expected = TransactionFailureException.class)
+    @Test
     public void shouldNotBeAbleToDeleteTheUuidOfUnlabeledNode() {
         Node node;
 
-        //Given
         registerModuleWithNoLabels();
 
         try (Transaction tx = database.beginTx()) {
@@ -346,15 +282,14 @@ public class UuidModuleEmbeddedProgrammaticTest {
             tx.success();
         }
 
-        //When
-        try (Transaction tx = database.beginTx()) {
-            for (Node n : database.getAllNodes()) {
-                n.removeProperty(uuidConfiguration.getUuidProperty());
+        assertThrows(TransactionFailureException.class , () -> {
+            try (Transaction tx = database.beginTx()) {
+                for (Node n : database.getAllNodes()) {
+                    n.removeProperty(uuidConfiguration.getUuidProperty());
+                }
+                tx.success();
             }
-            tx.success();
-        }
-        //Then
-        //Exception should be thrown
+        });
     }
 
 
@@ -466,11 +401,10 @@ public class UuidModuleEmbeddedProgrammaticTest {
         }
     }
 
-    @Test(expected = TransactionFailureException.class)
+    @Test
     public void shouldNotBeAbleToChangeTheUuidOfLabeledNodeConfigured() {
         Node node;
 
-        //Given
         registerModuleWithNoLabels();
 
         try (Transaction tx = database.beginTx()) {
@@ -479,16 +413,14 @@ public class UuidModuleEmbeddedProgrammaticTest {
             tx.success();
         }
 
-        //When
-        try (Transaction tx = database.beginTx()) {
-            for (Node n : asIterable(database.findNodes(personLabel))) {
-                n.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
+        assertThrows(TransactionFailureException.class , () -> {
+            try (Transaction tx = database.beginTx()) {
+                for (Node n : asIterable(database.findNodes(personLabel))) {
+                    n.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
+                }
+                tx.success();
             }
-            tx.success();
-        }
-
-        //Then
-        //Exception should be thrown
+        });
     }
 
     @Test
@@ -555,11 +487,10 @@ public class UuidModuleEmbeddedProgrammaticTest {
         }
     }
 
-    @Test(expected = TransactionFailureException.class)
+    @Test
     public void shouldNotBeAbleToDeleteTheUuidOfLabeledNodeConfigured() {
         Node node;
 
-        //Given
         registerModuleWithNoLabels();
 
         try (Transaction tx = database.beginTx()) {
@@ -568,15 +499,14 @@ public class UuidModuleEmbeddedProgrammaticTest {
             tx.success();
         }
 
-        //When
-        try (Transaction tx = database.beginTx()) {
-            for (Node n : asIterable(database.findNodes(personLabel))) {
-                n.removeProperty(uuidConfiguration.getUuidProperty());
+        assertThrows(TransactionFailureException.class , () -> {
+            try (Transaction tx = database.beginTx()) {
+                for (Node n : asIterable(database.findNodes(personLabel))) {
+                    n.removeProperty(uuidConfiguration.getUuidProperty());
+                }
+                tx.success();
             }
-            tx.success();
-        }
-        //Then
-        //Exception should be thrown
+        });
     }
 
     @Test
@@ -1159,19 +1089,10 @@ public class UuidModuleEmbeddedProgrammaticTest {
         }
     }
 
-    @Test(expected = TransactionFailureException.class)
+    @Test
     public void shouldNotBeAbleToManuallyAssignSameUuidToNodesWithLabelConfiguration() {
-        //Given
         registerModuleWithLabelsAndTypes();
 
-        //When
-        try (Transaction tx = database.beginTx()) {
-            Node node = database.createNode(personLabel);
-            node.setProperty("name", "aNode");
-            node.setProperty("uuid", "1");
-            tx.success();
-        }
-        //Create a node with an existing UUID
         try (Transaction tx = database.beginTx()) {
             Node node = database.createNode(personLabel);
             node.setProperty("name", "aNode");
@@ -1179,8 +1100,14 @@ public class UuidModuleEmbeddedProgrammaticTest {
             tx.success();
         }
 
-        //Then
-        //Exception
+        assertThrows(TransactionFailureException.class , () -> {
+            try (Transaction tx = database.beginTx()) {
+                Node node = database.createNode(personLabel);
+                node.setProperty("name", "aNode");
+                node.setProperty("uuid", "1");
+                tx.success();
+            }
+        });
     }
 
     @Test
@@ -1257,11 +1184,10 @@ public class UuidModuleEmbeddedProgrammaticTest {
         }
     }
 
-    @Test(expected = TransactionFailureException.class)
+    @Test
     public void shouldNotBeAbleToChangeTheUuidOfRelationship() {
         Node node, another;
 
-        //Given
         registerModuleWithNoLabels();
 
         try (Transaction tx = database.beginTx()) {
@@ -1271,23 +1197,20 @@ public class UuidModuleEmbeddedProgrammaticTest {
             tx.success();
         }
 
-        //When
-        try (Transaction tx = database.beginTx()) {
-            for (Relationship r : database.getAllRelationships()) {
-                r.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
+        assertThrows(TransactionFailureException.class , () -> {
+            try (Transaction tx = database.beginTx()) {
+                for (Relationship r : database.getAllRelationships()) {
+                    r.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
+                }
+                tx.success();
             }
-            tx.success();
-        }
-
-        //Then
-        //Exception should be thrown
+        });
     }
 
-    @Test(expected = TransactionFailureException.class)
+    @Test
     public void shouldNotBeAbleToDeleteTheUuidOfRelationship() {
         Node node, another;
 
-        //Given
         registerModuleWithNoLabels();
 
         try (Transaction tx = database.beginTx()) {
@@ -1297,16 +1220,14 @@ public class UuidModuleEmbeddedProgrammaticTest {
             tx.success();
         }
 
-        //When
-        try (Transaction tx = database.beginTx()) {
-            for (Relationship r : database.getAllRelationships()) {
-                r.removeProperty(uuidConfiguration.getUuidProperty());
+        assertThrows(TransactionFailureException.class , () -> {
+            try (Transaction tx = database.beginTx()) {
+                for (Relationship r : database.getAllRelationships()) {
+                    r.removeProperty(uuidConfiguration.getUuidProperty());
+                }
+                tx.success();
             }
-            tx.success();
-        }
-
-        //Then
-        //Exception should be thrown
+        });
     }
 
     @Test
@@ -1378,11 +1299,10 @@ public class UuidModuleEmbeddedProgrammaticTest {
         }
     }
 
-    @Test(expected = TransactionFailureException.class)
+    @Test
     public void shouldNotBeAbleToChangeTheUuidOfRelationshipConfigured() {
         Node node, another;
 
-        //Given
         registerModuleWithNoLabels();
 
         try (Transaction tx = database.beginTx()) {
@@ -1393,19 +1313,17 @@ public class UuidModuleEmbeddedProgrammaticTest {
             tx.success();
         }
 
-        //When
-        try (Transaction tx = database.beginTx()) {
-            for (Relationship r : database.getAllRelationships()) {
-                if (r.isType(knowsType)) {
-                    r.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
+        assertThrows(TransactionFailureException.class , () -> {
+            try (Transaction tx = database.beginTx()) {
+                for (Relationship r : database.getAllRelationships()) {
+                    if (r.isType(knowsType)) {
+                        r.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
+                    }
+
                 }
-
+                tx.success();
             }
-            tx.success();
-        }
-
-        //Then
-        //Exception should be thrown
+        });
     }
 
     @Test
