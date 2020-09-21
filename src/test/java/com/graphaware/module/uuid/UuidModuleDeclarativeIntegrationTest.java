@@ -18,22 +18,27 @@ package com.graphaware.module.uuid;
 import com.graphaware.common.uuid.EaioUuidGenerator;
 import com.graphaware.common.uuid.UuidGenerator;
 import com.graphaware.module.uuid.generator.JavaUtilUUIDGenerator;
-import com.graphaware.module.uuid.generator.SequenceIdGenerator;
-import com.graphaware.module.uuid.read.DefaultUuidReader;
-import com.graphaware.module.uuid.read.UuidReader;
+import com.graphaware.runtime.GraphAwareRuntime;
+import com.graphaware.runtime.bootstrap.RuntimeExtensionFactory;
 import com.graphaware.runtime.policy.all.IncludeAllBusinessNodes;
 import com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships;
+import com.graphaware.test.integration.GraphAwareNeo4jBuilder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.graphdb.*;
-import org.neo4j.harness.TestServerBuilders;
-import org.neo4j.helpers.collection.Iterables;
+import org.neo4j.harness.Neo4j;
+import org.neo4j.harness.Neo4jBuilders;
+import org.neo4j.monitoring.DatabaseEventListeners;
+import org.neo4j.test.ReflectionUtil;
 
-import static com.graphaware.runtime.RuntimeRegistry.getRuntime;
-import static com.graphaware.runtime.RuntimeRegistry.getStartedRuntime;
-import static com.graphaware.test.integration.IntegrationTestUtils.applyConfig;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+
 import static org.junit.jupiter.api.Assertions.*;
-import static org.neo4j.helpers.collection.Iterators.asIterable;
 
 public class UuidModuleDeclarativeIntegrationTest {
 
@@ -43,82 +48,92 @@ public class UuidModuleDeclarativeIntegrationTest {
     private final RelationshipType ignoredType = RelationshipType.withName("IGNORES");
     private final String UUID = "uuid";
     private final String SEQUENCE = "sequence";
-    
+
+    private Neo4j neo4j;
     private GraphDatabaseService database;
+    private DatabaseManagementService databaseManagementService;
 
     @AfterEach
-    public void shutdownDatabase() {
-        if (database != null) {
-            database.shutdown();
-        }
+    public void tearDown() {
+        neo4j.close();
+
+        GraphAwareNeo4jBuilder.cleanup();
     }
 
     @Test
     public void testUuidAssigned() {
-        database = applyConfig(TestServerBuilders.newInProcessBuilder(), "neo4j-uuid.conf").newServer().graph();
-
-        getRuntime(database).waitUntilStarted();
-        UuidReader reader = getReader();
+        setUpNeo4j(defaultBuilder());
 
         //When
         try (Transaction tx = database.beginTx()) {
-            Node node = database.createNode();
+            Node node = tx.createNode();
             node.addLabel(personLabel);
             node.setProperty("name", "aNode");
-            tx.success();
+            tx.commit();
         }
 
         //Then
         //Retrieve the node and check that it has a uuid property
         try (Transaction tx = database.beginTx()) {
-            for (Node node : asIterable(database.findNodes(personLabel))) {
-                assertTrue(node.hasProperty(UUID));
-                assertEquals(node.getId(), reader.getNodeIdByUuid((String) node.getProperty(UUID)));
-            }
-            tx.success();
+            tx.findNodes(personLabel).forEachRemaining(new Consumer<Node>() {
+                @Override
+                public void accept(Node node) {
+                    assertTrue(node.hasProperty(UUID));
+                }
+            });
+
+            tx.commit();
         }
     }
 
     @Test
     public void testUuidAssignedWithoutHyphens() {
-        database = applyConfig(TestServerBuilders.newInProcessBuilder(), "neo4j-uuid-strip-hyphens.conf").newServer().graph();
-
-        getRuntime(database).waitUntilStarted();
-        UuidReader reader = getReader();
+        setUpNeo4j(emptyBuilder()
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.1", "com.graphaware.module.uuid.UuidBootstrapper")
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.uuidProperty", "uuid")
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.relationship", "com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships")
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.stripHyphens", "true")
+        );
 
         //When
         try (Transaction tx = database.beginTx()) {
-            Node node = database.createNode();
+            Node node = tx.createNode();
             node.addLabel(personLabel);
             node.setProperty("name", "aNode");
-            tx.success();
+            tx.commit();
         }
 
         //Then
         //Retrieve the node and check that it has a uuid property
         try (Transaction tx = database.beginTx()) {
-            for (Node node : asIterable(database.findNodes(personLabel))) {
-                assertTrue(node.hasProperty(UUID));
-                assertFalse(node.getProperty(UUID).toString().contains("-"));
-                assertEquals(node.getId(), reader.getNodeIdByUuid((String) node.getProperty(UUID)));
-            }
-            tx.success();
+            tx.findNodes(personLabel).forEachRemaining(new Consumer<Node>() {
+                @Override
+                public void accept(Node node) {
+                    assertTrue(node.hasProperty(UUID));
+                    assertFalse(node.getProperty(UUID).toString().contains("-"));
+                }
+            });
+
+            tx.commit();
         }
     }
 
     @Test
-    public void testUuidCanBeChangedWhenImmutableIsFalse() throws InterruptedException {
-        database = applyConfig(TestServerBuilders.newInProcessBuilder(), "neo4j-uuid-immutable-false.conf").newServer().graph();
-
-        getRuntime(database).waitUntilStarted();
-        UuidReader reader = getReader();
+    public void testUuidCanBeChangedWhenImmutableIsFalse() {
+        setUpNeo4j(emptyBuilder()
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.1", "com.graphaware.module.uuid.UuidBootstrapper")
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.uuidProperty", "uuid")
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.relationship", "com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships")
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.stripHyphens", "true")
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.immutable", "false")
+        );
 
         //When
         try (Transaction tx = database.beginTx()) {
-            Node node = database.createNode();
+            Node node = tx.createNode();
             node.addLabel(personLabel);
             node.setProperty("name", "aNode");
-            tx.success();
+            tx.commit();
         }
 
         //Then
@@ -129,392 +144,313 @@ public class UuidModuleDeclarativeIntegrationTest {
         String newUuid = null;
 
         try (Transaction tx = database.beginTx()) {
-            for (Node node : asIterable(database.findNodes(personLabel))) {
+            for (Node node : tx.findNodes(personLabel).stream().collect(Collectors.toList())) {
                 assertTrue(node.hasProperty(UUID));
 
                 nodeId = node.getId();
                 oldUuid = (String) node.getProperty(UUID);
-                assertEquals(nodeId.longValue(), reader.getNodeIdByUuid(oldUuid));
             }
-            tx.success();
+            tx.commit();
         }
 
         //Then
         //Change the node uuid property
         try (Transaction tx = database.beginTx()) {
-            for (Node node : asIterable(database.findNodes(personLabel))) {
+            for (Node node : tx.findNodes(personLabel).stream().collect(Collectors.toList())) {
                 newUuid = "123-" + nodeId;
                 node.setProperty(UUID, newUuid);
             }
-            tx.success();
+            tx.commit();
         }
 
         //Then
         // Check nodes have uuid changed
         try (Transaction tx = database.beginTx()) {
-            for (Node node : asIterable(database.findNodes(personLabel))) {
+            for (Node node : tx.findNodes(personLabel).stream().collect(Collectors.toList())) {
                 assertEquals(newUuid, node.getProperty(UUID).toString());
             }
-            tx.success();
-        }
-
-        //Then
-        //Check the node can be found by new UUID
-        try (Transaction tx = database.beginTx()) {
-            assertEquals(nodeId.longValue(), reader.getNodeIdByUuid(newUuid));
-            tx.success();
-        }
-
-        //Then
-        //Check that old UUID can no longer be used to lookup the node
-        try (Transaction tx = database.beginTx()) {
-            try {
-                reader.getNodeIdByUuid(oldUuid);
-                fail();
-            } catch (NotFoundException e) {
-                //good
-            }
+            tx.commit();
         }
     }
 
     @Test
-    public void testUuidCanBeRemovedWhenImmutableIsFalse() throws InterruptedException {
-        database = applyConfig(TestServerBuilders.newInProcessBuilder(), "neo4j-uuid-immutable-false.conf").newServer().graph();
-
-        getRuntime(database).waitUntilStarted();
-        UuidReader reader = getReader();
+    public void testUuidCanBeRemovedWhenImmutableIsFalse() {
+        setUpNeo4j(emptyBuilder()
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.1", "com.graphaware.module.uuid.UuidBootstrapper")
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.uuidProperty", "uuid")
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.relationship", "com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships")
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.stripHyphens", "true")
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.immutable", "false")
+        );
 
         //When
         try (Transaction tx = database.beginTx()) {
-            Node node = database.createNode();
+            Node node = tx.createNode();
             node.addLabel(personLabel);
             node.setProperty("name", "aNode");
-            tx.success();
+            tx.commit();
         }
 
         //Then
         //Retrieve the node and check that it has a uuid property
-
-        String oldUuid = null;
-
         try (Transaction tx = database.beginTx()) {
-            for (Node node : asIterable(database.findNodes(personLabel))) {
+            for (Node node : tx.findNodes(personLabel).stream().collect(Collectors.toList())) {
                 assertTrue(node.hasProperty(UUID));
-
-                oldUuid = (String) node.getProperty(UUID);
-                assertEquals(node.getId(), reader.getNodeIdByUuid(oldUuid));
             }
-            tx.success();
+            tx.commit();
         }
 
         //Then
         //Remove the node uuid property
         try (Transaction tx = database.beginTx()) {
-            for (Node node : asIterable(database.findNodes(personLabel))) {
+            for (Node node : tx.findNodes(personLabel).stream().collect(Collectors.toList())) {
                 node.removeProperty(UUID);
             }
-            tx.success();
+            tx.commit();
         }
 
         //Then
         // Check nodes have uuid removed
         try (Transaction tx = database.beginTx()) {
-            for (Node node : asIterable(database.findNodes(personLabel))) {
+            for (Node node : tx.findNodes(personLabel).stream().collect(Collectors.toList())) {
                 assertFalse(node.hasProperty(UUID));
             }
-            tx.success();
-        }
-
-        //Then
-        //Check that old UUID can no longer be used to lookup the node
-        try (Transaction tx = database.beginTx()) {
-            try {
-                reader.getNodeIdByUuid(oldUuid);
-                fail();
-            } catch (NotFoundException e) {
-                //good
-            }
+            tx.commit();
         }
     }
 
     @Test
     public void testUuidsAreAssignedToNodesWithNewIncludedLabel() {
-        database = applyConfig(TestServerBuilders.newInProcessBuilder(), "neo4j-uuid.conf").newServer().graph();
+        setUpNeo4j(defaultBuilder());
 
         // Create a node with a label that is not in the inclusion policies
         try (Transaction tx = database.beginTx()) {
-            database.execute("CREATE (n:ns7Person) SET n.name = 'John'");
-            tx.success();
+            tx.execute("CREATE (n:ns7Person) SET n.name = 'John'");
+            tx.commit();
         }
         checkNoNodesWithLabelHaveUuid("ns7Person");
 
         // Modify this node and add a label set in Inclusion Policies
         try (Transaction tx = database.beginTx()) {
-            database.execute("MATCH (n:ns7Person) SET n:Person");
-            tx.success();
+            tx.execute("MATCH (n:ns7Person) SET n:Person");
+            tx.commit();
         }
         checkAllNodesWithLabelHaveUuid("Person");
 
     }
 
     @Test
-    public void testDefaultGenerator() {
-        database = applyConfig(TestServerBuilders.newInProcessBuilder(), "neo4j-uuid.conf").newServer().graph();
+    public void testDefaultGenerator() throws Exception {
+        setUpNeo4j(defaultBuilder());
 
         // Verify the generator instantiated is as expected (the default)
-        UuidModule uuidModule = getRuntime(database).getModule(UuidModule.class);
-        UuidGenerator uuidGenerator = uuidModule.getUuidGenerator();
-        assertEquals(EaioUuidGenerator.class, uuidGenerator.getClass());
-
+        assertEquals(EaioUuidGenerator.class, getGenerator().getClass());
     }
-    
+
     @Test
-    public void testUuidGeneratorJavaUtilUUID() throws InterruptedException {
-        database = applyConfig(TestServerBuilders.newInProcessBuilder(), "neo4j-uuid-generator-java-util.conf").newServer().graph();
+    public void testUuidGeneratorJavaUtilUUID() throws Exception {
+        setUpNeo4j(emptyBuilder()
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.1", "com.graphaware.module.uuid.UuidBootstrapper")
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.uuidProperty", "uuid")
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.relationship", "com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships")
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.stripHyphens", "true")
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.uuidGeneratorClass", "com.graphaware.module.uuid.generator.JavaUtilUUIDGenerator")
+        );
 
         // Verify the generator instantiated is as expected
-        UuidModule uuidModule = getRuntime(database).getModule(UuidModule.class);
-        UuidGenerator uuidGenerator = uuidModule.getUuidGenerator();
-        assertEquals(JavaUtilUUIDGenerator.class, uuidGenerator.getClass());
-        
-        getRuntime(database).waitUntilStarted();
-        UuidReader reader = getReader();
+        assertEquals(JavaUtilUUIDGenerator.class, getGenerator().getClass());
+
 
         //When
         try (Transaction tx = database.beginTx()) {
-            Node node = database.createNode();
+            Node node = tx.createNode();
             node.addLabel(personLabel);
             node.setProperty("name", "aNode");
-            tx.success();
+            tx.commit();
         }
 
         //Then
         //Retrieve the node and check that it has a uuid property
         try (Transaction tx = database.beginTx()) {
-            for (Node node : asIterable(database.findNodes(personLabel))) {
+            for (Node node : tx.findNodes(personLabel).stream().collect(Collectors.toList())) {
                 assertTrue(node.hasProperty(UUID));
                 assertFalse(node.getProperty(UUID).toString().contains("-"));
-                assertEquals(node.getId(), reader.getNodeIdByUuid((String) node.getProperty(UUID)));
             }
-            tx.success();
+            tx.commit();
         }
     }
-    
-    @Test
-    public void testUuidGeneratorSequenceIdGenerator() throws InterruptedException {
-        database = applyConfig(TestServerBuilders.newInProcessBuilder(), "neo4j-uuid-generator-sequenceid.conf").newServer().graph();
 
-        // Verify the generator instantiated is as expected
-        UuidModule uuidModule = getRuntime(database).getModule(UuidModule.class);
-        UuidGenerator uuidGenerator = uuidModule.getUuidGenerator();
-        assertEquals(SequenceIdGenerator.class, uuidGenerator.getClass());
-        
-        getRuntime(database).waitUntilStarted();
-        UuidReader reader = getReader();
-
-        //When
-        try (Transaction tx = database.beginTx()) {
-            Node node = database.createNode();
-            node.addLabel(personLabel);
-            node.setProperty("name", "aNode");
-            tx.success();
-        }
-
-        //Then
-        //Retrieve the node and check that it has a sequence property (per the configuraiton)
-        try (Transaction tx = database.beginTx()) {
-            for (Node node : asIterable(database.findNodes(personLabel))) {
-                assertTrue(node.hasProperty(SEQUENCE));
-                assertFalse(node.getProperty(SEQUENCE).toString().contains("-"));
-                assertEquals(node.getId(), reader.getNodeIdByUuid((String) node.getProperty(SEQUENCE)));
-            }
-            tx.success();
-        }
+    private UuidGenerator getGenerator() throws Exception {
+        return ReflectionUtil.getPrivateField(getRuntime().getModule(UuidModule.class), "uuidGenerator", UuidGenerator.class);
     }
-    
-    @Test
-    public void testUuidGeneratorInvalidGenerator()  {
-        database = applyConfig(TestServerBuilders.newInProcessBuilder(), "neo4j-uuid-generator-invalid.conf").newServer().graph();
 
-        assertThrows(NotFoundException.class, () -> {
-            // This should cause the expected exception due to an invalid generator being configured
-            getRuntime(database).getModule(UuidModule.class);
+    private GraphAwareRuntime getRuntime() throws Exception {
+        DatabaseEventListeners listeners = ReflectionUtil.getPrivateField(databaseManagementService, "databaseEventListeners", DatabaseEventListeners.class);
+        return (GraphAwareRuntime) ReflectionUtil.getPrivateField(listeners, "databaseEventListeners", List.class).get(0);
+    }
+
+    @Test
+    public void testUuidGeneratorInvalidGenerator() {
+        setUpNeo4j(emptyBuilder()
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.1", "com.graphaware.module.uuid.UuidBootstrapper")
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.uuidProperty", SEQUENCE)
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.relationship", "com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships")
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.stripHyphens", "true")
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.uuidGeneratorClass", "com.graphaware.module.uuid.generator.NonExistentGenerator")
+        );
+
+        assertThrows(TransactionFailureException.class, () -> {
+            database.executeTransactionally("CREATE (p:Person)");
         });
-
     }
-    
+
     @Test
     public void testUuidNotAssigned() {
-        database = applyConfig(TestServerBuilders.newInProcessBuilder(), "neo4j-uuid.conf").newServer().graph();
-
-        getRuntime(database).waitUntilStarted();
+        setUpNeo4j(defaultBuilder());
 
         //When
         try (Transaction tx = database.beginTx()) {
-            Node node = database.createNode();
+            Node node = tx.createNode();
             node.addLabel(ignoredLabel);
             node.setProperty("name", "aNode");
-            tx.success();
+            tx.commit();
         }
 
         //Then
         try (Transaction tx = database.beginTx()) {
-            for (Node node : asIterable(database.findNodes(ignoredLabel))) {
-                assertFalse(node.hasProperty(UUID));
-            }
-            tx.success();
+            tx.findNodes(ignoredLabel).forEachRemaining(new Consumer<Node>() {
+                @Override
+                public void accept(Node node) {
+                    assertFalse(node.hasProperty(UUID));
+                }
+            });
+            tx.commit();
         }
-    }
-
-    @Test
-    public void testGetNodeThrowsExceptionForInvalidUuid() {
-        database = applyConfig(TestServerBuilders.newInProcessBuilder(), "neo4j-uuid.conf").newServer().graph();
-
-        getRuntime(database).waitUntilStarted();
-        UuidReader reader = getReader();
-
-        assertThrows(NotFoundException.class, () -> {
-            try (Transaction tx = database.beginTx()) {
-                assertNull(reader.getNodeIdByUuid("xyz"));
-                tx.success();
-            }
-        });
     }
 
     @Test
     public void testUuidAssignedToRelationship() throws InterruptedException {
-        database = applyConfig(TestServerBuilders.newInProcessBuilder(), "neo4j-uuid.conf").newServer().graph();
-
-        getRuntime(database).waitUntilStarted();
-        UuidReader reader = getReader();
+        setUpNeo4j(defaultBuilder());
 
         //When
         try (Transaction tx = database.beginTx()) {
-            Node node = database.createNode();
+            Node node = tx.createNode();
             node.addLabel(personLabel);
             node.setProperty("name", "aNode");
 
-            Node another = database.createNode();
+            Node another = tx.createNode();
             node.addLabel(personLabel);
             node.setProperty("name", "anotherNode");
 
             node.createRelationshipTo(another, knowsType);
-            tx.success();
+            tx.commit();
         }
 
         //Then
         //Retrieve the nodes and relationships and check that it has a uuid property
         try (Transaction tx = database.beginTx()) {
-            for (Node node : asIterable(database.findNodes(personLabel))) {
-                assertTrue(node.hasProperty(UUID));
-                assertEquals(node.getId(), reader.getNodeIdByUuid((String) node.getProperty(UUID)));
-            }
-            for (Relationship rel : database.getAllRelationships()) {
-                assertTrue(rel.hasProperty(UUID));
-                assertEquals(rel.getId(), reader.getRelationshipIdByUuid((String) rel.getProperty(UUID)));
-            }
-            tx.success();
+            tx.findNodes(personLabel).forEachRemaining(new Consumer<Node>() {
+                @Override
+                public void accept(Node node) {
+                    assertTrue(node.hasProperty(UUID));
+                }
+            });
+            tx.getAllRelationships().forEach(new Consumer<Relationship>() {
+                @Override
+                public void accept(Relationship rel) {
+                    assertTrue(rel.hasProperty(UUID));
+                }
+            });
+
+            tx.commit();
         }
     }
 
     @Test
-    public void testUuidNotAssignedToRelationship() throws InterruptedException {
-        database = applyConfig(TestServerBuilders.newInProcessBuilder(), "neo4j-uuid.conf").newServer().graph();
-
-        getRuntime(database).waitUntilStarted();
+    public void testUuidNotAssignedToRelationship() {
+        setUpNeo4j(defaultBuilder());
 
         //When
         try (Transaction tx = database.beginTx()) {
-            Node node = database.createNode();
+            Node node = tx.createNode();
             node.addLabel(ignoredLabel);
             node.setProperty("name", "aNode");
 
 
-            Node another = database.createNode();
+            Node another = tx.createNode();
             another.addLabel(personLabel);
             another.setProperty("name", "anotherNode");
 
             node.createRelationshipTo(another, ignoredType);
-            tx.success();
+            tx.commit();
         }
 
         //Then
         try (Transaction tx = database.beginTx()) {
-            for (Node node : asIterable(database.findNodes(ignoredLabel))) {
-                assertFalse(node.hasProperty(UUID));
-            }
-            for (Relationship rel : database.getAllRelationships()) {
-                if (rel.isType(ignoredType)) {
-                    assertFalse(rel.hasProperty(UUID));
+            tx.findNodes(ignoredLabel).forEachRemaining(new Consumer<Node>() {
+                @Override
+                public void accept(Node node) {
+                    assertFalse(node.hasProperty(UUID));
                 }
-            }
-            tx.success();
+            });
+
+            tx.getAllRelationships().forEach(new Consumer<Relationship>() {
+                @Override
+                public void accept(Relationship rel) {
+                    if (rel.isType(ignoredType)) {
+                        assertFalse(rel.hasProperty(UUID));
+                    }
+                }
+            });
+
+            tx.commit();
         }
-    }
-
-    @Test
-    public void testGetRelationshipThrowsExceptionForInvalidUuid() throws InterruptedException {
-        database = applyConfig(TestServerBuilders.newInProcessBuilder(), "neo4j-uuid.conf").newServer().graph();
-
-        getRuntime(database).waitUntilStarted();
-        UuidReader reader = getReader();
-
-        assertThrows(NotFoundException.class, () -> {
-            try (Transaction tx = database.beginTx()) {
-                assertNull(reader.getRelationshipIdByUuid("xyz"));
-                tx.success();
-            }
-        });
     }
 
     @Test
     public void testCorrectChangeOfUuid() {
-        database = applyConfig(TestServerBuilders.newInProcessBuilder(), "neo4j-uuid-immutable-false.conf").newServer().graph();
-
-        getRuntime(database).waitUntilStarted();
-        UuidReader reader = getReader();
+        setUpNeo4j(emptyBuilder()
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.1", "com.graphaware.module.uuid.UuidBootstrapper")
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.uuidProperty", "uuid")
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.relationship", "com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships")
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.stripHyphens", "true")
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.immutable", "false")
+        );
 
         long id;
         try (Transaction tx = database.beginTx()) {
-            Node node = database.createNode(Label.label("Person"));
+            Node node = tx.createNode(Label.label("Person"));
             node.setProperty("name", "Bob");
             id = node.getId();
-            tx.success();
+            tx.commit();
         }
 
         String uuid;
         try (Transaction tx = database.beginTx()) {
-            uuid = database.getNodeById(id).getProperty("uuid").toString();
+            uuid = tx.getNodeById(id).getProperty("uuid").toString();
             assertFalse(uuid.isEmpty());
         }
 
         try (Transaction tx = database.beginTx()) {
-            assertEquals(id, (long) reader.getNodeIdByUuid(uuid));
+            tx.getNodeById(id).setProperty("uuid", "new-uuid");
+            tx.commit();
         }
 
         try (Transaction tx = database.beginTx()) {
-            database.getNodeById(id).setProperty("uuid", "new-uuid");
-            tx.success();
-        }
-
-        try (Transaction tx = database.beginTx()) {
-            try {
-                reader.getNodeIdByUuid(uuid);
-                fail();
-            } catch (NotFoundException e) {
-                //ok
-            }
-
-            assertEquals(id, (long) reader.getNodeIdByUuid("new-uuid"));
+            assertEquals(id, tx.findNode(Label.label("Person"), "uuid", "new-uuid").getId());
         }
     }
 
 
     @Test
     public void longCypherCreateShouldResultInAllNodesAndRelsWithUuid() {
-        database = applyConfig(TestServerBuilders.newInProcessBuilder(), "neo4j-uuid-all.conf").newServer().graph();
-
-        getRuntime(database).waitUntilStarted();
+        setUpNeo4j(emptyBuilder()
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.1", "com.graphaware.module.uuid.UuidBootstrapper")
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.uuidProperty", "uuid")
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.uuidIndex", "nodeIndex")
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.uuidRelationshipIndex", "relIndex")
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.relationship", "com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships")
+        );
 
         String cypher =
                 "CREATE (TheMatrix:Movie {title:'The Matrix', released:1999, tagline:'Welcome to the Real World'})\n" +
@@ -1023,46 +959,72 @@ public class UuidModuleDeclarativeIntegrationTest {
                         ";";
 
         try (Transaction tx = database.beginTx()) {
-            database.execute(cypher);
-            tx.success();
+            tx.execute(cypher);
+            tx.commit();
         }
 
         try (Transaction tx = database.beginTx()) {
-            for (Node node : Iterables.asResourceIterable(database.getAllNodes())) {
-                if (IncludeAllBusinessNodes.getInstance().include(node)) {
-                    assertTrue(node.hasProperty("uuid"));
+            tx.getAllNodes().forEach(new Consumer<Node>() {
+                @Override
+                public void accept(Node node) {
+                    if (IncludeAllBusinessNodes.getInstance().include(node)) {
+                        assertTrue(node.hasProperty("uuid"));
+                    }
                 }
-            }
-            for (Relationship r : Iterables.asResourceIterable(database.getAllRelationships())) {
-                if (IncludeAllBusinessRelationships.getInstance().include(r)) {
-                    assertTrue(r.hasProperty("uuid"));
+            });
+
+            tx.getAllRelationships().forEach(new Consumer<Relationship>() {
+                @Override
+                public void accept(Relationship r) {
+                    if (IncludeAllBusinessRelationships.getInstance().include(r)) {
+                        assertTrue(r.hasProperty("uuid"));
+                    }
                 }
-            }
-            tx.success();
+            });
+
+            tx.commit();
         }
     }
 
     private void checkNoNodesWithLabelHaveUuid(String label) {
         try (Transaction tx = database.beginTx()) {
             Label label1 = Label.label(label);
-            database.findNodes(label1).forEachRemaining(node -> {
+            tx.findNodes(label1).forEachRemaining(node -> {
                 assertFalse(node.hasProperty("uuid"));
             });
-            tx.success();
+            tx.commit();
         }
     }
 
     private void checkAllNodesWithLabelHaveUuid(String label) {
         try (Transaction tx = database.beginTx()) {
             Label label1 = Label.label(label);
-            database.findNodes(label1).forEachRemaining(node -> {
+            tx.findNodes(label1).forEachRemaining(node -> {
                 assertTrue(node.hasProperty("uuid"));
             });
-            tx.success();
+            tx.commit();
         }
     }
 
-    private UuidReader getReader() {
-        return new DefaultUuidReader(getStartedRuntime(database).getModule("UIDM", UuidModule.class).getConfiguration(), database);
+    private void setUpNeo4j(GraphAwareNeo4jBuilder builder) {
+        neo4j = builder.build();
+        database = neo4j.defaultDatabaseService();
+        databaseManagementService = neo4j.databaseManagementService();
+    }
+
+    private GraphAwareNeo4jBuilder defaultBuilder() {
+        return emptyBuilder()
+                .withGAConfig("com.graphaware.runtime.enabled", "true")
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.1", "com.graphaware.module.uuid.UuidBootstrapper")
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.uuidProperty", "uuid")
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.node", "hasLabel('Person') || hasLabel('Company')")
+                .withGAConfig("com.graphaware.module.neo4j.UIDM.relationship", "isType('KNOWS')");
+    }
+
+    private GraphAwareNeo4jBuilder emptyBuilder() {
+        return GraphAwareNeo4jBuilder.builder(Neo4jBuilders.newInProcessBuilder())
+                .withDisabledServer()
+                .withExtensionFactories(new ArrayList<>(Collections.singleton(new RuntimeExtensionFactory())))
+                .withGAConfig("com.graphaware.runtime.enabled", "true");
     }
 }

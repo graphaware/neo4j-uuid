@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class UuidConfigurationTest {
 
@@ -21,21 +20,17 @@ public class UuidConfigurationTest {
     public void testConfigurationEquality() {
         UuidConfiguration config1 =UuidConfiguration.defaultConfiguration()
                                     .withUuidProperty("id")
-                                    .withUuidIndex("uindex")
                 .withUuidGenerator("generator")
                 .withImmutability(false)
                 .withStripHyphensProperty(true)
-                .withUuidRelationshipIndex("relIndex")
                 .with(IncludeAllRelationshipProperties.getInstance())
                 .with(IncludeAllBusinessNodes.getInstance());
 
         UuidConfiguration config2 =UuidConfiguration.defaultConfiguration()
                 .withUuidProperty("id")
-                .withUuidIndex("uindex")
                 .withUuidGenerator("generator")
                 .withImmutability(false)
                 .withStripHyphensProperty(true)
-                .withUuidRelationshipIndex("relIndex")
                 .with(IncludeAllRelationshipProperties.getInstance())
                 .with(IncludeAllBusinessNodes.getInstance());
 
@@ -46,20 +41,16 @@ public class UuidConfigurationTest {
     public void testConfigurationEqualityWhenConfigIsExtended() {
         UuidConfiguration config1 =UuidConfiguration.defaultConfiguration()
                 .withUuidProperty("id")
-                .withUuidIndex("uindex")
                 .withUuidGenerator("generator")
                 .withImmutability(false)
                 .withStripHyphensProperty(true)
-                .withUuidRelationshipIndex("relIndex")
                 .with(IncludeAllBusinessNodes.getInstance());
 
         UuidConfiguration config2 =UuidConfiguration.defaultConfiguration()
                 .withUuidProperty("id")
-                .withUuidIndex("uindex")
                 .withUuidGenerator("generator")
                 .withImmutability(false)
                 .withStripHyphensProperty(true)
-                .withUuidRelationshipIndex("relIndex")
                 .with(IncludeAllRelationshipProperties.getInstance())
                 .with(IncludeAllBusinessNodes.getInstance());
 

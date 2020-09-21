@@ -20,11 +20,9 @@ import com.graphaware.common.log.LoggerFactory;
 import com.graphaware.runtime.module.BaseModuleBootstrapper;
 import com.graphaware.runtime.module.Module;
 import com.graphaware.runtime.module.ModuleBootstrapper;
+import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.lang3.StringUtils;
-import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.logging.Log;
-
-import java.util.Map;
 
 /**
  * Bootstraps the {@link UuidModule} in server mode.
@@ -34,8 +32,6 @@ public class UuidBootstrapper extends BaseModuleBootstrapper<UuidConfiguration> 
     private static final Log LOG = LoggerFactory.getLogger(UuidBootstrapper.class);
 
     private static final String UUID_PROPERTY = "uuidProperty";
-    private static final String UUID_INDEX = "uuidIndex";
-    private static final String UUID_RELATIONSHIP_INDEX = "uuidRelationshipIndex";
     private static final String STRIP_HYPHENS = "stripHyphens";
     private static final String UUID_GENERATOR_CLASS = "uuidGeneratorClass";
     private static final String IMMUTABLE = "immutable";
@@ -52,49 +48,35 @@ public class UuidBootstrapper extends BaseModuleBootstrapper<UuidConfiguration> 
      * {@inheritDoc}
      */
     @Override
-    protected Module doBootstrapModule(String moduleId, Map<String, String> config, GraphDatabaseService database, UuidConfiguration configuration) {
-    	
-    	String uuidProperty = config.get(UUID_PROPERTY);
+    protected Module<?> doBootstrapModule(String moduleId, Configuration config, UuidConfiguration configuration) {
+        String uuidProperty = config.getString(UUID_PROPERTY);
         if (StringUtils.isNotBlank(uuidProperty)) {
             configuration = configuration.withUuidProperty(uuidProperty);
             LOG.info("uuidProperty set to %s", configuration.getUuidProperty());
         }
 
-        String uuidIndex = config.get(UUID_INDEX);
-        if (StringUtils.isNotBlank(uuidIndex)) {
-            configuration = configuration.withUuidIndex(uuidIndex);
-            LOG.info("uuidIndex set to %s", configuration.getUuidIndex());
-        }
-
-        String uuidRelationshipIndex = config.get(UUID_RELATIONSHIP_INDEX);
-        if (StringUtils.isNotBlank(uuidRelationshipIndex)) {
-            configuration = configuration.withUuidRelationshipIndex(uuidRelationshipIndex);
-            LOG.info("uuidRelationshipIndex set to %s", configuration.getUuidRelationshipIndex());
-        }
-
-        String stripHypensString = config.get(STRIP_HYPHENS);        
+        String stripHypensString = config.getString(STRIP_HYPHENS);
         if (StringUtils.isNotBlank(stripHypensString)) {
             boolean stripHyphens = Boolean.valueOf(stripHypensString);
             configuration = configuration.withStripHyphensProperty(stripHyphens);
             LOG.info("stripHyphens set to %s", configuration.shouldStripHyphens());
         }
-        
-        String uuidGeneratorClassString = config.get(UUID_GENERATOR_CLASS);
+
+        String uuidGeneratorClassString = config.getString(UUID_GENERATOR_CLASS);
         if (StringUtils.isNotBlank(uuidGeneratorClassString)) {
             configuration = configuration.withUuidGenerator(uuidGeneratorClassString);
             LOG.info("uuidGenerator set to %s", configuration.getUuidGenerator());
         }
 
-        String immutableString = config.get(IMMUTABLE);
+        String immutableString = config.getString(IMMUTABLE);
         if (StringUtils.isNotBlank(immutableString)) {
             boolean immutable = Boolean.valueOf(immutableString);
             configuration = configuration.withImmutability(immutable);
             LOG.info("Setting immutability to %s", immutableString);
             logImmutabilityWarning();
         }
-        
 
-        return new UuidModule(moduleId, configuration, database);
+        return new UuidModule(moduleId, configuration);
     }
 
     private void logImmutabilityWarning() {

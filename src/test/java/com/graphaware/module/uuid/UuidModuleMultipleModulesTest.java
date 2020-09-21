@@ -16,52 +16,87 @@
 
 package com.graphaware.module.uuid;
 
-import com.graphaware.test.integration.DatabaseIntegrationTest;
-import ga.uuid.NodeUuidFunctions;
-import ga.uuid.RelationshipUuidFunctions;
+import com.graphaware.runtime.bootstrap.RuntimeExtensionFactory;
+import com.graphaware.test.integration.GraphAwareNeo4jBuilder;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Result;
-import org.neo4j.harness.TestServerBuilder;
+import org.neo4j.graphdb.Transaction;
+import org.neo4j.harness.Neo4j;
+import org.neo4j.harness.Neo4jBuilders;
+
+import java.util.ArrayList;
+import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class UuidModuleMultipleModulesTest extends DatabaseIntegrationTest {
+public class UuidModuleMultipleModulesTest {
 
-    @Override
-    protected String configFile() {
-        return "neo4j-uuid-multiple.conf";
+    private Neo4j neo4j;
+    private GraphDatabaseService database;
+
+    @BeforeEach
+    public void setUp() {
+        neo4j = GraphAwareNeo4jBuilder.builder(Neo4jBuilders.newInProcessBuilder())
+                .withDisabledServer()
+                .withExtensionFactories(new ArrayList<>(Collections.singleton(new RuntimeExtensionFactory())))
+                .withGAConfig("com.graphaware.module.neo4j.UID1.1", "com.graphaware.module.uuid.UuidBootstrapper")
+                .withGAConfig("com.graphaware.module.neo4j.UID1.uuidProperty", "customerId")
+                .withGAConfig("com.graphaware.module.neo4j.UID1.node", "hasLabel('Customer')")
+                .withGAConfig("com.graphaware.module.neo4j.UID2.2", "com.graphaware.module.uuid.UuidBootstrapper")
+                .withGAConfig("com.graphaware.module.neo4j.UID2.uuidProperty", "userId")
+                .withGAConfig("com.graphaware.module.neo4j.UID2.node", "hasLabel('User')")
+                .build();
+
+        database = neo4j.defaultDatabaseService();
     }
 
-    @Override
-    protected TestServerBuilder registerProceduresAndFunctions(TestServerBuilder testServerBuilder) throws Exception {
-        return super.registerProceduresAndFunctions(testServerBuilder)
-                .withFunction(NodeUuidFunctions.class)
-                .withFunction(RelationshipUuidFunctions.class)
-                .withFunction(ga.uuid.nd.NodeUuidFunctions.class)
-                .withFunction(ga.uuid.nd.RelationshipUuidFunctions.class);
+    @AfterEach
+    public void tearDown() {
+        neo4j.close();
+
+        GraphAwareNeo4jBuilder.cleanup();
     }
 
     @Test
     public void testProcedures() {
         //Create & Assign
-        String cid = singleValue(getDatabase().execute("CREATE (c:Customer {name:'c1'}) RETURN id(c)"));
-        String uid = singleValue(getDatabase().execute("CREATE (u:User {name:'u1'}) RETURN id(u)"));
+        String cid, uid;
+        try (Transaction tx = database.beginTx()) {
+            cid = singleValue(tx.execute("CREATE (c:Customer {name:'c1'}) RETURN id(c)"));
+            uid = singleValue(tx.execute("CREATE (u:User {name:'u1'}) RETURN id(u)"));
 
-        getDatabase().execute("CREATE (:SomethingElse {name:'s1'})");
+            tx.commit();
+        }
 
-        String uuid = singleValue(getDatabase().execute("MATCH (c:Customer) RETURN c.customerId"));
+        database.executeTransactionally("CREATE (:SomethingElse {name:'s1'})");
+
+        String uuid;
+        try (Transaction tx = database.beginTx()) {
+            uuid = singleValue(tx.execute("MATCH (c:Customer) RETURN c.customerId"));
+
+            tx.commit();
+        }
 
         //Retrieve
-        assertEquals(cid, findNodeByUuid("UID1", uuid));
+        assertEquals(cid, findNodeByUuid("Customer", "customerId", uuid));
 
-        uuid = singleValue(getDatabase().execute("MATCH (u:User) RETURN u.userId"));
+        try (Transaction tx = database.beginTx()) {
+            uuid = singleValue(tx.execute("MATCH (u:User) RETURN u.userId"));
+
+            tx.commit();
+        }
 
         //Retrieve
-        assertEquals(uid, findNodeByUuid("UID2", uuid));
+        assertEquals(uid, findNodeByUuid("User", "userId", uuid));
     }
 
-    private String findNodeByUuid(String moduleId, String uuid) {
-        return singleValue(getDatabase().execute("RETURN id(ga.uuid.nd.findNode('" + moduleId + "','" + uuid + "')) as id"));
+    private String findNodeByUuid(String label, String property, String uuid) {
+        try (Transaction tx = database.beginTx()) {
+            return singleValue(tx.execute("MATCH (n:" + label + " {" + property + ":'" + uuid + "'}) RETURN id(n) as id"));
+        }
     }
 
     private String singleValue(Result result) {
