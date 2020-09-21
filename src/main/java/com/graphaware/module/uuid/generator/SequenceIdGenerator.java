@@ -30,7 +30,7 @@ public class SequenceIdGenerator implements UuidGenerator, GraphDatabaseServiceA
 		try (Transaction tx = database.beginTx()) {
 
 			Node sequenceMetadataNode = null;
-			ResourceIterator<Node> sequenceMetadataNodes = database.findNodes(sequenceMetadataLabel);
+			ResourceIterator<Node> sequenceMetadataNodes = tx.findNodes(sequenceMetadataLabel);
 			
 			int count = 0;
 			while (sequenceMetadataNodes.hasNext()) {
@@ -39,7 +39,7 @@ public class SequenceIdGenerator implements UuidGenerator, GraphDatabaseServiceA
 			}
 			
 			if (count == 0) {				
-				sequenceMetadataNode = database.createNode(sequenceMetadataLabel);
+				sequenceMetadataNode = tx.createNode(sequenceMetadataLabel);
 				sequenceMetadataNode.setProperty(sequencePropertyKey, initialSequenceValue);
 			} else if (count > 1) {
 				throw new TransactionFailureException("More than one SequenceMetadata node was found, this undoubtedly is a critical issue with the state of the database"); 
@@ -55,7 +55,7 @@ public class SequenceIdGenerator implements UuidGenerator, GraphDatabaseServiceA
 
             result = String.valueOf(nextSequence);
             
-            tx.success();
+            tx.commit();
             
         }
 		

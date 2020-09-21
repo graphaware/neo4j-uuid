@@ -17,70 +17,56 @@ package com.graphaware.module.uuid;
 
 import com.graphaware.common.policy.inclusion.BaseNodeInclusionPolicy;
 import com.graphaware.common.policy.inclusion.BaseRelationshipInclusionPolicy;
-import com.graphaware.module.uuid.read.DefaultUuidReader;
 import com.graphaware.runtime.GraphAwareRuntime;
 import com.graphaware.runtime.GraphAwareRuntimeFactory;
+import com.graphaware.runtime.RuntimeRegistry;
+import com.graphaware.runtime.bootstrap.RuntimeExtensionFactory;
 import com.graphaware.runtime.policy.all.IncludeAllBusinessNodes;
 import com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.neo4j.graphdb.*;
-import org.neo4j.harness.TestServerBuilders;
+import org.neo4j.harness.Neo4j;
+import org.neo4j.harness.Neo4jBuilders;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.function.Consumer;
 import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.neo4j.helpers.collection.Iterators.asIterable;
 
-
-
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class UuidModuleEmbeddedProgrammaticTest {
 
+    private Neo4j neo4j;
     private GraphDatabaseService database;
+    private GraphAwareRuntime runtime;
     private final Label testLabel = Label.label("test");
     private final Label personLabel = Label.label("Person");
     private final RelationshipType knowsType = RelationshipType.withName("KNOWS");
     private final RelationshipType ignoredType = RelationshipType.withName("IGNORED");
     private UuidConfiguration uuidConfiguration;
-    private DefaultUuidReader uuidReader;
 
-    @BeforeEach
+    @BeforeAll
     public void setUp() {
-        database = TestServerBuilders.newInProcessBuilder().newServer().graph();
+        neo4j = Neo4jBuilders.newInProcessBuilder().withDisabledServer().withExtensionFactories(new ArrayList<>(Collections.singleton(new RuntimeExtensionFactory()))).build();
+        database = neo4j.defaultDatabaseService();
     }
 
     @AfterEach
-    public void tearDown() {
-        database.shutdown();
+    public void wipeDb() {
+        runtime.removeSelf();
+
+        database.executeTransactionally("MATCH (n) DETACH DELETE n");
     }
 
-    @Test
-    public void initializationShouldNotTouchAssignedUUIDs() {
-        try (Transaction tx = database.beginTx()) {
-            Node node = database.createNode(personLabel);
-            node.setProperty("uuid", "test-uuid");
-            database.index().forNodes("uuidIndex").add(node, "uuid", "test-uuid");
-            tx.success();
-        }
-
-        registerModuleWithLabelsAndTypes();
-
-        try (Transaction tx = database.beginTx()) {
-            assertTrue(database.index().existsForNodes("uuidIndex"));
-            for (Node personNode : asIterable(database.findNodes(personLabel))) {
-                assertTrue(personNode.hasProperty("uuid"));
-                String uuid = (String) personNode.getProperty("uuid");
-                assertEquals(personNode.getId(), uuidReader.getNodeIdByUuid(uuid));
-            }
-
-            tx.success();
-        }
+    @AfterAll
+    public void tearDown() {
+        neo4j.close();
     }
 
     @Test
@@ -90,48 +76,51 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //When
         try (Transaction tx = database.beginTx()) {
-            Node node = database.createNode(testLabel);
+            Node node = tx.createNode(testLabel);
             node.setProperty("name", "aNode");
-            tx.success();
+            tx.commit();
         }
 
         //Then
         //Retrieve the node and check that it has a uuid property
         try (Transaction tx = database.beginTx()) {
-            for (Node node : asIterable(database.findNodes(testLabel))) {
-                assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
-                String uuid = (String) node.getProperty("uuid");
-                assertEquals(node.getId(), uuidReader.getNodeIdByUuid(uuid));
-            }
-            tx.success();
+            tx.findNodes(testLabel).forEachRemaining(new Consumer<Node>() {
+                @Override
+                public void accept(Node node) {
+                    assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
+                    String uuid = (String) node.getProperty("uuid");
+                }
+            });
+            tx.commit();
         }
     }
 
     @Test
     public void newNodesWithLabelShouldBeAssignedUuidSequence() {
-    	
         //Given
-    	registerModuleWithSequenceGenerator();
+        registerModuleWithSequenceGenerator();
 
         //When
         try (Transaction tx = database.beginTx()) {
-            Node node = database.createNode(testLabel);
+            Node node = tx.createNode(testLabel);
             node.setProperty("name", "aNode");
-            tx.success();
+            tx.commit();
         }
 
         //Then
         //Retrieve the node and check that it has a uuid property
         try (Transaction tx = database.beginTx()) {
-            for (Node node : asIterable(database.findNodes(testLabel))) {
-                assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
-                String sequence = (String) node.getProperty("sequence");
-                assertEquals(node.getId(), uuidReader.getNodeIdByUuid(sequence));
-            }
-            tx.success();
+            tx.findNodes(testLabel).forEachRemaining(new Consumer<Node>() {
+                @Override
+                public void accept(Node node) {
+                    assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
+                    String sequence = (String) node.getProperty("sequence");
+                }
+            });
+            tx.commit();
         }
     }
-    
+
 
     @Test
     public void newNodesWithoutLabelShouldBeAssignedUuid() {
@@ -140,22 +129,21 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //When
         try (Transaction tx = database.beginTx()) {
-            Node node = database.createNode();
+            Node node = tx.createNode();
             node.setProperty("name", "aNode");
-            tx.success();
+            tx.commit();
         }
 
         //Then
         //Retrieve the node and check that it has a uuid property
         try (Transaction tx = database.beginTx()) {
-            for (Node node : database.getAllNodes()) {
+            for (Node node : tx.getAllNodes()) {
                 if (IncludeAllBusinessNodes.getInstance().include(node)) {
                     assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
                     String uuid = (String) node.getProperty("uuid");
-                    assertEquals(node.getId(), uuidReader.getNodeIdByUuid(uuid));
                 }
             }
-            tx.success();
+            tx.commit();
         }
     }
 
@@ -166,41 +154,38 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //When
         try (Transaction tx = database.beginTx()) {
-            Node node = database.createNode();
+            Node node = tx.createNode();
             node.setProperty("name", "aNode");
-            tx.success();
+            tx.commit();
         }
 
         //Retrieve the node and check that it has a uuid property
-        String uuid="";
-        Node retrievedNode=null;
+        String uuid = "";
+        long retrievedNode = -1L;
         try (Transaction tx = database.beginTx()) {
-            for (Node node : database.getAllNodes()) {
+            for (Node node : tx.getAllNodes()) {
                 if (IncludeAllBusinessNodes.getInstance().include(node)) {
-                    retrievedNode = node;
+                    retrievedNode = node.getId();
                     assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
                     uuid = (String) node.getProperty("uuid");
-                    assertEquals(node.getId(), uuidReader.getNodeIdByUuid(uuid));
                 }
             }
-            tx.success();
+            tx.commit();
         }
 
         try (Transaction tx = database.beginTx()) {
-            retrievedNode.delete();
-            tx.success();
+            tx.getNodeById(retrievedNode).delete();
+            tx.commit();
         }
 
         //Then
+        final long retrievedNodeId = retrievedNode;
         try (Transaction tx = database.beginTx()) {
-            assertFalse(database.getAllNodes().iterator().hasNext());
-            try {
-                uuidReader.getNodeIdByUuid(uuid);
-                fail();
-            } catch (NotFoundException e) {
-                //ok
-            }
-            tx.success();
+            assertFalse(tx.getAllNodes().iterator().hasNext());
+            assertThrows(NotFoundException.class, () -> {
+                tx.getNodeById(retrievedNodeId);
+            });
+            tx.commit();
         }
     }
 
@@ -211,39 +196,42 @@ public class UuidModuleEmbeddedProgrammaticTest {
         registerModuleWithNoLabels();
 
         try (Transaction tx = database.beginTx()) {
-            node = database.createNode(testLabel);
+            node = tx.createNode(testLabel);
             node.setProperty("name", "aNode");
-            tx.success();
+            tx.commit();
         }
 
-        assertThrows(TransactionFailureException.class , () -> {
+        assertThrows(TransactionFailureException.class, () -> {
             try (Transaction tx = database.beginTx()) {
-                for (Node n : asIterable(database.findNodes(testLabel))) {
-                    n.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
-                }
-                tx.success();
+                tx.findNodes(testLabel).forEachRemaining(new Consumer<Node>() {
+                    @Override
+                    public void accept(Node node) {
+                        node.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
+                    }
+                });
+                tx.commit();
             }
         });
     }
 
     @Test
-     public void shouldNotBeAbleToChangeTheUuidOfUnlabeledNode() {
+    public void shouldNotBeAbleToChangeTheUuidOfUnlabeledNode() {
         Node node;
 
         registerModuleWithNoLabels();
 
         try (Transaction tx = database.beginTx()) {
-            node = database.createNode();
+            node = tx.createNode();
             node.setProperty("name", "aNode");
-            tx.success();
+            tx.commit();
         }
 
-        assertThrows(TransactionFailureException.class , () -> {
+        assertThrows(TransactionFailureException.class, () -> {
             try (Transaction tx = database.beginTx()) {
-                for (Node n : database.getAllNodes()) {
+                for (Node n : tx.getAllNodes()) {
                     n.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
                 }
-                tx.success();
+                tx.commit();
             }
         });
     }
@@ -255,17 +243,20 @@ public class UuidModuleEmbeddedProgrammaticTest {
         registerModuleWithNoLabels();
 
         try (Transaction tx = database.beginTx()) {
-            node = database.createNode(testLabel);
+            node = tx.createNode(testLabel);
             node.setProperty("name", "aNode");
-            tx.success();
+            tx.commit();
         }
 
-        assertThrows(TransactionFailureException.class , () -> {
+        assertThrows(TransactionFailureException.class, () -> {
             try (Transaction tx = database.beginTx()) {
-                for (Node n : asIterable(database.findNodes(testLabel))) {
-                    n.removeProperty(uuidConfiguration.getUuidProperty());
-                }
-                tx.success();
+                tx.findNodes(testLabel).forEachRemaining(new Consumer<Node>() {
+                    @Override
+                    public void accept(Node node) {
+                        node.removeProperty(uuidConfiguration.getUuidProperty());
+                    }
+                });
+                tx.commit();
             }
         });
     }
@@ -277,17 +268,17 @@ public class UuidModuleEmbeddedProgrammaticTest {
         registerModuleWithNoLabels();
 
         try (Transaction tx = database.beginTx()) {
-            node = database.createNode();
+            node = tx.createNode();
             node.setProperty("name", "aNode");
-            tx.success();
+            tx.commit();
         }
 
-        assertThrows(TransactionFailureException.class , () -> {
+        assertThrows(TransactionFailureException.class, () -> {
             try (Transaction tx = database.beginTx()) {
-                for (Node n : database.getAllNodes()) {
+                for (Node n : tx.getAllNodes()) {
                     n.removeProperty(uuidConfiguration.getUuidProperty());
                 }
-                tx.success();
+                tx.commit();
             }
         });
     }
@@ -300,20 +291,22 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //When
         try (Transaction tx = database.beginTx()) {
-            Node node = database.createNode(personLabel);
+            Node node = tx.createNode(personLabel);
             node.setProperty("name", "aNode");
-            tx.success();
+            tx.commit();
         }
 
         //Then
         //Retrieve the node and check that it has a uuid property
         try (Transaction tx = database.beginTx()) {
-            for (Node node : asIterable(database.findNodes(personLabel))) {
-                assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
-                String uuid = (String) node.getProperty("uuid");
-                assertEquals(node.getId(), uuidReader.getNodeIdByUuid(uuid));
-            }
-            tx.success();
+            tx.findNodes(personLabel).forEachRemaining(new Consumer<Node>() {
+                @Override
+                public void accept(Node node) {
+                    assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
+                    String uuid = (String) node.getProperty("uuid");
+                }
+            });
+            tx.commit();
         }
     }
 
@@ -324,18 +317,21 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //When
         try (Transaction tx = database.beginTx()) {
-            Node node = database.createNode(testLabel);
+            Node node = tx.createNode(testLabel);
             node.setProperty("name", "aNode");
-            tx.success();
+            tx.commit();
         }
 
         //Then
         //Retrieve the node and check that it has no uuid property
         try (Transaction tx = database.beginTx()) {
-            for (Node node : asIterable(database.findNodes(testLabel))) {
-                assertFalse(node.hasProperty(uuidConfiguration.getUuidProperty()));
-            }
-            tx.success();
+            tx.findNodes(testLabel).forEachRemaining(new Consumer<Node>() {
+                @Override
+                public void accept(Node node) {
+                    assertFalse(node.hasProperty(uuidConfiguration.getUuidProperty()));
+                }
+            });
+            tx.commit();
         }
     }
 
@@ -346,20 +342,20 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //When
         try (Transaction tx = database.beginTx()) {
-            Node node = database.createNode();
+            Node node = tx.createNode();
             node.setProperty("name", "aNode");
-            tx.success();
+            tx.commit();
         }
 
         //Then
         //Retrieve the node and check that it has no uuid property
         try (Transaction tx = database.beginTx()) {
-            for (Node node : database.getAllNodes()) {
+            for (Node node : tx.getAllNodes()) {
                 if (!node.getLabels().iterator().hasNext()) {  //Exclude GA nodes
                     assertFalse(node.hasProperty(uuidConfiguration.getUuidProperty()));
                 }
             }
-            tx.success();
+            tx.commit();
         }
     }
 
@@ -372,32 +368,31 @@ public class UuidModuleEmbeddedProgrammaticTest {
         registerModuleWithLabelsAndTypes();
 
         try (Transaction tx = database.beginTx()) {
-            node = database.createNode(testLabel);
+            node = tx.createNode(testLabel);
             node.setProperty("name", "aNode");
-            tx.success();
+            tx.commit();
         }
 
         //When
         try (Transaction tx = database.beginTx()) {
-            for (Node n : asIterable(database.findNodes(testLabel))) {
-                n.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
-
-            }
-            tx.success();
+            tx.findNodes(testLabel).forEachRemaining(new Consumer<Node>() {
+                @Override
+                public void accept(Node node) {
+                    node.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
+                }
+            });
+            tx.commit();
         }
 
         //Then
         try (Transaction tx = database.beginTx()) {
-            for (Node n : asIterable(database.findNodes(testLabel))) {
-                assertEquals("aNewUuid", n.getProperty(uuidConfiguration.getUuidProperty()));
-                try {
-                    uuidReader.getNodeIdByUuid("aNewUuid");
-                    fail();
-                } catch (NotFoundException e) {
-                    //ok
+            tx.findNodes(testLabel).forEachRemaining(new Consumer<Node>() {
+                @Override
+                public void accept(Node node) {
+                    assertEquals("aNewUuid", node.getProperty(uuidConfiguration.getUuidProperty()));
                 }
-            }
-            tx.success();
+            });
+            tx.commit();
         }
     }
 
@@ -408,52 +403,53 @@ public class UuidModuleEmbeddedProgrammaticTest {
         registerModuleWithNoLabels();
 
         try (Transaction tx = database.beginTx()) {
-            node = database.createNode(personLabel);
+            node = tx.createNode(personLabel);
             node.setProperty("name", "aNode");
-            tx.success();
+            tx.commit();
         }
 
-        assertThrows(TransactionFailureException.class , () -> {
+        assertThrows(TransactionFailureException.class, () -> {
             try (Transaction tx = database.beginTx()) {
-                for (Node n : asIterable(database.findNodes(personLabel))) {
-                    n.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
-                }
-                tx.success();
+                tx.findNodes(personLabel).forEachRemaining(new Consumer<Node>() {
+                    @Override
+                    public void accept(Node node) {
+                        node.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
+                    }
+                });
+                tx.commit();
             }
         });
     }
 
     @Test
     public void shouldBeAbleToChangeTheUuidOfUnlabeledNodeWithLabelConfiguration() {
-        Node node;
-
         //Given
         registerModuleWithLabelsAndTypes();
 
         try (Transaction tx = database.beginTx()) {
-            node = database.createNode();
+            Node node = tx.createNode();
             node.setProperty("name", "aNode");
-            tx.success();
+            tx.commit();
         }
 
         //When
         try (Transaction tx = database.beginTx()) {
-            for (Node n : database.getAllNodes()) {
-                if (!node.getLabels().iterator().hasNext()) {  //Exclude GA nodes
+            for (Node n : tx.getAllNodes()) {
+                if (!n.getLabels().iterator().hasNext()) {  //Exclude GA nodes
                     n.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
                 }
             }
-            tx.success();
+            tx.commit();
         }
 
         //Then
         try (Transaction tx = database.beginTx()) {
-            for (Node n : database.getAllNodes()) {
-                if (!node.getLabels().iterator().hasNext()) {  //Exclude GA nodes
+            for (Node n : tx.getAllNodes()) {
+                if (!n.getLabels().iterator().hasNext()) {  //Exclude GA nodes
                     assertEquals("aNewUuid", n.getProperty(uuidConfiguration.getUuidProperty()));
                 }
             }
-            tx.success();
+            tx.commit();
         }
     }
 
@@ -465,25 +461,31 @@ public class UuidModuleEmbeddedProgrammaticTest {
         registerModuleWithLabelsAndTypes();
 
         try (Transaction tx = database.beginTx()) {
-            node = database.createNode(testLabel);
+            node = tx.createNode(testLabel);
             node.setProperty("name", "aNode");
-            tx.success();
+            tx.commit();
         }
 
         //When
         try (Transaction tx = database.beginTx()) {
-            for (Node n : asIterable(database.findNodes(testLabel))) {
-                n.removeProperty(uuidConfiguration.getUuidProperty());
-            }
-            tx.success();
+            tx.findNodes(testLabel).forEachRemaining(new Consumer<Node>() {
+                @Override
+                public void accept(Node node) {
+                    node.removeProperty(uuidConfiguration.getUuidProperty());
+                }
+            });
+            tx.commit();
         }
 
         //Then
         try (Transaction tx = database.beginTx()) {
-            for (Node n : asIterable(database.findNodes(testLabel))) {
-                assertFalse(n.hasProperty(uuidConfiguration.getUuidProperty()));
-            }
-            tx.success();
+            tx.findNodes(testLabel).forEachRemaining(new Consumer<Node>() {
+                @Override
+                public void accept(Node node) {
+                    assertFalse(node.hasProperty(uuidConfiguration.getUuidProperty()));
+                }
+            });
+            tx.commit();
         }
     }
 
@@ -494,57 +496,58 @@ public class UuidModuleEmbeddedProgrammaticTest {
         registerModuleWithNoLabels();
 
         try (Transaction tx = database.beginTx()) {
-            node = database.createNode(personLabel);
+            node = tx.createNode(personLabel);
             node.setProperty("name", "aNode");
-            tx.success();
+            tx.commit();
         }
 
-        assertThrows(TransactionFailureException.class , () -> {
+        assertThrows(TransactionFailureException.class, () -> {
             try (Transaction tx = database.beginTx()) {
-                for (Node n : asIterable(database.findNodes(personLabel))) {
-                    n.removeProperty(uuidConfiguration.getUuidProperty());
-                }
-                tx.success();
+                tx.findNodes(personLabel).forEachRemaining(new Consumer<Node>() {
+                    @Override
+                    public void accept(Node node) {
+                        node.removeProperty(uuidConfiguration.getUuidProperty());
+                    }
+                });
+                tx.commit();
             }
         });
     }
 
     @Test
     public void shouldBeAbleToDeleteTheUuidOfUnlabeledNodeWithConfiguration() {
-        Node node;
-
         //Given
         registerModuleWithLabelsAndTypes();
 
         try (Transaction tx = database.beginTx()) {
-            node = database.createNode();
+            Node node = tx.createNode();
             node.setProperty("name", "aNode");
-            tx.success();
+            tx.commit();
         }
 
         //When
         try (Transaction tx = database.beginTx()) {
-            for (Node n : database.getAllNodes()) {
-                if (!node.getLabels().iterator().hasNext()) {  //Exclude GA nodes
+            for (Node n : tx.getAllNodes()) {
+                if (!n.getLabels().iterator().hasNext()) {  //Exclude GA nodes
                     n.removeProperty(uuidConfiguration.getUuidProperty());
                 }
             }
-            tx.success();
+            tx.commit();
         }
         //Then
         try (Transaction tx = database.beginTx()) {
-            for (Node n : database.getAllNodes()) {
-                if (!node.getLabels().iterator().hasNext()) {  //Exclude GA nodes
+            for (Node n : tx.getAllNodes()) {
+                if (!n.getLabels().iterator().hasNext()) {  //Exclude GA nodes
                     assertFalse(n.hasProperty(uuidConfiguration.getUuidProperty()));
                 }
             }
-            tx.success();
+            tx.commit();
         }
     }
 
     @Test
     public void longCypherCreateShouldResultInAllNodesWithUuid() {
-         registerModuleWithNoLabels();
+        registerModuleWithNoLabels();
 
         String cypher =
                 "CREATE (TheMatrix:Movie {title:'The Matrix', released:1999, tagline:'Welcome to the Real World'})\n" +
@@ -1051,18 +1054,19 @@ public class UuidModuleEmbeddedProgrammaticTest {
                         "RETURN TheMatrix\n" +
                         "\n" +
                         ";";
+
         try (Transaction tx = database.beginTx()) {
-            database.execute(cypher);
-            tx.success();
+            tx.execute(cypher);
+            tx.commit();
         }
 
         try (Transaction tx = database.beginTx()) {
-            for (Node node : database.getAllNodes()) {
+            for (Node node : tx.getAllNodes()) {
                 if (IncludeAllBusinessNodes.getInstance().include(node)) {
                     assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
                 }
             }
-            tx.success();
+            tx.commit();
         }
     }
 
@@ -1073,19 +1077,22 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //When
         try (Transaction tx = database.beginTx()) {
-            Node node = database.createNode(testLabel);
+            Node node = tx.createNode(testLabel);
             node.setProperty("name", "aNode");
             node.setProperty("uuid", "1");
-            tx.success();
+            tx.commit();
         }
 
         //Then
         //Retrieve the node and check that it has the assigned uuid property
         try (Transaction tx = database.beginTx()) {
-            for (Node node : asIterable(database.findNodes(testLabel))) {
-                assertEquals("1",node.getProperty(uuidConfiguration.getUuidProperty()));
-            }
-            tx.success();
+            tx.findNodes(testLabel).forEachRemaining(new Consumer<Node>() {
+                @Override
+                public void accept(Node node) {
+                    assertEquals("1", node.getProperty(uuidConfiguration.getUuidProperty()));
+                }
+            });
+            tx.commit();
         }
     }
 
@@ -1093,19 +1100,21 @@ public class UuidModuleEmbeddedProgrammaticTest {
     public void shouldNotBeAbleToManuallyAssignSameUuidToNodesWithLabelConfiguration() {
         registerModuleWithLabelsAndTypes();
 
+        database.executeTransactionally("CREATE CONSTRAINT ON (p:Person) ASSERT p.uuid IS UNIQUE");
+
         try (Transaction tx = database.beginTx()) {
-            Node node = database.createNode(personLabel);
+            Node node = tx.createNode(personLabel);
             node.setProperty("name", "aNode");
             node.setProperty("uuid", "1");
-            tx.success();
+            tx.commit();
         }
 
-        assertThrows(TransactionFailureException.class , () -> {
+        assertThrows(ConstraintViolationException.class, () -> {
             try (Transaction tx = database.beginTx()) {
-                Node node = database.createNode(personLabel);
+                Node node = tx.createNode(personLabel);
                 node.setProperty("name", "aNode");
                 node.setProperty("uuid", "1");
-                tx.success();
+                tx.commit();
             }
         });
     }
@@ -1117,24 +1126,26 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //When
         try (Transaction tx = database.beginTx()) {
-            Node node = database.createNode(testLabel);
-            Node another = database.createNode(testLabel);
+            Node node = tx.createNode(testLabel);
+            Node another = tx.createNode(testLabel);
             node.createRelationshipTo(another, knowsType);
-            tx.success();
+            tx.commit();
         }
 
         //Then
         //Retrieve the relationship and check that it has a uuid property
         try (Transaction tx = database.beginTx()) {
-            for (Node node : asIterable(database.findNodes(testLabel))) {
-                assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
-                Relationship rel = node.getSingleRelationship(knowsType, Direction.OUTGOING);
-                if (rel != null) {
-                    String uuid = (String) rel.getProperty("uuid");
-                    assertEquals(rel.getId(), uuidReader.getRelationshipIdByUuid(uuid));
+            tx.findNodes(testLabel).forEachRemaining(new Consumer<Node>() {
+                @Override
+                public void accept(Node node) {
+                    assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
+                    Relationship rel = node.getSingleRelationship(knowsType, Direction.OUTGOING);
+                    if (rel != null) {
+                        assertTrue(rel.hasProperty("uuid"));
+                    }
                 }
-            }
-            tx.success();
+            });
+            tx.commit();
         }
     }
 
@@ -1146,41 +1157,36 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //When
         try (Transaction tx = database.beginTx()) {
-            Node node = database.createNode(testLabel);
-            Node another = database.createNode(testLabel);
+            Node node = tx.createNode(testLabel);
+            Node another = tx.createNode(testLabel);
             node.createRelationshipTo(another, knowsType);
-            tx.success();
+            tx.commit();
         }
 
         //Retrieve the rel and check that it has a uuid property
-        String uuid="";
-        Node retrievedNode=null;
         try (Transaction tx = database.beginTx()) {
-            for (Node node : asIterable(database.findNodes(testLabel))) {
-                assertTrue(node.hasProperty(uuidConfiguration.getUuidProperty()));
-                retrievedNode = node;
-                break;
-            }
-            tx.success();
+            tx.getAllRelationships().forEach(new Consumer<Relationship>() {
+                @Override
+                public void accept(Relationship relationship) {
+                    assertTrue(relationship.hasProperty(uuidConfiguration.getUuidProperty()));
+                }
+            });
         }
 
         try (Transaction tx = database.beginTx()) {
-            Relationship retrievedRel = retrievedNode.getSingleRelationship(knowsType, Direction.OUTGOING);
-            uuid = (String) retrievedRel.getProperty("uuid");
-            retrievedRel.delete();
-            tx.success();
+            tx.getAllRelationships().forEach(new Consumer<Relationship>() {
+                @Override
+                public void accept(Relationship relationship) {
+                    relationship.delete();
+                }
+            });
+            tx.commit();
         }
 
         //Then
         try (Transaction tx = database.beginTx()) {
-            assertFalse(database.getAllRelationships().iterator().hasNext());
-            try {
-                uuidReader.getNodeIdByUuid(uuid);
-                fail();
-            } catch (NotFoundException e) {
-                //ok
-            }
-            tx.success();
+            assertFalse(tx.getAllRelationships().iterator().hasNext());
+            tx.commit();
         }
     }
 
@@ -1191,18 +1197,18 @@ public class UuidModuleEmbeddedProgrammaticTest {
         registerModuleWithNoLabels();
 
         try (Transaction tx = database.beginTx()) {
-            node = database.createNode(testLabel);
-            another = database.createNode(testLabel);
+            node = tx.createNode(testLabel);
+            another = tx.createNode(testLabel);
             node.createRelationshipTo(another, knowsType);
-            tx.success();
+            tx.commit();
         }
 
-        assertThrows(TransactionFailureException.class , () -> {
+        assertThrows(TransactionFailureException.class, () -> {
             try (Transaction tx = database.beginTx()) {
-                for (Relationship r : database.getAllRelationships()) {
+                for (Relationship r : tx.getAllRelationships()) {
                     r.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
                 }
-                tx.success();
+                tx.commit();
             }
         });
     }
@@ -1214,18 +1220,18 @@ public class UuidModuleEmbeddedProgrammaticTest {
         registerModuleWithNoLabels();
 
         try (Transaction tx = database.beginTx()) {
-            node = database.createNode(testLabel);
-            another = database.createNode(testLabel);
+            node = tx.createNode(testLabel);
+            another = tx.createNode(testLabel);
             node.createRelationshipTo(another, knowsType);
-            tx.success();
+            tx.commit();
         }
 
-        assertThrows(TransactionFailureException.class , () -> {
+        assertThrows(TransactionFailureException.class, () -> {
             try (Transaction tx = database.beginTx()) {
-                for (Relationship r : database.getAllRelationships()) {
+                for (Relationship r : tx.getAllRelationships()) {
                     r.removeProperty(uuidConfiguration.getUuidProperty());
                 }
-                tx.success();
+                tx.commit();
             }
         });
     }
@@ -1237,21 +1243,21 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         //When
         try (Transaction tx = database.beginTx()) {
-            Node node = database.createNode(testLabel);
-            Node another = database.createNode(testLabel);
+            Node node = tx.createNode(testLabel);
+            Node another = tx.createNode(testLabel);
             node.createRelationshipTo(another, ignoredType);
-            tx.success();
+            tx.commit();
         }
 
         //Then
         //Retrieve the node and check that it has no uuid property
         try (Transaction tx = database.beginTx()) {
-            for (Relationship rel : database.getAllRelationships()) {
+            for (Relationship rel : tx.getAllRelationships()) {
                 if (rel.isType(ignoredType)) {
                     assertFalse(rel.hasProperty(uuidConfiguration.getUuidProperty()));
                 }
             }
-            tx.success();
+            tx.commit();
         }
     }
 
@@ -1264,38 +1270,32 @@ public class UuidModuleEmbeddedProgrammaticTest {
         registerModuleWithLabelsAndTypes();
 
         try (Transaction tx = database.beginTx()) {
-            node = database.createNode(testLabel);
-            another = database.createNode(testLabel);
+            node = tx.createNode(testLabel);
+            another = tx.createNode(testLabel);
             node.createRelationshipTo(another, knowsType);
             node.createRelationshipTo(another, ignoredType);
-            tx.success();
+            tx.commit();
         }
 
         //When
         try (Transaction tx = database.beginTx()) {
-            for (Relationship r : database.getAllRelationships()) {
+            for (Relationship r : tx.getAllRelationships()) {
                 if (r.isType(ignoredType)) {
                     r.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
                 }
 
             }
-            tx.success();
+            tx.commit();
         }
 
         //Then
         try (Transaction tx = database.beginTx()) {
-            for (Relationship r : database.getAllRelationships()) {
+            for (Relationship r : tx.getAllRelationships()) {
                 if (r.isType(ignoredType)) {
                     assertEquals("aNewUuid", r.getProperty(uuidConfiguration.getUuidProperty()));
                 }
-                try {
-                    uuidReader.getRelationshipIdByUuid("aNewUuid");
-                    fail();
-                } catch (NotFoundException e) {
-                    //ok
-                }
             }
-            tx.success();
+            tx.commit();
         }
     }
 
@@ -1306,22 +1306,22 @@ public class UuidModuleEmbeddedProgrammaticTest {
         registerModuleWithNoLabels();
 
         try (Transaction tx = database.beginTx()) {
-            node = database.createNode(testLabel);
-            another = database.createNode(testLabel);
+            node = tx.createNode(testLabel);
+            another = tx.createNode(testLabel);
             node.createRelationshipTo(another, knowsType);
             node.createRelationshipTo(another, ignoredType);
-            tx.success();
+            tx.commit();
         }
 
-        assertThrows(TransactionFailureException.class , () -> {
+        assertThrows(TransactionFailureException.class, () -> {
             try (Transaction tx = database.beginTx()) {
-                for (Relationship r : database.getAllRelationships()) {
+                for (Relationship r : tx.getAllRelationships()) {
                     if (r.isType(knowsType)) {
                         r.setProperty(uuidConfiguration.getUuidProperty(), "aNewUuid");
                     }
 
                 }
-                tx.success();
+                tx.commit();
             }
         });
     }
@@ -1334,59 +1334,56 @@ public class UuidModuleEmbeddedProgrammaticTest {
         registerModuleWithLabelsAndTypes();
 
         try (Transaction tx = database.beginTx()) {
-            node = database.createNode(testLabel);
-            another = database.createNode(testLabel);
+            node = tx.createNode(testLabel);
+            another = tx.createNode(testLabel);
             node.createRelationshipTo(another, knowsType);
             node.createRelationshipTo(another, ignoredType);
-            tx.success();
+            tx.commit();
         }
 
         //When
         try (Transaction tx = database.beginTx()) {
-            for (Relationship r : database.getAllRelationships()) {
+            for (Relationship r : tx.getAllRelationships()) {
                 if (r.isType(ignoredType)) {
                     r.removeProperty(uuidConfiguration.getUuidProperty());
                 }
 
             }
-            tx.success();
+            tx.commit();
         }
 
         //Then
         try (Transaction tx = database.beginTx()) {
-            for (Relationship r : database.getAllRelationships()) {
+            for (Relationship r : tx.getAllRelationships()) {
                 if (r.isType(ignoredType)) {
                     assertFalse(r.hasProperty(uuidConfiguration.getUuidProperty()));
                 }
 
             }
-            tx.success();
+            tx.commit();
         }
     }
 
 
     private void registerModuleWithNoLabels() {
         uuidConfiguration = UuidConfiguration.defaultConfiguration().withUuidProperty("uuid").with(IncludeAllBusinessRelationships.getInstance());
-        GraphAwareRuntime runtime = GraphAwareRuntimeFactory.createRuntime(database);
+        runtime = GraphAwareRuntimeFactory.createRuntime(neo4j.databaseManagementService(), database);
         UuidModule module = new UuidModule("UUIDM", uuidConfiguration, database);
         runtime.registerModule(module);
         runtime.start();
-        uuidReader = new DefaultUuidReader(uuidConfiguration,database);
     }
 
     private void registerModuleWithSequenceGenerator() {
         uuidConfiguration = UuidConfiguration.defaultConfiguration().withUuidGenerator("com.graphaware.module.uuid.generator.SequenceIdGenerator").withUuidProperty("sequence").with(IncludeAllBusinessRelationships.getInstance());
-        GraphAwareRuntime runtime = GraphAwareRuntimeFactory.createRuntime(database);
+        runtime = GraphAwareRuntimeFactory.createRuntime(neo4j.databaseManagementService(), database);
         UuidModule module = new UuidModule("UUIDM", uuidConfiguration, database);
         runtime.registerModule(module);
         runtime.start();
-        uuidReader = new DefaultUuidReader(uuidConfiguration,database);
     }
-    
+
     private void registerModuleWithLabelsAndTypes() {
         uuidConfiguration = UuidConfiguration.defaultConfiguration()
                 .withUuidProperty("uuid")
-                .withUuidIndex("uuidIndex")
                 .with(new BaseNodeInclusionPolicy() {
                     @Override
                     public boolean include(Node node) {
@@ -1406,34 +1403,32 @@ public class UuidModuleEmbeddedProgrammaticTest {
                     }
                 });
 
-        GraphAwareRuntime runtime = GraphAwareRuntimeFactory.createRuntime(database);
+        runtime = GraphAwareRuntimeFactory.createRuntime(neo4j.databaseManagementService(), database);
         UuidModule module = new UuidModule("UUIDM", uuidConfiguration, database);
         runtime.registerModule(module);
         runtime.start();
-        uuidReader = new DefaultUuidReader(uuidConfiguration,database);
-
     }
 
-	@Test
+    @Test
     public void testSequenceGeneratorInMultithreadedEnv() throws Exception {
-		
+
         registerModuleWithSequenceGenerator();
 
         // TODO: Put this into the server extension initialize
         // TODO: Prevent this node from being deleted
         try (Transaction tx = database.beginTx()) {
-        	
-        	Node sequenceMetadataNode = database.createNode(Label.label("SequenceMetadata"));
-        	sequenceMetadataNode.setProperty("sequence", 100);
-        	
-        	tx.success();
-        	
+
+            Node sequenceMetadataNode = tx.createNode(Label.label("SequenceMetadata"));
+            sequenceMetadataNode.setProperty("sequence", 100);
+
+            tx.commit();
+
         }
-                
+
         final Runnable runner = () -> {
             try (final Transaction tx = database.beginTx()) {
-                database.createNode(Label.label("SequenceTest"));
-                tx.success();
+                tx.createNode(Label.label("SequenceTest"));
+                tx.commit();
             }
         };
 
@@ -1447,7 +1442,8 @@ public class UuidModuleEmbeddedProgrammaticTest {
             for (Future future : futures) {
                 future.get();
             }
-        } catch (Throwable ignore) {}
+        } catch (Throwable ignore) {
+        }
 
         service.shutdown();
 
@@ -1455,24 +1451,24 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
         List<String> uuids = new ArrayList<String>();
         try (Transaction tx = database.beginTx()) {
-            Result result = database.execute("MATCH (n:SequenceTest) RETURN n.sequence AS uuid");
+            Result result = tx.execute("MATCH (n:SequenceTest) RETURN n.sequence AS uuid");
             while (result.hasNext()) {
                 String uuid = String.valueOf(result.next().get("uuid"));
-                System.out.println("UUID: " + uuid);                
+                System.out.println("UUID: " + uuid);
                 assertFalse(uuids.contains(uuid));
                 uuids.add(uuid);
-                	
+
             }
-            tx.success();
+            tx.commit();
         }
 
         try (Transaction tx = database.beginTx()) {
-            Result result = database.execute("MATCH (n:SequenceMetadata) RETURN count(n) AS c");
+            Result result = tx.execute("MATCH (n:SequenceMetadata) RETURN count(n) AS c");
             long count = ((Number) result.next().get("c")).longValue();
             System.out.println("SequenceMetadata count: " + count);
             assertEquals(1, count);
         }
-        
+
     }
-    
+
 }

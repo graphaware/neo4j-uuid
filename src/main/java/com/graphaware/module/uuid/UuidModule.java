@@ -17,15 +17,12 @@ package com.graphaware.module.uuid;
 
 import com.graphaware.common.util.Change;
 import com.graphaware.common.uuid.UuidGenerator;
-import com.graphaware.module.uuid.index.ExplicitIndexer;
-import com.graphaware.module.uuid.index.UuidIndexer;
+import com.graphaware.runtime.module.BaseModule;
 import com.graphaware.runtime.module.BaseModule;
 import com.graphaware.runtime.module.DeliberateTransactionRollbackException;
 import com.graphaware.tx.event.improved.api.ImprovedTransactionData;
 import org.neo4j.graphdb.Entity;
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Relationship;
 import org.springframework.util.ClassUtils;
 
 import java.util.Collection;
@@ -35,11 +32,8 @@ import java.util.Collection;
  */
 public class UuidModule extends BaseModule<Void> {
 
-    public static final String DEFAULT_MODULE_ID = "UIDM";
-
     private final UuidGenerator uuidGenerator;
     private final UuidConfiguration uuidConfiguration;
-    private final UuidIndexer uuidIndexer;
 
     /**
      * Construct a new UUID module.
@@ -50,7 +44,6 @@ public class UuidModule extends BaseModule<Void> {
         super(moduleId);
         this.uuidConfiguration = configuration;
         this.uuidGenerator = instantiateUuidGenerator(configuration, database);
-        this.uuidIndexer = new ExplicitIndexer(database, configuration);
     }
 
     protected UuidGenerator instantiateUuidGenerator(UuidConfiguration uuidConfiguration, GraphDatabaseService database) {
@@ -101,13 +94,8 @@ public class UuidModule extends BaseModule<Void> {
     }
 
     private <E extends Entity> void processEntities(Collection<E> created, Collection<E> deleted, Collection<Change<E>> updated) {
-
         for (E entity : created) {
             assignUuid(entity);
-        }
-
-        for (E entity : deleted) {
-            removeUuid(entity);
         }
 
         for (Change<E> change : updated) {
@@ -115,7 +103,6 @@ public class UuidModule extends BaseModule<Void> {
                 if (isImmutable()) {
                     throw new DeliberateTransactionRollbackException("You are not allowed to remove the " + uuidConfiguration.getUuidProperty() + " property");
                 } else {
-                    removeUuid(change.getCurrent());
                     continue;
                 }
             }
@@ -124,8 +111,6 @@ public class UuidModule extends BaseModule<Void> {
                 if (isImmutable()) {
                     throw new DeliberateTransactionRollbackException("You are not allowed to modify the " + uuidConfiguration.getUuidProperty() + " property");
                 } else {
-                    removeUuid(change.getCurrent());
-                    assignUuid(change.getCurrent());
                     continue;
                 }
             }
@@ -136,24 +121,12 @@ public class UuidModule extends BaseModule<Void> {
         }
     }
 
-    private void removeUuid(Entity entity) {
-        if (entity instanceof Node) {
-            uuidIndexer.deleteNodeFromIndex((Node) entity);
-        } else {
-            uuidIndexer.deleteRelationshipFromIndex((Relationship) entity);
-        }
-    }
-
     private void assignUuid(Entity entity) {
         String uuidProperty = uuidConfiguration.getUuidProperty();
 
         if (!entity.hasProperty(uuidProperty)) {
             assignNewUuid(entity, uuidProperty);
-        } else {
-            handleExistingUuid(entity, uuidProperty);
         }
-
-        uuidIndexer.index(entity);
     }
 
     private void assignNewUuid(Entity entity, String uuidProperty) {
@@ -164,20 +137,6 @@ public class UuidModule extends BaseModule<Void> {
         }
 
         entity.setProperty(uuidProperty, uuid);
-    }
-
-    private void handleExistingUuid(Entity entity, String uuidProperty) {
-        Entity existingEntity;
-
-        if (entity instanceof Node) {
-            existingEntity = uuidIndexer.getNodeByUuid(entity.getProperty(uuidProperty).toString());
-        } else {
-            existingEntity = uuidIndexer.getRelationshipByUuid(entity.getProperty(uuidProperty).toString());
-        }
-
-        if (existingEntity != null && (existingEntity.getId() != entity.getId())) {
-            throw new DeliberateTransactionRollbackException("Another " + existingEntity.getClass().getName() + " with UUID " + entity.getProperty(uuidProperty).toString() + " already exists (#" + existingEntity.getId() + ")!");
-        }
     }
 
     private boolean isImmutable() {

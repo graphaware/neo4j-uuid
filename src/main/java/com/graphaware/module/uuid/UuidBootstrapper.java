@@ -34,8 +34,6 @@ public class UuidBootstrapper extends BaseModuleBootstrapper<UuidConfiguration> 
     private static final Log LOG = LoggerFactory.getLogger(UuidBootstrapper.class);
 
     private static final String UUID_PROPERTY = "uuidProperty";
-    private static final String UUID_INDEX = "uuidIndex";
-    private static final String UUID_RELATIONSHIP_INDEX = "uuidRelationshipIndex";
     private static final String STRIP_HYPHENS = "stripHyphens";
     private static final String UUID_GENERATOR_CLASS = "uuidGeneratorClass";
     private static final String IMMUTABLE = "immutable";
@@ -58,18 +56,6 @@ public class UuidBootstrapper extends BaseModuleBootstrapper<UuidConfiguration> 
         if (StringUtils.isNotBlank(uuidProperty)) {
             configuration = configuration.withUuidProperty(uuidProperty);
             LOG.info("uuidProperty set to %s", configuration.getUuidProperty());
-        }
-
-        String uuidIndex = config.get(UUID_INDEX);
-        if (StringUtils.isNotBlank(uuidIndex)) {
-            configuration = configuration.withUuidIndex(uuidIndex);
-            LOG.info("uuidIndex set to %s", configuration.getUuidIndex());
-        }
-
-        String uuidRelationshipIndex = config.get(UUID_RELATIONSHIP_INDEX);
-        if (StringUtils.isNotBlank(uuidRelationshipIndex)) {
-            configuration = configuration.withUuidRelationshipIndex(uuidRelationshipIndex);
-            LOG.info("uuidRelationshipIndex set to %s", configuration.getUuidRelationshipIndex());
         }
 
         String stripHypensString = config.get(STRIP_HYPHENS);        
