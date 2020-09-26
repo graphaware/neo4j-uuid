@@ -42,13 +42,13 @@ public class UuidModuleMultipleModulesTest {
         neo4j = GraphAwareNeo4jBuilder.builder(Neo4jBuilders.newInProcessBuilder())
                 .withDisabledServer()
                 .withExtensionFactories(new ArrayList<>(Collections.singleton(new RuntimeExtensionFactory())))
-                .withGAConfig("com.graphaware.runtime.enabled", "true")
-                .withGAConfig("com.graphaware.module.UID1.1", "com.graphaware.module.uuid.UuidBootstrapper")
-                .withGAConfig("com.graphaware.module.UID1.uuidProperty", "customerId")
-                .withGAConfig("com.graphaware.module.UID1.node", "hasLabel('Customer')")
-                .withGAConfig("com.graphaware.module.UID2.2", "com.graphaware.module.uuid.UuidBootstrapper")
-                .withGAConfig("com.graphaware.module.UID2.uuidProperty", "userId")
-                .withGAConfig("com.graphaware.module.UID2.node", "hasLabel('User')")
+                .withGAConfig("com.graphaware.runtime.enabled", "*")
+                .withGAConfig("com.graphaware.module.neo4j.UID1.1", "com.graphaware.module.uuid.UuidBootstrapper")
+                .withGAConfig("com.graphaware.module.neo4j.UID1.uuidProperty", "customerId")
+                .withGAConfig("com.graphaware.module.neo4j.UID1.node", "hasLabel('Customer')")
+                .withGAConfig("com.graphaware.module.neo4j.UID2.2", "com.graphaware.module.uuid.UuidBootstrapper")
+                .withGAConfig("com.graphaware.module.neo4j.UID2.uuidProperty", "userId")
+                .withGAConfig("com.graphaware.module.neo4j.UID2.node", "hasLabel('User')")
                 .build();
 
         database = neo4j.defaultDatabaseService();

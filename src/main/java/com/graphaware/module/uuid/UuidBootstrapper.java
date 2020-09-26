@@ -20,6 +20,7 @@ import com.graphaware.common.log.LoggerFactory;
 import com.graphaware.runtime.module.BaseModuleBootstrapper;
 import com.graphaware.runtime.module.Module;
 import com.graphaware.runtime.module.ModuleBootstrapper;
+import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.lang3.StringUtils;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.logging.Log;
@@ -50,35 +51,34 @@ public class UuidBootstrapper extends BaseModuleBootstrapper<UuidConfiguration> 
      * {@inheritDoc}
      */
     @Override
-    protected Module doBootstrapModule(String moduleId, Map<String, String> config, GraphDatabaseService database, UuidConfiguration configuration) {
-    	
-    	String uuidProperty = config.get(UUID_PROPERTY);
+    protected Module<?> doBootstrapModule(String moduleId, Configuration config, GraphDatabaseService database, UuidConfiguration configuration) {
+        String uuidProperty = config.getString(UUID_PROPERTY);
         if (StringUtils.isNotBlank(uuidProperty)) {
             configuration = configuration.withUuidProperty(uuidProperty);
             LOG.info("uuidProperty set to %s", configuration.getUuidProperty());
         }
 
-        String stripHypensString = config.get(STRIP_HYPHENS);        
+        String stripHypensString = config.getString(STRIP_HYPHENS);
         if (StringUtils.isNotBlank(stripHypensString)) {
             boolean stripHyphens = Boolean.valueOf(stripHypensString);
             configuration = configuration.withStripHyphensProperty(stripHyphens);
             LOG.info("stripHyphens set to %s", configuration.shouldStripHyphens());
         }
-        
-        String uuidGeneratorClassString = config.get(UUID_GENERATOR_CLASS);
+
+        String uuidGeneratorClassString = config.getString(UUID_GENERATOR_CLASS);
         if (StringUtils.isNotBlank(uuidGeneratorClassString)) {
             configuration = configuration.withUuidGenerator(uuidGeneratorClassString);
             LOG.info("uuidGenerator set to %s", configuration.getUuidGenerator());
         }
 
-        String immutableString = config.get(IMMUTABLE);
+        String immutableString = config.getString(IMMUTABLE);
         if (StringUtils.isNotBlank(immutableString)) {
             boolean immutable = Boolean.valueOf(immutableString);
             configuration = configuration.withImmutability(immutable);
             LOG.info("Setting immutability to %s", immutableString);
             logImmutabilityWarning();
         }
-        
+
 
         return new UuidModule(moduleId, configuration, database);
     }

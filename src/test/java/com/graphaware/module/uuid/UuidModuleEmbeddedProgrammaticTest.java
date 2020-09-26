@@ -19,7 +19,6 @@ import com.graphaware.common.policy.inclusion.BaseNodeInclusionPolicy;
 import com.graphaware.common.policy.inclusion.BaseRelationshipInclusionPolicy;
 import com.graphaware.runtime.GraphAwareRuntime;
 import com.graphaware.runtime.GraphAwareRuntimeFactory;
-import com.graphaware.runtime.RuntimeRegistry;
 import com.graphaware.runtime.bootstrap.RuntimeExtensionFactory;
 import com.graphaware.runtime.policy.all.IncludeAllBusinessNodes;
 import com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships;
@@ -59,7 +58,7 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
     @AfterEach
     public void wipeDb() {
-        runtime.removeSelf();
+        runtime.stop();
 
         database.executeTransactionally("MATCH (n) DETACH DELETE n");
     }
