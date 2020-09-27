@@ -17,6 +17,7 @@
 package com.graphaware.module.uuid;
 
 import com.graphaware.common.log.LoggerFactory;
+import com.graphaware.runtime.GraphAwareRuntime;
 import com.graphaware.runtime.module.BaseModuleBootstrapper;
 import com.graphaware.runtime.module.Module;
 import com.graphaware.runtime.module.ModuleBootstrapper;
@@ -51,7 +52,7 @@ public class UuidBootstrapper extends BaseModuleBootstrapper<UuidConfiguration> 
      * {@inheritDoc}
      */
     @Override
-    protected Module<?> doBootstrapModule(String moduleId, Configuration config, GraphDatabaseService database, UuidConfiguration configuration) {
+    protected Module<?> doBootstrapModule(String moduleId, Configuration config, GraphDatabaseService database, UuidConfiguration configuration, GraphAwareRuntime runtime) {
         String uuidProperty = config.getString(UUID_PROPERTY);
         if (StringUtils.isNotBlank(uuidProperty)) {
             configuration = configuration.withUuidProperty(uuidProperty);
@@ -78,7 +79,6 @@ public class UuidBootstrapper extends BaseModuleBootstrapper<UuidConfiguration> 
             LOG.info("Setting immutability to %s", immutableString);
             logImmutabilityWarning();
         }
-
 
         return new UuidModule(moduleId, configuration, database);
     }
