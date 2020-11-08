@@ -17,6 +17,7 @@ package com.graphaware.module.uuid;
 
 import com.graphaware.common.util.Change;
 import com.graphaware.common.uuid.UuidGenerator;
+import com.graphaware.runtime.GraphAwareRuntime;
 import com.graphaware.runtime.module.BaseModule;
 import com.graphaware.runtime.module.BaseModule;
 import com.graphaware.runtime.module.DeliberateTransactionRollbackException;
@@ -46,8 +47,8 @@ public class UuidModule extends BaseModule<Void> {
     }
 
     @Override
-    public void start(GraphDatabaseService database) {
-        this.uuidGenerator = instantiateUuidGenerator(uuidConfiguration, database);
+    public void start(GraphAwareRuntime runtime) {
+        this.uuidGenerator = instantiateUuidGenerator(uuidConfiguration, runtime.getDatabase());
     }
 
     protected UuidGenerator instantiateUuidGenerator(UuidConfiguration uuidConfiguration, GraphDatabaseService database) {
