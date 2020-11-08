@@ -17,8 +17,8 @@ package com.graphaware.module.uuid;
 
 import com.graphaware.common.policy.inclusion.BaseNodeInclusionPolicy;
 import com.graphaware.common.policy.inclusion.BaseRelationshipInclusionPolicy;
+import com.graphaware.runtime.CommunityRuntime;
 import com.graphaware.runtime.GraphAwareRuntime;
-import com.graphaware.runtime.GraphAwareRuntimeFactory;
 import com.graphaware.runtime.bootstrap.RuntimeExtensionFactory;
 import com.graphaware.runtime.policy.all.IncludeAllBusinessNodes;
 import com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships;
@@ -1366,16 +1366,16 @@ public class UuidModuleEmbeddedProgrammaticTest {
 
     private void registerModuleWithNoLabels() {
         uuidConfiguration = UuidConfiguration.defaultConfiguration().withUuidProperty("uuid").with(IncludeAllBusinessRelationships.getInstance());
-        runtime = GraphAwareRuntimeFactory.createRuntime(neo4j.databaseManagementService(), database);
-        UuidModule module = new UuidModule("UUIDM", uuidConfiguration, database);
+        runtime = new CommunityRuntime(database, neo4j.databaseManagementService());
+        UuidModule module = new UuidModule("UUIDM", uuidConfiguration);
         runtime.registerModule(module);
         runtime.start();
     }
 
     private void registerModuleWithSequenceGenerator() {
         uuidConfiguration = UuidConfiguration.defaultConfiguration().withUuidGenerator("com.graphaware.module.uuid.generator.SequenceIdGenerator").withUuidProperty("sequence").with(IncludeAllBusinessRelationships.getInstance());
-        runtime = GraphAwareRuntimeFactory.createRuntime(neo4j.databaseManagementService(), database);
-        UuidModule module = new UuidModule("UUIDM", uuidConfiguration, database);
+        runtime = new CommunityRuntime(database, neo4j.databaseManagementService());
+        UuidModule module = new UuidModule("UUIDM", uuidConfiguration);
         runtime.registerModule(module);
         runtime.start();
     }
@@ -1402,8 +1402,8 @@ public class UuidModuleEmbeddedProgrammaticTest {
                     }
                 });
 
-        runtime = GraphAwareRuntimeFactory.createRuntime(neo4j.databaseManagementService(), database);
-        UuidModule module = new UuidModule("UUIDM", uuidConfiguration, database);
+        runtime = new CommunityRuntime(database, neo4j.databaseManagementService());
+        UuidModule module = new UuidModule("UUIDM", uuidConfiguration);
         runtime.registerModule(module);
         runtime.start();
     }

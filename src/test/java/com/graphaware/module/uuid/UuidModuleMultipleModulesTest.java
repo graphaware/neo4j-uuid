@@ -42,7 +42,6 @@ public class UuidModuleMultipleModulesTest {
         neo4j = GraphAwareNeo4jBuilder.builder(Neo4jBuilders.newInProcessBuilder())
                 .withDisabledServer()
                 .withExtensionFactories(new ArrayList<>(Collections.singleton(new RuntimeExtensionFactory())))
-                .withGAConfig("com.graphaware.runtime.enabled", "*")
                 .withGAConfig("com.graphaware.module.neo4j.UID1.1", "com.graphaware.module.uuid.UuidBootstrapper")
                 .withGAConfig("com.graphaware.module.neo4j.UID1.uuidProperty", "customerId")
                 .withGAConfig("com.graphaware.module.neo4j.UID1.node", "hasLabel('Customer')")

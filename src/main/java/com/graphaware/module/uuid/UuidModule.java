@@ -32,26 +32,28 @@ import java.util.Collection;
  */
 public class UuidModule extends BaseModule<Void> {
 
-    private final UuidGenerator uuidGenerator;
     private final UuidConfiguration uuidConfiguration;
+    private UuidGenerator uuidGenerator;
 
     /**
      * Construct a new UUID module.
      *
      * @param moduleId ID of the module.
      */
-    public UuidModule(String moduleId, UuidConfiguration configuration, GraphDatabaseService database) {
+    public UuidModule(String moduleId, UuidConfiguration configuration) {
         super(moduleId);
         this.uuidConfiguration = configuration;
-        this.uuidGenerator = instantiateUuidGenerator(configuration, database);
+    }
+
+    @Override
+    public void start(GraphDatabaseService database) {
+        this.uuidGenerator = instantiateUuidGenerator(uuidConfiguration, database);
     }
 
     protected UuidGenerator instantiateUuidGenerator(UuidConfiguration uuidConfiguration, GraphDatabaseService database) {
-
         String uuidGeneratorClassString = uuidConfiguration.getUuidGenerator();
 
         try {
-
             // Instantiate the configured/supplied class
             @SuppressWarnings("unchecked")
             Class<UuidGenerator> uuidGeneratorClass = (Class<UuidGenerator>) ClassUtils.forName(uuidGeneratorClassString, getClass().getClassLoader());
@@ -67,11 +69,6 @@ public class UuidModule extends BaseModule<Void> {
         } catch (Exception e) {
             throw new RuntimeException("Unable to instantiate UuidGenerator of type '" + uuidGeneratorClassString + "'", e);
         }
-
-    }
-
-    public UuidGenerator getUuidGenerator() {
-        return uuidGenerator;
     }
 
     /**

@@ -42,7 +42,6 @@ public class UuidModuleEndToEndMinimalTest {
         neo4j = GraphAwareNeo4jBuilder.builder(Neo4jBuilders.newInProcessBuilder())
                 .withDisabledServer()
                 .withExtensionFactories(new ArrayList<>(Collections.singleton(new RuntimeExtensionFactory())))
-                .withGAConfig("com.graphaware.runtime.enabled", "neo4j")
                 .withGAConfig("com.graphaware.module.neo4j.UIDM.1", "com.graphaware.module.uuid.UuidBootstrapper")
                 .build();
 

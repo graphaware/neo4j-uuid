@@ -17,16 +17,12 @@
 package com.graphaware.module.uuid;
 
 import com.graphaware.common.log.LoggerFactory;
-import com.graphaware.runtime.GraphAwareRuntime;
 import com.graphaware.runtime.module.BaseModuleBootstrapper;
 import com.graphaware.runtime.module.Module;
 import com.graphaware.runtime.module.ModuleBootstrapper;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.lang3.StringUtils;
-import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.logging.Log;
-
-import java.util.Map;
 
 /**
  * Bootstraps the {@link UuidModule} in server mode.
@@ -52,7 +48,7 @@ public class UuidBootstrapper extends BaseModuleBootstrapper<UuidConfiguration> 
      * {@inheritDoc}
      */
     @Override
-    protected Module<?> doBootstrapModule(String moduleId, Configuration config, GraphDatabaseService database, UuidConfiguration configuration, GraphAwareRuntime runtime) {
+    protected Module<?> doBootstrapModule(String moduleId, Configuration config, UuidConfiguration configuration) {
         String uuidProperty = config.getString(UUID_PROPERTY);
         if (StringUtils.isNotBlank(uuidProperty)) {
             configuration = configuration.withUuidProperty(uuidProperty);
@@ -80,7 +76,7 @@ public class UuidBootstrapper extends BaseModuleBootstrapper<UuidConfiguration> 
             logImmutabilityWarning();
         }
 
-        return new UuidModule(moduleId, configuration, database);
+        return new UuidModule(moduleId, configuration);
     }
 
     private void logImmutabilityWarning() {

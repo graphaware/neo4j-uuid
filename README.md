@@ -1,35 +1,24 @@
 GraphAware Neo4j UUID
 =====================
 
-[![Build Status](https://travis-ci.org/graphaware/neo4j-uuid.png)](https://travis-ci.org/graphaware/neo4j-uuid) | <a href="http://graphaware.com/downloads/" target="_blank">Downloads</a> | <a href="http://graphaware.com/site/uuid/latest/apidocs/" target="_blank">Javadoc</a>
+[![Build Status](https://travis-ci.org/graphaware/neo4j-uuid.png)](https://travis-ci.org/graphaware/neo4j-uuid) | <a href="http://graphaware.com/downloads/" target="_blank">Downloads</a>
 
 GraphAware UUID is a simple library that transparently assigns a UUID to newly created nodes and relationships in the graph and makes sure nobody
 can (accidentally or intentionally) change or delete them.
 
 ## Community vs Enterprise
 
-This open-source (GPL) version of the module is compatible with GraphAware Framework Community (GPL), which in turn 
-is compatible with Neo4j Community Edition (GPL) only. It *will not work* with Neo4j Enterprise Edition, which is a 
-proprietary and commercial software product of Neo4j, Inc..
+This open-source (GPLv3) version of the library is compatible with Neo4j Community Edition only. 
+It *will not work* with Neo4j Enterprise Edition, which is a proprietary and commercial software product of Neo4j, Inc.
 
-GraphAware offers an Enterprise version of the GraphAware Framework to licensed users of Neo4j Enterprise Edition.
+GraphAware offers a *paid* Enterprise version of the GraphAware Framework to licensed users of Neo4j Enterprise Edition.
 Please [get in touch](mailto:info@graphaware.com) to receive access.
 
 Getting the Software
 --------------------
 
-### Server Mode
-
-When using Neo4j in the <a href="http://docs.neo4j.org/chunked/stable/server-installation.html" target="_blank">standalone server</a> mode,
-you will need the <a href="https://github.com/graphaware/neo4j-framework" target="_blank">GraphAware Neo4j Framework</a> and GraphAware Neo4j UUID .jar files (both of which you can <a href="http://graphaware.com/downloads/" target="_blank">download here</a>) dropped
-into the `plugins` directory of your Neo4j installation. After changing a few lines of config (read on) and restarting Neo4j, the module will do its magic.
-
-### Embedded Mode / Java Development
-
-Java developers that use Neo4j in <a href="http://docs.neo4j.org/chunked/stable/tutorials-java-embedded.html" target="_blank">embedded mode</a>
-and those developing Neo4j <a href="http://docs.neo4j.org/chunked/stable/server-plugins.html" target="_blank">server plugins</a>,
-<a href="http://docs.neo4j.org/chunked/stable/server-unmanaged-extensions.html" target="_blank">unmanaged extensions</a>,
-GraphAware Runtime Modules, or Spring MVC Controllers can include use the UUID as a dependency for their Java project.
+You will need the <a href="https://github.com/graphaware/neo4j-framework" target="_blank">GraphAware Neo4j Framework</a> and GraphAware Neo4j UUID .jar files (both of which you can <a href="http://graphaware.com/downloads/" target="_blank">download here</a>) dropped
+into the `plugins` directory of your Neo4j installation. After adding a few lines of config (read on) and restarting Neo4j, the module will do its magic.
 
 #### Releases
 
@@ -55,97 +44,51 @@ dependency above to A.B.C.D.E-SNAPSHOT.
 #### Note on Versioning Scheme
 
 The version number has two parts. The first four numbers indicate compatibility with Neo4j GraphAware Framework.
- The last number is the version of the UUID library. For example, version 2.1.3.11.1 is version 1 of the UUID library
- compatible with GraphAware Neo4j Framework 2.1.3.11.
-
+ The last number is the version of the UUID library. For example, version 4.0.8.58.20 is version 20 of the UUID library
+ compatible with GraphAware Neo4j Framework 4.0.8.58.
 
 Setup and Configuration
 --------------------
 
-### Server Mode
-
-Edit `conf/neo4j.conf` to register the UUID module:
+Create or edit `conf/graphaware.conf` to register the UUID module:
 
 ```properties
-com.graphaware.runtime.enabled=true
-
 #UIDM becomes the module ID:
-com.graphaware.module.UIDM.1=com.graphaware.module.uuid.UuidBootstrapper
+com.graphaware.module.neo4j.UIDM.1=com.graphaware.module.uuid.UuidBootstrapper
 
 #optional, default is uuid:
-com.graphaware.module.UIDM.uuidProperty=uuid
+com.graphaware.module.neo4j.UIDM.uuidProperty=uuid
 
 #optional, default is false:
-com.graphaware.module.UIDM.stripHyphens=false
+com.graphaware.module.neo4j.UIDM.stripHyphens=false
 
 #optional, default is all nodes:
-com.graphaware.module.UIDM.node=hasLabel('Label1') || hasLabel('Label2')
+com.graphaware.module.neo4j.UIDM.node=hasLabel('Label1') || hasLabel('Label2')
 
 #optional, default is no relationships:
-com.graphaware.module.UIDM.relationship=isType('Type1')
-
-#optional, default is uuidIndex
-com.graphaware.module.UIDM.uuidIndex=uuidIndex
-
-#optional, default is uuidRelIndex
-com.graphaware.module.UIDM.uuidRelationshipIndex=uuidRelIndex
+com.graphaware.module.neo4j.UIDM.relationship=isType('Type1')
 ```
 
 Note that "UIDM" becomes the module ID. 
 
-`com.graphaware.module.UIDM.uuidProperty` is the property name that will be used to store the assigned UUID on nodes and relationships. The default is "uuid".
+`com.graphaware.module.neo4j.UIDM.uuidProperty` is the property name that will be used to store the assigned UUID on nodes and relationships. The default is "uuid".
 
-`com.graphaware.module.UIDM.stripHyphens` is the property name that controls hyphen existence. If its true created UUID will be free from hyphens. 
+`com.graphaware.module.neo4j.UIDM.stripHyphens` is the property name that controls hyphen existence. If its true created UUID will be free from hyphens. 
 
-`com.graphaware.module.UIDM.node` specifies either a fully qualified class name of [`NodeInclusionPolicy`](http://graphaware.com/site/framework/latest/apidocs/com/graphaware/common/policy/NodeInclusionPolicy.html) implementation,
+`com.graphaware.module.neo4j.UIDM.node` specifies either a fully qualified class name of [`NodeInclusionPolicy`](http://graphaware.com/site/framework/latest/apidocs/com/graphaware/common/policy/NodeInclusionPolicy.html) implementation,
 or a Spring Expression Language expression determining, which nodes to assign a UUID to. The default is to assign the
 UUID property to every node which isn't internal to the framework.
 
-`com.graphaware.module.UIDM.relationship` specifies either a fully qualified class name of [`RelationshipInclusionPolicy`](http://graphaware.com/site/framework/latest/apidocs/com/graphaware/common/policy/RelationshipInclusionPolicy.html) implementation,
+`com.graphaware.module.neo4j.UIDM.relationship` specifies either a fully qualified class name of [`RelationshipInclusionPolicy`](http://graphaware.com/site/framework/latest/apidocs/com/graphaware/common/policy/RelationshipInclusionPolicy.html) implementation,
 or a Spring Expression Language expression determining, which relationships to assign a UUID to. The default is **not** to assign the
-UUID property to any relationship. If you want to assign UUID to all relationship, please use `com.graphaware.module.UIDM.relationship=com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships`
-
-`com.graphaware.module.UIDM.uuidIndex` is the [explicit](http://nigelsmall.com/neo4j/index-confusion.php) index name that will be used to index nodes based on their UUID. The default is "uuidIndex".
-
-`com.graphaware.module.UIDM.uuidRelationshipIndex` is the explicit index name that will be used to index relationships based on their UUID. The default is "uuidRelIndex".
-
-Note explicit indexes (which differ from schema indexes) are used as they are label agnostic. You can check the existence of these explicit indexes via the `neo4j-shell`:
-```
-> neo4j-shell
-neo4j-sh (?)$ index --indexes
-Node indexes:
-  uuidIndex
-Relationship indexes:
-  uuidRelIndex
-```
-
-### Embedded Mode / Java Development
-
-To use the UUID module programmatically, register the module like this
-
-```java
- GraphAwareRuntime runtime = GraphAwareRuntimeFactory.createRuntime(database);  //where database is an instance of GraphDatabaseService
- UuidModule module = new UuidModule("UUIDM", UuidConfiguration.defaultConfiguration());
- runtime.registerModule(module);
- runtime.start();
-```
-
-Alternatively:
-
-```java
- GraphDatabaseService database = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(pathToDb)
-    .loadPropertiesFromFile(this.getClass().getClassLoader().getResource("neo4j.properties").getPath())
-    .newGraphDatabase();
- 
- //make sure neo4j.properties contain the lines mentioned in previous section
-```
+UUID property to any relationship. If you want to assign UUID to all relationship, please use `com.graphaware.module.neo4j.UIDM.relationship=com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships`
 
 Using GraphAware UUID
 ---------------------
 
-Apart from the configuration described above, the GraphAware UUID module requires nothing else to function. It will assign a UUID to nodes and relationships configured,
-and will prevent modifications to the UUID or deletion of the UUID property from these nodes/relationships by not allowing the transaction to commit.
-You can also retrieve a node/relationship by UUID.
+Apart from the configuration described above, **you must create unique constraints** (or at least indices) in the database.
+
+The module will assign a UUID to nodes and relationships configured, and will prevent modifications to the UUID or deletion of the UUID property from these nodes/relationships by not allowing the transaction to commit.
 
 Note: If you create a node and return it immediately, its contents will not reflect changes performed by transaction event handlers such as this one -- thus the UUID will not be available. A separate call must be made to get the UUID, for example:
 
@@ -156,71 +99,24 @@ CREATE (n:User {name: "Alice"}) RETURN id(n)
 MATCH (n) WHERE id(n) = 123 RETURN n.uuid
 ```
 
-### Cypher
-
-Once deployed, you can use the following Cypher functions:
-
-* `ga.uuid.findNode('<your UUID>')` (then do something with the result, e.g. `RETURN id(ga.uuid.findNode('<your UUID>')) as nodeId`
-* `ga.uuid.findRelationship('<your UUID>')`
-* `ga.uuid.findNodes(['<UUID1>','<UUID2>',...])`
-* `ga.uuid.findRelationships(['<UUID1>','<UUID2>',...])`
-
-In case you did not use `UIDM` (the default) as the module ID in your configuration, or if you registered multiple UUID modules,
-you will have to use slightly different syntax that allows you to pass in the module ID. 'nd' stands for "non-default":
-
-* `ga.uuid.nd.findNode('<module ID>','<your UUID>')`
-* `ga.uuid.nd.findRelationship('<module ID>','<your UUID>')`
-* `ga.uuid.nd.findNodes('<module ID>',['<UUID1>','<UUID2>',...])`
-* `ga.uuid.nd.findRelationships('<module ID>',['<UUID1>','<UUID2>',...])`
-
-When a node or relationship isn't found, `null` is returned. A non-existing UUID module ID will result in a `NotFoundException`.
-
-### REST API
-
-In Server Mode, a node/relationship can be retrieved by its UUID via the REST API.
-
-You can issue GET requests to `http://your-server-address:7474/graphaware/uuid/{moduleId}/node/{uuid}` to get the node ID for a given uuid.
-
-GET requests to `http://your-server-address:7474/graphaware/uuid/{moduleId}/relationship/{uuid}` will get the relationship ID for a given uuid.
-
-{moduleId} is the module ID the UUID Module was registered with. You can omit this part of the URL, in which case "UIDM" is assumed as the default value.
-If no node exists with the given UUID, a 404 status code will be returned.
-
-### Java API
-
-To use the Java API to find a node by its UUID, please instantiate `UuidReader` and use the method `getNodeIdByUuid` or `getRelationshipByUuid`
-
-```java
- UuidConfiguration configuration = getStartedRuntime(database).getModule(moduleId, UuidModule.class).getConfiguration();
- UuidReader reader = UuidReader(configuration, database);
- Node node = getNodeIdByUuid(uuid);
- Relationship rel = getRelationshipByUuid(uuid);
-```
-
-Please refer to Javadoc for more detail.
-
 ### Specifying the Generator Through Configuration
 
 By default, the `com.graphaware.common.uuid.EaioUuidGenerator` is used to generate the underlying UUID. Any generator implementation can be used, be it 
-out of the box or your own custom code, by modifying the `conf/neo4j.conf`. The following example configures the UUID module to make use of the `JavaUtilUUIDGenerator`:
+out of the box or your own custom code, by modifying the `conf/graphaware.conf`. The following example configures the UUID module to make use of the `JavaUtilUUIDGenerator`:
 
 ```properties
-com.graphaware.runtime.enabled=true
-
-com.graphaware.module.UUID.1=com.graphaware.module.uuid.UuidBootstrapper
-com.graphaware.module.UUID.relationship=com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships
-com.graphaware.module.UUID.uuidGeneratorClass=com.graphaware.module.uuid.generator.JavaUtilUUIDGenerator
+com.graphaware.module.neo4j.UUID.1=com.graphaware.module.uuid.UuidBootstrapper
+com.graphaware.module.UUID.neo4j.relationship=com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships
+com.graphaware.module.UUID.neo4j.uuidGeneratorClass=com.graphaware.module.uuid.generator.JavaUtilUUIDGenerator
 ```
 
 The following example configures the UUID module to make use of the `SequenceIdGenerator`:
 
 ```properties
-com.graphaware.runtime.enabled=true
-
-com.graphaware.module.UUID.1=com.graphaware.module.uuid.UuidBootstrapper
-com.graphaware.module.UUID.relationship=com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships
-com.graphaware.module.UUID.uuidProperty=sequence
-com.graphaware.module.UUID.uuidGeneratorClass=com.graphaware.module.uuid.generator.SequenceIdGenerator
+com.graphaware.module.neo4j.UUID.1=com.graphaware.module.uuid.UuidBootstrapper
+com.graphaware.module.neo4j.UUID.relationship=com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships
+com.graphaware.module.neo4j.UUID.uuidProperty=sequence
+com.graphaware.module.neo4j.UUID.uuidGeneratorClass=com.graphaware.module.uuid.generator.SequenceIdGenerator
 ```
 
 Please see the `com.graphaware.common.uuid.UuidGenerator` interface and the `com.graphaware.module.uuid.generator` package for more information 
@@ -232,7 +128,7 @@ This module ensures that all assigned UUIDs on nodes and relationships are immut
 In some scenarios, developers might want to disable the immutability with the following configuration setting :
 
 ```properties
-com.graphaware.module.UUID.immutable=false
+com.graphaware.module.neo4j.UUID.immutable=false
 ```
 
 We only allow this setting for development purposes or developers having an specific need and we **fully discourage** the use of this setting.
