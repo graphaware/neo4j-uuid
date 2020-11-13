@@ -106,17 +106,7 @@ out of the box or your own custom code, by modifying the `conf/graphaware.conf`.
 
 ```properties
 com.graphaware.module.neo4j.UUID.1=com.graphaware.module.uuid.UuidBootstrapper
-com.graphaware.module.UUID.neo4j.relationship=com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships
 com.graphaware.module.UUID.neo4j.uuidGeneratorClass=com.graphaware.module.uuid.generator.JavaUtilUUIDGenerator
-```
-
-The following example configures the UUID module to make use of the `SequenceIdGenerator`:
-
-```properties
-com.graphaware.module.neo4j.UUID.1=com.graphaware.module.uuid.UuidBootstrapper
-com.graphaware.module.neo4j.UUID.relationship=com.graphaware.runtime.policy.all.IncludeAllBusinessRelationships
-com.graphaware.module.neo4j.UUID.uuidProperty=sequence
-com.graphaware.module.neo4j.UUID.uuidGeneratorClass=com.graphaware.module.uuid.generator.SequenceIdGenerator
 ```
 
 Please see the `com.graphaware.common.uuid.UuidGenerator` interface and the `com.graphaware.module.uuid.generator` package for more information 
