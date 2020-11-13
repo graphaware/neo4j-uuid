@@ -29,7 +29,7 @@ import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.graphdb.*;
 import org.neo4j.harness.Neo4j;
 import org.neo4j.harness.Neo4jBuilders;
-import org.neo4j.monitoring.DatabaseEventListeners;
+import org.neo4j.kernel.monitoring.DatabaseEventListeners;
 import org.neo4j.test.ReflectionUtil;
 
 import java.util.ArrayList;
@@ -286,7 +286,7 @@ public class UuidModuleDeclarativeIntegrationTest {
 
     private GraphAwareRuntime getRuntime() throws Exception {
         DatabaseEventListeners listeners = ReflectionUtil.getPrivateField(databaseManagementService, "databaseEventListeners", DatabaseEventListeners.class);
-        return (GraphAwareRuntime) ReflectionUtil.getPrivateField(listeners, "databaseEventListeners", List.class).get(0);
+        return (GraphAwareRuntime) ReflectionUtil.getPrivateField(listeners, "databaseEventListeners", List.class).get(1);
     }
 
     @Test
