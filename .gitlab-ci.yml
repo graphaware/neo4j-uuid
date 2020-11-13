@@ -17,11 +17,11 @@ delay30mins:
     variables:
       - $PARENT_VERSION
 
-publishJavaDoc:
-  extends: .publishJavaDoc
-  variables:
-    FROM: target/apidocs
-    TO: uuid
+#publishJavaDoc:
+#  extends: .publishJavaDoc
+#  variables:
+#    FROM: target/apidocs
+#    TO: uuid
 
 uploadToS3:  #Need to define variable in job, as the global definition is inherited to the triggered jobs
   before_script:
@@ -29,28 +29,28 @@ uploadToS3:  #Need to define variable in job, as the global definition is inheri
     - FROM="target/uuid-$VERSION.jar"
     - TO="$AWS_PATH/uuid-$VERSION.jar"
 
-trigger:
-  stage: trigger
-  trigger:
-    project: GraphAware/neo4j-plugins/neo4j-to-elasticsearch
-    strategy: depend
-  variables:
-    PARENT_VERSION: $PARENT_VERSION
-  only:
-    refs:
-      - master
-    variables:
-      - $PARENT_VERSION =~ /.*\..*/
-
-triggerGAtrigger:
-  stage: trigger
-  trigger:
-    project: GraphAware/neo4j-plugins/neo4j-triggers
-    strategy: depend
-  variables:
-    PARENT_VERSION: $PARENT_VERSION
-  only:
-    refs:
-      - master
-    variables:
-      - $PARENT_VERSION =~ /.*\..*/
+#trigger:
+#  stage: trigger
+#  trigger:
+#    project: GraphAware/neo4j-plugins/neo4j-to-elasticsearch
+#    strategy: depend
+#  variables:
+#    PARENT_VERSION: $PARENT_VERSION
+#  only:
+#    refs:
+#      - master
+#    variables:
+#      - $PARENT_VERSION =~ /.*\..*/
+#
+#triggerGAtrigger:
+#  stage: trigger
+#  trigger:
+#    project: GraphAware/neo4j-plugins/neo4j-triggers
+#    strategy: depend
+#  variables:
+#    PARENT_VERSION: $PARENT_VERSION
+#  only:
+#    refs:
+#      - master
+#    variables:
+#      - $PARENT_VERSION =~ /.*\..*/
